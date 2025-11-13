@@ -8,7 +8,7 @@ import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/V
 
 contract RandomValuesGenerator is VRFConsumerBaseV2Plus {
     event RequestSent(uint256 request_id, uint32 num_words);
-    event RequestFulfilled(uint256 request_id, uint256[] random_words);
+    event request_fulfilled(uint256 request_id, uint256[] random_words);
 
     uint256 public s_subscription_id;
     bytes32 constant public key_hash=0x8596b430971ac45bdf6088665b9ad8e8630c9d5049ab54b14dff711bee7c0e26;
