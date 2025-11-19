@@ -2,11 +2,9 @@
 pragma solidity ^0.8.20;
 import {EthioCoin} from "../contracts/EthioCoin.sol";
 import {Test} from "forge-std/src/Test.sol";
-import {console} from "forge-std/src/console.sol";
 
 contract EthioCoinTest is Test {
     EthioCoin ethiocoin;
-    address public deployer;
     address user_1=address(1);
     address user_2=address(2);
     address user_3=address(3);
@@ -81,8 +79,4 @@ contract EthioCoinTest is Test {
         require(ethiocoin.totalSupply()==1_000_000*10**(ethiocoin.decimals()));
 
     }
-
-    
-
-//    function test_owner_balance
 }
