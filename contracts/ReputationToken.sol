@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract ReputationToken is ERC20, Ownable {
 
-    constructor(address treasure) ERC20("ReputationToken", "RPT") {
+    constructor(address treasure) ERC20("ReputationToken", "RPT") Ownable(msg.sender) {
         _mint(treasure, 1_000_000 * 10 ** decimals());
     }
 

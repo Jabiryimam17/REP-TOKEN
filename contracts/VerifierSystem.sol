@@ -1,23 +1,22 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./RandomValuesGenerator.sol";
+import {VRFConsumerBaseV2Plus} from "@chainlink/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
+import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
 
-/// @notice Verifier system — snake_case naming (except VRF related functions kept as-is)
-contract verifier_system is Ownable, RandomValuesGenerator, ReentrancyGuard {
+
+contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /* ========== EVENTS ========== */
-    event request_sent(uint256 request_id, uint32 num_words, bytes32 job_id);
     event request_fulfilled(uint256 request_id, uint256[] random_values, bytes32 job_id);
     event verifier_added(address indexed verifier, uint8 category);
     event verifier_staked(address indexed verifier, uint256 amount);
     event verifier_unstaked(address indexed verifier, uint256 amount);
-    event job_initialized(bytes32 indexed job_id, uint8 category, uint256 lock_amount, uint8 min_verifiers);
+    event job_initialized(bytes32 indexed job_id, uint8 category, uint256 lock_amount, uint min_verifiers);
     event hashed_decision_submitted(bytes32 indexed job_id, address indexed verifier);
     event decision_revealed(bytes32 indexed job_id, address indexed verifier, uint256 score);
     event job_finalized(bytes32 indexed job_id, DISPUTE_STATUS dispute_status);
@@ -25,6 +24,8 @@ contract verifier_system is Ownable, RandomValuesGenerator, ReentrancyGuard {
     event rewards_claimed(address indexed by, uint256 amount);
     event verifier_slashed(address indexed verifier, uint256 amount, bytes32 indexed job_id);
     event treasury_set(address indexed treasury);
+    event request_sent(uint256 request_id, uint num_words, bytes32 job_id);
+    event request_fulfilled(uint256 request_id, uint256[] random_words);
 
     /* ========== ENUMS ========== */
     enum DISPUTE_STATUS {PENDING, FREELANCER_WIN, CLIENT_WIN}
@@ -35,6 +36,15 @@ contract verifier_system is Ownable, RandomValuesGenerator, ReentrancyGuard {
     uint256 public constant WEIGHT_MAX = 100;
     uint256 public slash_bps = 2000; // 20% of lock amount for zero-weight verifiers (basis points)
 
+
+    uint256 public s_subscription_id;
+    bytes32 constant public key_hash=0x8596b430971ac45bdf6088665b9ad8e8630c9d5049ab54b14dff711bee7c0e26;
+
+    uint32 public callback_gas_limit=100_000;
+
+    uint16 public request_confirmations=2;
+
+    uint32 public max_num_words=10;
     struct DisputedJob {
         bool open_for_dispute;
         uint256 submission_deadline;
@@ -44,7 +54,7 @@ contract verifier_system is Ownable, RandomValuesGenerator, ReentrancyGuard {
         uint256 dispute_fee_from_freelancer;
         uint stakes_lost;
         uint256 lock_amount;
-        uint8 min_number_verifiers;
+        uint min_number_verifiers;
         uint256 verifiers_expired;
         DISPUTE_STATUS dispute_status;
         // mappings & arrays
@@ -57,14 +67,14 @@ contract verifier_system is Ownable, RandomValuesGenerator, ReentrancyGuard {
     struct Verifier {
         bool verified;
         bool is_active;
-        bool in_dispute;
+        uint8 in_dispute;
         uint256 locked;
         uint256 staked;
         uint8 category;
     }
 
     // jobs storage (cannot be public because of mappings inside struct)
-    mapping(bytes32 => DisputedJob) private disputed_jobs;
+    mapping(bytes32 => DisputedJob) public disputed_jobs;
 
     mapping(uint8 => bool) public category_not_open;
     mapping(bytes32 => bool) public commitments;
@@ -79,11 +89,12 @@ contract verifier_system is Ownable, RandomValuesGenerator, ReentrancyGuard {
     uint256 public treasury_pending; // tokens accumulated to treasury from slashes
 
     /* ========== CONSTRUCTOR ========== */
-    constructor(address _reputation_token, address _treasury) {
+    constructor(address _reputation_token, address _treasury, address _coordinator, uint subscription_id) VRFConsumerBaseV2Plus(_coordinator) {
         require(_reputation_token != address(0), "zero token");
         require(_treasury != address(0), "zero treasury");
         reputation_token = IERC20(_reputation_token);
         treasury_address = _treasury;
+        s_subscription_id=subscription_id;
         emit treasury_set(_treasury);
     }
 
@@ -149,13 +160,13 @@ contract verifier_system is Ownable, RandomValuesGenerator, ReentrancyGuard {
         category_not_open[existing_job.category] = true;
 
         // Call to RandomValuesGenerator (assumes VRF client variables exist in inherited contract)
-        uint256 requestId = s_vrfCoordinator.requestRandomWords(
+        uint256 request_id = s_vrfCoordinator.requestRandomWords(
             VRFV2PlusClient.RandomWordsRequest({
                 keyHash: key_hash,
                 subId: s_subscription_id,
                 requestConfirmations: request_confirmations,
                 callbackGasLimit: callback_gas_limit,
-                numWords: existing_job.min_number_verifiers,
+                numWords: uint32(existing_job.min_number_verifiers),
                 extraArgs: VRFV2PlusClient._argsToBytes(
                     VRFV2PlusClient.ExtraArgsV1({nativePayment: enable_native_payment})
                 )
@@ -169,11 +180,12 @@ contract verifier_system is Ownable, RandomValuesGenerator, ReentrancyGuard {
         job.release_deadline = block.timestamp + 2 hours;
         job.dispute_status = DISPUTE_STATUS.PENDING;
 
-        verifier_requests[requestId] = job_id;
+        verifier_requests[request_id] = job_id;
 
-        emit request_sent(requestId, min_number_verifiers, job_id);
-        emit job_initialized(job_id, category, needed_lock, uint8(min_number_verifiers));
+        emit request_sent(request_id, job.min_number_verifiers, job_id);
+        emit job_initialized(job_id, job.category, job.lock_amount, job.min_number_verifiers);
     }
+
 
     /* ========== VRF CALLBACK (name preserved) ========== */
     // NOTE: keep function name as requested by user
@@ -289,6 +301,7 @@ contract verifier_system is Ownable, RandomValuesGenerator, ReentrancyGuard {
         for (uint256 i = 0; i < job.chosen_verifiers.length; i++) {
             address v = job.chosen_verifiers[i];
             uint256 s = job.scores[v];
+            job.verifiers_allowed[v] = false; // reset for safety
             if (s == 0) {
                 weights[i] = 0;
                 continue;
@@ -353,6 +366,7 @@ contract verifier_system is Ownable, RandomValuesGenerator, ReentrancyGuard {
         }
 
         // mark job closed
+        delete job.chosen_verifiers;
         job.open_for_dispute = false;
         emit job_finalized(job_id, job.dispute_status);
     }

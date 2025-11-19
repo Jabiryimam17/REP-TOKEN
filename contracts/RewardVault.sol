@@ -26,7 +26,7 @@ contract RewardVault {
     }
 
     function update_pool() internal {
-        if (total_staked=0) {
+        if (total_staked==0) {
             last_reward_time=block.timestamp;
             return;
         }

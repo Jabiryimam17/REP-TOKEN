@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@Uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
 contract Treasure is Ownable {
     IERC20 public reputation_token;
@@ -14,7 +14,7 @@ contract Treasure is Ownable {
 
     IUniswapV2Router02 public uniswap_router = IUniswapV2Router02(0xeE567Fe1712Faf6149d80dA1E6934E354124CfE3);
 
-    constructor(address token_address, address stable_coin_address, address reward_vault_address) {
+    constructor(address token_address, address stable_coin_address, address reward_vault_address) Ownable(msg.sender) {
         reputation_token = IERC20(token_address);
         stable_coin = IERC20(stable_coin_address);
         reward_vault = reward_vault_address;
