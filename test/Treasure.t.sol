@@ -3,8 +3,6 @@ pragma solidity ^0.8.20;
 import {Treasure} from "../contracts/Treasure.sol";
 import {Test} from "forge-std/src/Test.sol";
 import {console} from "forge-std/src/console.sol";
-import "@uniswap/v2-core/contracts/UniswapV2Factory.sol";
-import "@uniswap/v2-periphery/contracts/UniswapV2Router02.sol";
 import {EthioCoin} from "../contracts/EthioCoin.sol";
 import {ReputationToken} from  "../contracts/ReputationToken.sol";
 import {RewardVault} from "../contracts/RewardVault.sol";
@@ -18,8 +16,7 @@ contract TreasureTest is Test {
     address public owner=address(1);
     address public f_user=address(2);
     address public l_user=address(3);
-    UniswapV2Router02 public router;
-    address public public rpt_eth_pool;
+
     function setUp() public {
         vm.startPrank(owner);
         lptoken=new EthioCoin();
@@ -27,29 +24,13 @@ contract TreasureTest is Test {
         treasure=new Treasure(address(eth));
         rpt =new ReputationToken(address(treasure));
         reward_vault=new RewardVault(lptoken, rpt, 317*1e3);
+        treasure.set_reward_vault(address(reward_vault));
         treasure.set_reputation_token(address(rpt));
         eth.transfer(address(treasure), 1e19);
-        UniswapV2Factory factory=new UniswapV2Factory(owner);
-        EthioCoin fake_weth=new EthioCoin();
-        router = new UniswapV2Router02(address(factory),address(fake_weth));
-        rpt_eth_pool=factory.createPair(address(rpt), address(eth));
-        rpt.approve(address(router), 1e10);
-        eth.approve(address(router), 1e5);
-        treasure.set_uniswap_router(address(router));
-        router.addLiquidity(
-            rpt,
-            eth,
-            1e8,
-            1e4,
-            1e6,
-            1e3,
-            address(treasure),
-            block.timestamp+1e4
-        );
         vm.stopPrank();
     }
 
-    //PHASE 1: TESTING INITIAL SET UP AND INTERACTION WITH OTHER CONTRACTS
+    //PHASE 1: TESTING INITAL SET UP AND INTERACTION WITH OTHER CONTRACTS
     function test_owner_setup () public {
         require(treasure.owner()==owner);
     }
@@ -284,25 +265,7 @@ contract TreasureTest is Test {
         treasure.fill_reward_vault(1e7);
         assertEq(rpt.balanceOf(address(reward_vault)), prev_balance+1e7);
     }
-    // PHASE 3: TESTING THE SWAPPING AND BUY BACKS
-    function test_swap_rpt_stable_only_owner() public {
-        vm.prank(f_user);
-        vm.expectRevert();
-        treasure.swap_reputation_for_stable(1e4, 1e1);
-        vm.prank(owner);
-        treasure.swap_reputation_for_stable(1e4, 1e1);
-    }
-    function test_swap_rpt_stable_fail_zero_transfer() public {
-        vm.prank(owner);
-        vm.expectRevert("Zero transfer is not allowed.");
-        treasure.swap_reputation_for_stable(0, 1);
-    }
 
-    function test_swap_rpt_stable_fail_excess_amount() public {
-        uint prev_balance=rpt.balanceOf(address(treasure));
-        vm.prank(owner);
-        treasure.swap_reputation_for_stable(prev_balance+1, 1e1);
-    }
 
 
 

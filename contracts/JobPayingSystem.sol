@@ -7,14 +7,13 @@ import "./VerifierSystem.sol";
 
 contract JobPayingSystem is VerifierSystem {
 
-    enum JOB_STATUS { OPEN, HIRED_PENDING, HIRED, CLOSED, DISPUTED}
+    enum JOB_STATUS { NONE,OPEN, PENDING, HIRED, DISPUTED, CLOSED}
     // --- Events ---
-    event job_posted(bytes32 indexed job_id, address indexed client, uint amount, uint category, uint levelId);
+    event job_posted(bytes32 indexed job_id, address indexed client, uint amount, uint category, uint level);
     event job_hired(bytes32 indexed job_id, address indexed client, address indexed freelancer);
     event job_accepted(bytes32 indexed job_id, address indexed freelancer);
     event job_completed(bytes32 indexed job_id, address indexed freelancer);
     event job_disputed(bytes32 indexed job_id, address indexed client, address indexed freelancer, bool stake_burnt);
-    event request_sent(uint256 request_id, uint32 num_words);
 
     // --- Constants ---
     uint8 public constant VERIFIERS_RECYCLING_PER_JOB = 5;
@@ -36,10 +35,11 @@ contract JobPayingSystem is VerifierSystem {
     uint public client_fee_portion_bps =200; // portion of verifier reward that goes to the system treasure
     uint public freelancer_fee_portion_bps =50; // portion of verifier reward that goes to the freelancer who raised the dispute
 
+    function set_client_fee_portion(uint val) public onlyOwner{client_fee_portion_bps=val;}
     struct Level {
         uint min_verifiers_portion; // portion out of VERIFIER_DECIMAL
-        uint free_stake_portion;         // portion out of STAKE_DECIMAL for freelancer
-        uint client_stake_portion;       // portion out of STAKE_DECIMAL for client
+        uint freelancer_stake;         // portion out of STAKE_DECIMAL for freelancer
+        uint client_stake;       // portion out of STAKE_DECIMAL for client
         uint max_amount;            // upper bound for this level
         uint payment_duration;      // appeal time in seconds
     }
@@ -53,9 +53,8 @@ contract JobPayingSystem is VerifierSystem {
         uint appeal_time;
         uint disputes_raised;
         JOB_STATUS status;
-        uint stakes_lost;
         uint amount;
-        uint time_limit;
+        uint max_duration;
         uint expiry_timestamp;
         uint level_id;
     }
@@ -64,75 +63,83 @@ contract JobPayingSystem is VerifierSystem {
     mapping(bytes32 => Job) private jobs;
     mapping(address => Freelancer) public freelancers;
 
+    function get_job_lists_len() public view returns(uint) {return job_lists.length;}
     constructor(
-        address _token,
         address coordinator,
         uint256 subscription_id,
         address _treasure_address,
         address _stable_coin,
-        address reputation_token
-    ) VerifierSystem(reputation_token, _treasure_address, coordinator, subscription_id) {
-        require(_token != address(0), "token address zero");
+        address _reputation_token
+    ) VerifierSystem(_reputation_token, _treasure_address, coordinator, subscription_id) {
         stable_coin=IERC20(_stable_coin);
     }
 
     // --- Owner utilities ---
-    function set_up_levels(Level[] memory _levels) external onlyOwner {
-        delete levels;
-        for (uint i = 0; i < _levels.length; i++) levels.push(_levels[i]);
+    function append_level(Level calldata _level) external onlyOwner {
+        require(_level.min_verifiers_portion >0, "No verifiers system not allowed");
+        require(_level.freelancer_stake > 0 && _level.client_stake >0, "Zero stake not allowed");
+        require(levels.length == 0 || _level.max_amount > levels[levels.length-1].max_amount, "Sorting order should be respected");
+        levels.push(_level);
     }
 
-    function add_verifiers(address verifier, uint8 category) external onlyOwner {
-        verifiers_in_category[category].push(verifier);
-    }
-
+    function levels_size() public view returns (uint) {return levels.length;}
+    function get_level(uint index) public view returns(Level memory) {return levels[index];}
     function register_freelancer(address freelancer, uint allowed_levels) external onlyOwner {
+
+        require(address(0)!=freelancer,"Zero address is not allowed");
+        require(allowed_levels > 0 && allowed_levels <= levels.length,"No such level exists");
+        require(freelancers[freelancer].total_jobs==0, "Already in work");
         freelancers[freelancer] = Freelancer(allowed_levels, 0, 0);
     }
 
 
 
     // --- Core flows ---
+    uint public constant MIN_MAX_DURATION=3600*24;// 1 working day
     function post_job(uint amount, uint max_duration, uint8 category, uint fee_given) external nonReentrant {
+        require(max_duration > MIN_MAX_DURATION,"Insufficient working time");
+        require(amount > 0, "Amount must be > 0");
+        require(amount <= levels[levels.length-1].max_amount, "No such payout allowed");
+        uint category_verifiers = verifiers_in_category[category].length;
+        require(category_verifiers > 0, "No verifiers system not allowed");
         uint fee = amount * client_fee_portion_bps / 10000;
         require(fee_given >= fee, "Insufficient fee provided");
-        require(amount > 0, "Amount must be > 0");
+
         // Pull tokens from client. Client must call approve(contract, amount) first.
-        require(stable_coin.transferFrom(msg.sender, treasury_address, fee), "fee transfer failed");
+        require(stable_coin.transferFrom(msg.sender, treasury_address, fee+amount), "payment transfer failed");
         uint level_id = calculate_level(amount);
-        uint stake=(levels[level_id].client_stake_portion*amount)/STAKE_DECIMAL;
-        require(stable_coin.transferFrom(msg.sender, treasury_address, amount), "payment transfer failed");
-        require(reputation_token.transferFrom(msg.sender, treasury_address, stake), "token transfer failed");
-        bytes32 job_id = keccak256(abi.encodePacked(msg.sender, block.timestamp, block.number));
+        require(reputation_token.transferFrom(msg.sender, treasury_address, levels[level_id-1].client_stake), "token transfer failed");
+        bytes32 job_id = keccak256(abi.encodePacked( block.timestamp, job_lists.length));
         Job storage new_job = jobs[job_id];
         DisputedJob storage disputed_job = disputed_jobs[job_id];
         new_job.client = msg.sender;
         new_job.amount = amount;
-        new_job.time_limit = max_duration;
+        new_job.max_duration = max_duration;
         new_job.level_id = level_id;
 
-        disputed_job.dispute_fee_from_client = stake;
+        disputed_job.dispute_fee_from_client = levels[level_id-1].client_stake;
         disputed_job.category = category;
-        uint category_verifiers = verifiers_in_category[category].length;
-        uint number_verifiers = (levels[new_job.level_id].min_verifiers_portion * category_verifiers) / VERIFIER_DECIMAL;
-        disputed_job.dispute_fee_from_freelancer=(levels[new_job.level_id].free_stake_portion*amount)/STAKE_DECIMAL;
-        disputed_job.min_number_verifiers = number_verifiers;
+
+        disputed_job.dispute_fee_from_freelancer=levels[level_id-1].freelancer_stake;
+        disputed_job.min_number_verifiers = (levels[level_id-1].min_verifiers_portion * category_verifiers) / VERIFIER_DECIMAL;
         new_job.status = JOB_STATUS.OPEN;
 
-        job_lists.push(job_id);
+        job_lists.push(job_id);//untested
         emit job_posted(job_id, msg.sender, amount, category, new_job.level_id);
     }
+
+    function get_job(bytes32 job_id) public view returns( Job memory
+    ) {return jobs[job_id];}
 
     function cancel_job(bytes32 job_id) external nonReentrant {
         Job storage job = jobs[job_id];
         require(job.client == msg.sender, "Only client can cancel");
         require(job.status == JOB_STATUS.OPEN, "Job not open");
-        require(job.stakes_lost <= job.amount, "Invalid stakes lost");
         job.status = JOB_STATUS.CLOSED; // mark closed
         if (job.amount > 0) require(stable_coin.transfer(job.client, job.amount), "refund failed");
-        if (disputed_jobs[job_id].stakes_lost < disputed_jobs[job_id].dispute_fee_from_client) { // to prevent a client from cancelling after crashing freelancers
+        if (disputed_jobs[job_id].stakes_lost < disputed_jobs[job_id].dispute_fee_from_client) { // to prevent a client from cancelling after crashing freelancers // alternate stake_lost < 0
             uint refund_stake = disputed_jobs[job_id].dispute_fee_from_client - disputed_jobs[job_id].stakes_lost;
-            require(reputation_token.transferFrom(treasury_address,job.client, refund_stake), "return stake failed");
+            require(reputation_token.transfer(job.client, refund_stake), "return stake failed");
         }
     }
 
@@ -142,72 +149,69 @@ contract JobPayingSystem is VerifierSystem {
         require(job.status == JOB_STATUS.OPEN, "Job not open");
         require(msg.sender != freelancer, "Client cannot hire self");
 
-        Freelancer storage worker = freelancers[freelancer];
+        Freelancer memory worker = freelancers[freelancer];
+        require(worker.allowed_levels!=0, "Not registered");// this prevents unregister users and zero address
         require(worker.allowed_levels >= job.level_id, "Freelancer level insufficient");
 
         job.freelancer = freelancer;
-        job.status = JOB_STATUS.HIRED_PENDING;
+        job.status = JOB_STATUS.PENDING;
         emit job_hired(job_id, msg.sender, freelancer);
     }
 
     function cancel_pending_hire(bytes32 job_id) external {
         Job storage job = jobs[job_id];
         require(job.client == msg.sender, "Only client can cancel");
-        require(job.status == JOB_STATUS.HIRED_PENDING, "Job not pending");
+        require(job.status == JOB_STATUS.PENDING, "Job not pending");
 
         job.freelancer = address(0);
         job.status = JOB_STATUS.OPEN;
-
     }
 
     function accept_job(bytes32 job_id) external nonReentrant {
 
         Job storage job = jobs[job_id];
         uint fee = job.amount * freelancer_fee_portion_bps/10000;
-        require(stable_coin.transferFrom(msg.sender, treasury_address, fee), "fee transfer failed");
-        require(job.status == JOB_STATUS.HIRED_PENDING, "Job not pending");
+        require(job.status == JOB_STATUS.PENDING, "Job not pending");
         require(job.freelancer == msg.sender, "Only invited freelancer can accept");
+        require(stable_coin.transferFrom(msg.sender, treasury_address, fee), "fee transfer failed");
 
-        uint stake_amount = (levels[job.level_id].free_stake_portion * job.amount) / STAKE_DECIMAL;
-        require(reputation_token.transferFrom(msg.sender, treasury_address, stake_amount), "stake transfer failed");
+        require(reputation_token.transferFrom(msg.sender, treasury_address, levels[job.level_id-1].freelancer_stake), "stake transfer failed");
 
         job.freelancer_approved = true;
-        job.status = JOB_STATUS.HIRED;
-
-        job.expiry_timestamp = block.timestamp + job.time_limit;
+        job.expiry_timestamp = block.timestamp + job.max_duration;
         freelancers[job.freelancer].total_jobs++;
-
+        job.status = JOB_STATUS.HIRED;
         emit job_accepted(job_id, msg.sender);
     }
 
     function cancel_hire(bytes32 job_id) external nonReentrant {
         Job storage job = jobs[job_id];
+        require(block.timestamp > job.expiry_timestamp, "Time not expired");
         require(job.client == msg.sender, "Only client can cancel");
         require(job.status == JOB_STATUS.HIRED, "Job not hired");
-        require(block.timestamp > job.expiry_timestamp, "Time not expired");
         require(!job.freelancer_completed, "Freelancer already completed");
 
         job.freelancer = address(0);
         job.freelancer_approved=false;
         job.status = JOB_STATUS.OPEN;
+        job.expiry_timestamp=0;
         disputed_jobs[job_id].stakes_lost+=disputed_jobs[job_id].dispute_fee_from_client;
-        disputed_jobs[job_id].dispute_fee_from_freelancer=0;
     }
 
     function complete_job(bytes32 job_id) external {
         Job storage job = jobs[job_id];
+        require(job.expiry_timestamp >= block.timestamp, "Time expired");
         require(job.status == JOB_STATUS.HIRED, "Job not hired");
         require(job.freelancer == msg.sender, "Only hired freelancer can complete");
-
+        require(!job.freelancer_completed,"Already completed job");//can be used to prolong appeal time
         job.freelancer_completed = true;
-        job.appeal_time = block.timestamp + levels[job.level_id].payment_duration;
+        job.appeal_time = block.timestamp + levels[job.level_id-1].payment_duration;
         emit job_completed(job_id, msg.sender);
     }
 
     function pay_him(bytes32 job_id) external nonReentrant {
         Job storage job = jobs[job_id];
         require(job.client == msg.sender, "Only client can pay");
-        require(job.status == JOB_STATUS.HIRED, "Job not in hired state");
         require(job.freelancer_completed, "Freelancer not completed");
         require(reputation_token.transferFrom(treasury_address, job.client, disputed_jobs[job_id].dispute_fee_from_client), "return client stake failed");
         require(reputation_token.transferFrom(treasury_address, job.freelancer, disputed_jobs[job_id].dispute_fee_from_freelancer), "return freelancer stake failed");
@@ -221,7 +225,6 @@ contract JobPayingSystem is VerifierSystem {
         // allow either client or freelancer to raise dispute depending on your policy
         require(msg.sender == job.freelancer || msg.sender == job.client, "Only involved parties can raise dispute");
         require(job.status == JOB_STATUS.HIRED, "Job not hired");
-        require(job.freelancer_completed, "Freelancer not completed");
         require(block.timestamp<job.appeal_time, "Appeal time expired");
         job.disputes_raised++;
         job.status = JOB_STATUS.DISPUTED;
@@ -235,7 +238,7 @@ contract JobPayingSystem is VerifierSystem {
         Job storage job = jobs[job_id];
         DisputedJob storage disputed_job = disputed_jobs[job_id];
         require(job.status == JOB_STATUS.DISPUTED, "Job not disputed");
-        require(disputed_job.dispute_status==DISPUTE_STATUS.FREELANCER_WIN, "Dispute not resolved in your favor");
+        require(disputed_job.dispute_status==DISPUTE_STATUS.FREELANCER_WIN, "DisJopute not resolved in your favor");
         require(msg.sender == job.freelancer, "Only freelancer can claim");
         stable_coin.transferFrom(treasury_address,msg.sender, job.amount);
         reputation_token.transferFrom(treasury_address,msg.sender, disputed_job.dispute_fee_from_freelancer);
@@ -250,14 +253,14 @@ contract JobPayingSystem is VerifierSystem {
         require(disputed_job.dispute_status==DISPUTE_STATUS.CLIENT_WIN, "Dispute not resolved in your favor");
         require(msg.sender == job.client, "Only client can refund");
         stable_coin.transferFrom(treasury_address, msg.sender, job.amount);
-        reputation_token.transferFrom(treasury_address,msg.sender, disputed_job.dispute_fee_from_client);
+        if (disputed_job.dispute_fee_from_client > disputed_job.stakes_lost )reputation_token.transferFrom(treasury_address,msg.sender, disputed_job.dispute_fee_from_client-disputed_job.stakes_lost);
         job.status=JOB_STATUS.CLOSED;
     }
 
 
 
     // --- Helpers ---
-    function calculate_level(uint256 amount) internal view returns (uint256) {
+    function calculate_level(uint256 amount) public view returns (uint256) {// we will make it private only public for testing
         require(levels.length > 0, "No levels configured");
         uint256 low = 0;
         uint256 high = levels.length - 1;
@@ -266,6 +269,6 @@ contract JobPayingSystem is VerifierSystem {
             if (levels[mid].max_amount >= amount) high = mid;
             else low = mid + 1;
         }
-        return low;
+        return low+1; // 1 indexed
     }
 }

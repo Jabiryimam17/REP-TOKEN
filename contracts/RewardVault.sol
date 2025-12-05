@@ -58,16 +58,12 @@ contract RewardVault {
         update_pool();
 
         uint256 pending=user.amount * acc_reward_per_share/1e12 - user.reward_debt;
-        if (pending > 0) reward_token.transferFrom(address(this), msg.sender, pending);
+        if (pending > 0) reward_token.transfer(msg.sender, pending);
 
         user.amount-=amount;
         user.reward_debt=user.amount * acc_reward_per_share/1e12;
         total_staked -= amount;
         lptoken.transfer(msg.sender, amount);
     }
-
-
-
-
 
 }

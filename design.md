@@ -39,3 +39,21 @@ my-blockchain-project/
 ├── scripts/ci-cd/          # Optional CI/CD scripts
 ├── README.md
 └── docs/                   # Project documentation
+
+struct Job {
+address client; //
+address freelancer;
+bool freelancer_approved=false;
+bool freelancer_completed=false;
+uint appeal_time;
+uint disputes_raised=0;
+JOB_STATUS status; //
+uint stakes_lost=0; //
+uint amount; // 
+uint remain_min_verifiers; //
+uint time_limit;//
+uint expiry_timestamp;
+uint level_id; // 
+uint category; //
+    mapping(address => bool) verifiers_allowed;
+}

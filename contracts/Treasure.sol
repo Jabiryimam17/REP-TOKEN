@@ -9,22 +9,28 @@ contract Treasure is Ownable {
     IERC20 public stable_coin;
     address public reward_vault;
     mapping(address => uint256) public allocated_stable_coin;
-    uint internal allocated_stable_coin_buyback;
     uint public locked_stable_coin;
 
     IUniswapV2Router02 public uniswap_router = IUniswapV2Router02(0xeE567Fe1712Faf6149d80dA1E6934E354124CfE3);
 
-    constructor(address token_address, address stable_coin_address, address reward_vault_address) Ownable(msg.sender) {
-        reputation_token = IERC20(token_address);
+    constructor(address stable_coin_address) Ownable(msg.sender) {
         stable_coin = IERC20(stable_coin_address);
-        reward_vault = reward_vault_address;
     }
 
     function set_reward_vault(address new_reward_vault) public onlyOwner {
         reward_vault = new_reward_vault;
     }
 
+    function set_uniswap_router(address _uniswap_router) public onlyOwner {
+        uniswap_router = IUniswapV2Router02(_uniswap_router);
+    }
+    function set_reputation_token(address reputation_token_address) public onlyOwner {
+        reputation_token=IERC20(reputation_token_address);
+    }
+
     function withdraw_tokens(address to, uint256 amount) public onlyOwner {
+        require(address(0)!=to, "Null address is not allowed.");
+        require(amount > 0, "Zero transfer is not allowed.");
         require(reputation_token.balanceOf(address(this)) >= amount, "Insufficient balance in Treasure");
         reputation_token.transfer(to, amount);
     }
@@ -37,28 +43,34 @@ contract Treasure is Ownable {
     }
 
     function allocate_stable_coin(address beneficiary, uint256 amount) public onlyOwner {
-        require(stable_coin.balanceOf(address(this))-locked_stable_coin >= amount, "Insufficient balance in Treasure");
+        require(address(0)!=beneficiary,"Null address is not allowed.");
+        require(stable_coin.balanceOf(address(this))-locked_stable_coin >= amount, "Insufficient balance in Treasure.");
         allocated_stable_coin[beneficiary] += amount;
         locked_stable_coin += amount;
     }
 
     function deallocate_stable_coin(address to, uint256 amount) public onlyOwner {
-        require(allocated_stable_coin[to] >= amount, "Insufficient allocated stable coin for this address");
+        require(address(0)!=to, "Null address is not allowed.");
+        require(allocated_stable_coin[to] >= amount, "Insufficient allocated stable coin for this address.");
         allocated_stable_coin[to] -= amount;
         locked_stable_coin -= amount;
     }
     function transfer_allocated_stable_coin(address to, uint256 amount) public onlyOwner {
-        require(allocated_stable_coin[to] >= amount, "Insufficient allocated stable coin for this address");
+        require(amount > 0, "Zero transfer is not allowed.");
+        require(address(0)!=to, "Null address is not allowed.");
+        require(allocated_stable_coin[to] >= amount, "Insufficient allocated stable coin for this address.");
         allocated_stable_coin[to] -= amount;
         locked_stable_coin -= amount;
         stable_coin.transfer(to, amount);
     }
     function fill_reward_vault(uint256 amount) public onlyOwner {
+        require(amount > 0, "Zero transfer is not allowed.");
         require(reputation_token.balanceOf(address(this)) >= amount, "Insufficient balance in Treasure");
         reputation_token.transfer(reward_vault, amount);
     }
 
     function swap_reputation_for_stable(uint256 reputation_amount, uint256 min_stable_amount) public onlyOwner {
+        require(reputation_amount > 0, "Zero transfer is not allowed.");
         require(reputation_token.balanceOf(address(this)) >= reputation_amount, "Insufficient reputation token balance in Treasure");
 
         address[] memory path = new address[](2);
@@ -77,7 +89,7 @@ contract Treasure is Ownable {
     }
 
     function swap_stable_for_reputation(uint256 stable_amount, uint256 min_reputation_amount) public onlyOwner {
-        require(stable_coin.balanceOf(address(this)) >= stable_amount, "Insufficient stable coin balance in Treasure");
+        require(stable_coin.balanceOf(address(this))-locked_stable_coin >= stable_amount, "Insufficient stable coin balance in Treasure");
 
         address[] memory path = new address[](2);
         path[0] = address(stable_coin);
