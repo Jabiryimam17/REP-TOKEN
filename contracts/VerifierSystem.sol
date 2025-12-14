@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {VRFConsumerBaseV2Plus} from "@chainlink/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
@@ -141,13 +140,15 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard {
     }
 
 
+    
+
 
     /* ========== VRF REQUEST (name preserved) ========== */
     // NOTE: keep function name as requested by user
     function request_random_nums(
         bool enable_native_payment,
         bytes32 job_id
-    ) public onlyOwner {
+    ) public onlyOwner   {
         DisputedJob storage existing_job = disputed_jobs[job_id];
         require(!existing_job.open_for_dispute, "job already open");
         require(!category_not_open[existing_job.category], "category already open");
@@ -185,49 +186,53 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard {
 
         emit request_sent(request_id, job.min_number_verifiers, job_id);
         emit job_initialized(job_id, job.category, job.lock_amount, job.min_number_verifiers);
+        
     }
+    
+
+    
 
 
     /* ========== VRF CALLBACK (name preserved) ========== */
     // NOTE: keep function name as requested by user
-    function fulfillRandomWords(uint256 request_id, uint256[] calldata random_values) internal override {
-        bytes32 job_key = verifier_requests[request_id];
-        DisputedJob storage job = disputed_jobs[job_key];
-        require(job.open_for_dispute, "job not open");
+   function fulfillRandomWords(uint256 request_id, uint256[] calldata random_values) internal override {
+       bytes32 job_key = verifier_requests[request_id];
+       DisputedJob storage job = disputed_jobs[job_key];
+       require(job.open_for_dispute, "job not open");
 
-        address[] storage potential = verifiers_in_category[job.category];
+       address[] storage potential = verifiers_in_category[job.category];
 
-        bool[] memory used = new bool[](potential.length);
-        for (uint256 i = 0; i < potential.length; i++) {
-            if (verifiers[potential[i]].staked < job.lock_amount) used[i] = true;
-        }
+       bool[] memory used = new bool[](potential.length);
+       for (uint256 i = 0; i < potential.length; i++) {
+           if (verifiers[potential[i]].staked < job.lock_amount) used[i] = true;
+       }
 
-        // pick verifiers based on random values; ensure uniqueness
-        for (uint256 i = 0; i < random_values.length; i++) {
-            require(potential.length > 0, "no potential verifiers");
-            uint256 idx = random_values[i] % potential.length;
-            // find next unused
-            uint256 start = idx;
-            while (used[idx]) {
-                idx = (idx + 1) % potential.length;
-                require(idx != start || !used[idx], "not enough eligible verifiers");
-            }
-            address chosen = potential[idx];
-            job.chosen_verifiers.push(chosen);
-            job.verifiers_allowed[chosen] = true;
+       // pick verifiers based on random values; ensure uniqueness
+       for (uint256 i = 0; i < random_values.length; i++) {
+           require(potential.length > 0, "no potential verifiers");
+           uint256 idx = random_values[i] % potential.length;
+           // find next unused
+           uint256 start = idx;
+           while (used[idx]) {
+               idx = (idx + 1) % potential.length;
+               require(idx != start || !used[idx], "not enough eligible verifiers");
+           }
+           address chosen = potential[idx];
+           job.chosen_verifiers.push(chosen);
+           job.verifiers_allowed[chosen] = true;
 
-            // lock stake
-            Verifier storage v = verifiers[chosen];
-            v.locked += job.lock_amount;
-            v.staked -= job.lock_amount;
-            v.in_dispute++;
+           // lock stake
+           Verifier storage v = verifiers[chosen];
+           v.locked += job.lock_amount;
+           v.staked -= job.lock_amount;
+           v.in_dispute++;
 
-            used[idx] = true;
-        }
+           used[idx] = true;
+       }
 
-        category_not_open[job.category] = false;
-        emit request_fulfilled(request_id, random_values, job_key);
-    }
+       category_not_open[job.category] = false;
+       emit request_fulfilled(request_id, random_values, job_key);
+   }
 
     /* ========== SUBMIT / REVEAL ========== */
     function submit_hashed_decision(bytes32 job_id, bytes32 hashed_decision) external {

@@ -18,7 +18,7 @@ export declare namespace JobPayingSystem {
     }
 
   export interface JobPayingSystemInterface extends Interface {
-    getFunction(nameOrSignature: "MIN_MAX_DURATION" | "STAKE_DECIMAL" | "VERIFIERS_RECYCLING_PER_JOB" | "VERIFIER_DECIMAL" | "WEIGHT_MAX" | "acceptOwnership" | "accept_job" | "add_verifier" | "append_level" | "calculate_level" | "callback_gas_limit" | "cancel_hire" | "cancel_job" | "cancel_pending_hire" | "category_not_open" | "claim_my_pay_after_dispute" | "claim_rewards" | "client_fee_portion_bps" | "complete_job" | "finalize_verification" | "freelancer_fee_portion_bps" | "freelancers" | "get_job" | "get_job_lists_len" | "get_level" | "hire" | "inactive_verifier" | "job_lists" | "key_hash" | "levels" | "levels_size" | "owner" | "pay_him" | "pending_rewards" | "post_job" | "raise_dispute" | "rawFulfillRandomWords" | "refund_client_after_dispute" | "register_freelancer" | "reputation_token" | "request_confirmations" | "request_random_nums" | "reveal_decision" | "s_vrfCoordinator" | "setCoordinator" | "set_client_fee_portion" | "set_slash_bps" | "set_treasury" | "slash_bps" | "stable_coin" | "stake" | "submit_hashed_decision" | "subscription_id" | "transferOwnership" | "treasury_address" | "treasury_pending" | "verifier_requests" | "verifiers" | "verifiers_in_category" | "withdraw_treasury"): FunctionFragment;
+    getFunction(nameOrSignature: "MIN_MAX_DURATION" | "STAKE_DECIMAL" | "VERIFIERS_RECYCLING_PER_JOB" | "VERIFIER_DECIMAL" | "WEIGHT_MAX" | "acceptOwnership" | "accept_job" | "add_verifier" | "append_level" | "calculate_level" | "callback_gas_limit" | "cancel_hire" | "cancel_job" | "cancel_pending_hire" | "category_not_open" | "claim_my_pay_after_dispute" | "claim_rewards" | "client_fee_portion_bps" | "complete_job" | "finalize_verification" | "freelancer_fee_portion_bps" | "freelancers" | "get_job" | "get_job_lists_len" | "get_level" | "get_numbers" | "hire" | "inactive_verifier" | "job_lists" | "key_hash" | "levels" | "levels_size" | "owner" | "pay_him" | "pending_rewards" | "post_job" | "raise_dispute" | "random_words" | "rawFulfillRandomWords" | "refund_client_after_dispute" | "register_freelancer" | "reputation_token" | "request_confirmations" | "request_random_nums" | "request_randomness" | "reveal_decision" | "s_vrfCoordinator" | "setCoordinator" | "set_client_fee_portion" | "set_slash_bps" | "set_treasury" | "slash_bps" | "stable_coin" | "stake" | "submit_hashed_decision" | "subscription_id" | "transferOwnership" | "treasury_address" | "treasury_pending" | "verifier_requests" | "verifiers" | "verifiers_in_category" | "withdraw_treasury"): FunctionFragment;
 
     getEvent(nameOrSignatureOrTopic: "CoordinatorSet" | "OwnershipTransferRequested" | "OwnershipTransferred" | "decision_revealed" | "hashed_decision_submitted" | "job_accepted" | "job_completed" | "job_disputed" | "job_finalized" | "job_hired" | "job_initialized" | "job_posted" | "request_fulfilled(uint256,uint256[],bytes32)" | "request_fulfilled(uint256,uint256[])" | "request_sent" | "reward_credited" | "rewards_claimed" | "treasury_set" | "verifier_added" | "verifier_slashed" | "verifier_staked" | "verifier_unstaked"): EventFragment;
 
@@ -47,6 +47,7 @@ encodeFunctionData(functionFragment: 'freelancers', values: [AddressLike]): stri
 encodeFunctionData(functionFragment: 'get_job', values: [BytesLike]): string;
 encodeFunctionData(functionFragment: 'get_job_lists_len', values?: undefined): string;
 encodeFunctionData(functionFragment: 'get_level', values: [BigNumberish]): string;
+encodeFunctionData(functionFragment: 'get_numbers', values?: undefined): string;
 encodeFunctionData(functionFragment: 'hire', values: [BytesLike, AddressLike]): string;
 encodeFunctionData(functionFragment: 'inactive_verifier', values?: undefined): string;
 encodeFunctionData(functionFragment: 'job_lists', values: [BigNumberish]): string;
@@ -58,12 +59,14 @@ encodeFunctionData(functionFragment: 'pay_him', values: [BytesLike]): string;
 encodeFunctionData(functionFragment: 'pending_rewards', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'post_job', values: [BigNumberish, BigNumberish, BigNumberish, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'raise_dispute', values: [BytesLike]): string;
+encodeFunctionData(functionFragment: 'random_words', values: [BigNumberish]): string;
 encodeFunctionData(functionFragment: 'rawFulfillRandomWords', values: [BigNumberish, BigNumberish[]]): string;
 encodeFunctionData(functionFragment: 'refund_client_after_dispute', values: [BytesLike]): string;
 encodeFunctionData(functionFragment: 'register_freelancer', values: [AddressLike, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'reputation_token', values?: undefined): string;
 encodeFunctionData(functionFragment: 'request_confirmations', values?: undefined): string;
 encodeFunctionData(functionFragment: 'request_random_nums', values: [boolean, BytesLike]): string;
+encodeFunctionData(functionFragment: 'request_randomness', values: [BigNumberish]): string;
 encodeFunctionData(functionFragment: 'reveal_decision', values: [BytesLike, BytesLike, BigNumberish]): string;
 encodeFunctionData(functionFragment: 's_vrfCoordinator', values?: undefined): string;
 encodeFunctionData(functionFragment: 'setCoordinator', values: [AddressLike]): string;
@@ -108,6 +111,7 @@ decodeFunctionResult(functionFragment: 'freelancers', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'get_job', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'get_job_lists_len', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'get_level', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'get_numbers', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'hire', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'inactive_verifier', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'job_lists', data: BytesLike): Result;
@@ -119,12 +123,14 @@ decodeFunctionResult(functionFragment: 'pay_him', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'pending_rewards', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'post_job', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'raise_dispute', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'random_words', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'rawFulfillRandomWords', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'refund_client_after_dispute', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'register_freelancer', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'reputation_token', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'request_confirmations', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'request_random_nums', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'request_randomness', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'reveal_decision', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 's_vrfCoordinator', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'setCoordinator', data: BytesLike): Result;
@@ -644,6 +650,14 @@ decodeFunctionResult(functionFragment: 'withdraw_treasury', data: BytesLike): Re
     
 
     
+    get_numbers: TypedContractMethod<
+      [],
+      [bigint[]],
+      'view'
+    >
+    
+
+    
     hire: TypedContractMethod<
       [job_id: BytesLike, freelancer: AddressLike, ],
       [void],
@@ -732,6 +746,14 @@ decodeFunctionResult(functionFragment: 'withdraw_treasury', data: BytesLike): Re
     
 
     
+    random_words: TypedContractMethod<
+      [arg0: BigNumberish, ],
+      [bigint],
+      'view'
+    >
+    
+
+    
     rawFulfillRandomWords: TypedContractMethod<
       [requestId: BigNumberish, randomWords: BigNumberish[], ],
       [void],
@@ -774,7 +796,15 @@ decodeFunctionResult(functionFragment: 'withdraw_treasury', data: BytesLike): Re
     
     request_random_nums: TypedContractMethod<
       [enable_native_payment: boolean, job_id: BytesLike, ],
-      [void],
+      [bigint],
+      'nonpayable'
+    >
+    
+
+    
+    request_randomness: TypedContractMethod<
+      [num_words: BigNumberish, ],
+      [bigint],
       'nonpayable'
     >
     
@@ -1051,6 +1081,11 @@ getFunction(nameOrSignature: 'get_level'): TypedContractMethod<
       [JobPayingSystem.LevelStructOutput],
       'view'
     >;
+getFunction(nameOrSignature: 'get_numbers'): TypedContractMethod<
+      [],
+      [bigint[]],
+      'view'
+    >;
 getFunction(nameOrSignature: 'hire'): TypedContractMethod<
       [job_id: BytesLike, freelancer: AddressLike, ],
       [void],
@@ -1106,6 +1141,11 @@ getFunction(nameOrSignature: 'raise_dispute'): TypedContractMethod<
       [void],
       'nonpayable'
     >;
+getFunction(nameOrSignature: 'random_words'): TypedContractMethod<
+      [arg0: BigNumberish, ],
+      [bigint],
+      'view'
+    >;
 getFunction(nameOrSignature: 'rawFulfillRandomWords'): TypedContractMethod<
       [requestId: BigNumberish, randomWords: BigNumberish[], ],
       [void],
@@ -1133,7 +1173,12 @@ getFunction(nameOrSignature: 'request_confirmations'): TypedContractMethod<
     >;
 getFunction(nameOrSignature: 'request_random_nums'): TypedContractMethod<
       [enable_native_payment: boolean, job_id: BytesLike, ],
-      [void],
+      [bigint],
+      'nonpayable'
+    >;
+getFunction(nameOrSignature: 'request_randomness'): TypedContractMethod<
+      [num_words: BigNumberish, ],
+      [bigint],
       'nonpayable'
     >;
 getFunction(nameOrSignature: 'reveal_decision'): TypedContractMethod<

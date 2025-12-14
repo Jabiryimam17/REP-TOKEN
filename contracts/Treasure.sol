@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
 contract Treasure is Ownable {
+    using SafeERC20 for IERC20;
     IERC20 public reputation_token;
     IERC20 public stable_coin;
     address public reward_vault;
@@ -32,7 +34,7 @@ contract Treasure is Ownable {
         require(address(0)!=to, "Null address is not allowed.");
         require(amount > 0, "Zero transfer is not allowed.");
         require(reputation_token.balanceOf(address(this)) >= amount, "Insufficient balance in Treasure");
-        reputation_token.transfer(to, amount);
+        reputation_token.safeTransfer(to, amount);
     }
 
     function get_balance_reputation_token() public view returns (uint256) {
@@ -61,12 +63,12 @@ contract Treasure is Ownable {
         require(allocated_stable_coin[to] >= amount, "Insufficient allocated stable coin for this address.");
         allocated_stable_coin[to] -= amount;
         locked_stable_coin -= amount;
-        stable_coin.transfer(to, amount);
+        stable_coin.safeTransfer(to, amount);
     }
     function fill_reward_vault(uint256 amount) public onlyOwner {
         require(amount > 0, "Zero transfer is not allowed.");
         require(reputation_token.balanceOf(address(this)) >= amount, "Insufficient balance in Treasure");
-        reputation_token.transfer(reward_vault, amount);
+        reputation_token.safeTransfer(reward_vault, amount);
     }
 
     function swap_reputation_for_stable(uint256 reputation_amount, uint256 min_stable_amount) public onlyOwner {
@@ -77,7 +79,7 @@ contract Treasure is Ownable {
         path[0] = address(reputation_token);
         path[1] = address(stable_coin);
 
-        reputation_token.approve(address(uniswap_router), reputation_amount);
+       reputation_token.safeIncreaseAllowance(address(uniswap_router), reputation_amount);
 
         uniswap_router.swapExactTokensForTokens(
             reputation_amount,
@@ -95,7 +97,7 @@ contract Treasure is Ownable {
         path[0] = address(stable_coin);
         path[1] = address(reputation_token);
 
-        stable_coin.approve(address(uniswap_router), stable_amount);
+        stable_coin.safeIncreaseAllowance(address(uniswap_router), stable_amount);
 
         uniswap_router.swapExactTokensForTokens(
             stable_amount,
@@ -107,6 +109,6 @@ contract Treasure is Ownable {
     }
     function buy_back(uint amount, address liquidator) public onlyOwner {
         require(stable_coin.balanceOf(address(this)) >= amount, "Insufficient stable coin balance in Treasure");
-        stable_coin.transfer(liquidator, amount);
+        stable_coin.safeTransfer(liquidator, amount);
     }
 }

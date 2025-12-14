@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./VerifierSystem.sol";
 
 contract JobPayingSystem is VerifierSystem {
-
+    using SafeERC20 for IERC20;
     enum JOB_STATUS { NONE,OPEN, PENDING, HIRED, DISPUTED, CLOSED}
     // --- Events ---
     event job_posted(bytes32 indexed job_id, address indexed client, uint amount, uint category, uint level);
@@ -106,9 +106,9 @@ contract JobPayingSystem is VerifierSystem {
         require(fee_given >= fee, "Insufficient fee provided");
 
         // Pull tokens from client. Client must call approve(contract, amount) first.
-        require(stable_coin.transferFrom(msg.sender, treasury_address, fee+amount), "payment transfer failed");
+        stable_coin.safeTransferFrom(msg.sender, treasury_address, fee+amount);
         uint level_id = calculate_level(amount);
-        require(reputation_token.transferFrom(msg.sender, treasury_address, levels[level_id-1].client_stake), "token transfer failed");
+        reputation_token.safeTransferFrom(msg.sender, treasury_address, levels[level_id-1].client_stake);
         bytes32 job_id = keccak256(abi.encodePacked( block.timestamp, job_lists.length));
         Job storage new_job = jobs[job_id];
         DisputedJob storage disputed_job = disputed_jobs[job_id];
@@ -136,10 +136,10 @@ contract JobPayingSystem is VerifierSystem {
         require(job.client == msg.sender, "Only client can cancel");
         require(job.status == JOB_STATUS.OPEN, "Job not open");
         job.status = JOB_STATUS.CLOSED; // mark closed
-        if (job.amount > 0) require(stable_coin.transfer(job.client, job.amount), "refund failed");
+        if (job.amount > 0) stable_coin.safeTransfer(job.client, job.amount);
         if (disputed_jobs[job_id].stakes_lost < disputed_jobs[job_id].dispute_fee_from_client) { // to prevent a client from cancelling after crashing freelancers // alternate stake_lost < 0
             uint refund_stake = disputed_jobs[job_id].dispute_fee_from_client - disputed_jobs[job_id].stakes_lost;
-            require(reputation_token.transfer(job.client, refund_stake), "return stake failed");
+            reputation_token.safeTransfer(job.client, refund_stake);
         }
     }
 
@@ -173,9 +173,9 @@ contract JobPayingSystem is VerifierSystem {
         uint fee = job.amount * freelancer_fee_portion_bps/10000;
         require(job.status == JOB_STATUS.PENDING, "Job not pending");
         require(job.freelancer == msg.sender, "Only invited freelancer can accept");
-        require(stable_coin.transferFrom(msg.sender, treasury_address, fee), "fee transfer failed");
+        stable_coin.safeTransferFrom(msg.sender, treasury_address, fee);
 
-        require(reputation_token.transferFrom(msg.sender, treasury_address, levels[job.level_id-1].freelancer_stake), "stake transfer failed");
+        reputation_token.safeTransferFrom(msg.sender, treasury_address, levels[job.level_id-1].freelancer_stake);
 
         job.freelancer_approved = true;
         job.expiry_timestamp = block.timestamp + job.max_duration;
@@ -213,9 +213,9 @@ contract JobPayingSystem is VerifierSystem {
         Job storage job = jobs[job_id];
         require(job.client == msg.sender, "Only client can pay");
         require(job.freelancer_completed, "Freelancer not completed");
-        require(reputation_token.transferFrom(treasury_address, job.client, disputed_jobs[job_id].dispute_fee_from_client), "return client stake failed");
-        require(reputation_token.transferFrom(treasury_address, job.freelancer, disputed_jobs[job_id].dispute_fee_from_freelancer), "return freelancer stake failed");
-        require(stable_coin.transferFrom(treasury_address, job.freelancer, job.amount), "payout failed");
+        reputation_token.safeTransferFrom(treasury_address, job.client, disputed_jobs[job_id].dispute_fee_from_client);
+        reputation_token.safeTransferFrom(treasury_address, job.freelancer, disputed_jobs[job_id].dispute_fee_from_freelancer);
+        stable_coin.safeTransferFrom(treasury_address, job.freelancer, job.amount);
         job.status = JOB_STATUS.CLOSED;
         freelancers[job.freelancer].successful_jobs++;
     }
@@ -240,8 +240,8 @@ contract JobPayingSystem is VerifierSystem {
         require(job.status == JOB_STATUS.DISPUTED, "Job not disputed");
         require(disputed_job.dispute_status==DISPUTE_STATUS.FREELANCER_WIN, "DisJopute not resolved in your favor");
         require(msg.sender == job.freelancer, "Only freelancer can claim");
-        stable_coin.transferFrom(treasury_address,msg.sender, job.amount);
-        reputation_token.transferFrom(treasury_address,msg.sender, disputed_job.dispute_fee_from_freelancer);
+        stable_coin.safeTransferFrom(treasury_address,msg.sender, job.amount);
+        reputation_token.safeTransferFrom(treasury_address,msg.sender, disputed_job.dispute_fee_from_freelancer);
         freelancers[job.freelancer].successful_jobs++;
         job.status=JOB_STATUS.CLOSED;
     }
@@ -252,8 +252,8 @@ contract JobPayingSystem is VerifierSystem {
         require(job.status == JOB_STATUS.DISPUTED, "Job not disputed");
         require(disputed_job.dispute_status==DISPUTE_STATUS.CLIENT_WIN, "Dispute not resolved in your favor");
         require(msg.sender == job.client, "Only client can refund");
-        stable_coin.transferFrom(treasury_address, msg.sender, job.amount);
-        if (disputed_job.dispute_fee_from_client > disputed_job.stakes_lost )reputation_token.transferFrom(treasury_address,msg.sender, disputed_job.dispute_fee_from_client-disputed_job.stakes_lost);
+        stable_coin.safeTransferFrom(treasury_address, msg.sender, job.amount);
+        if (disputed_job.dispute_fee_from_client > disputed_job.stakes_lost )reputation_token.safeTransferFrom(treasury_address,msg.sender, disputed_job.dispute_fee_from_client-disputed_job.stakes_lost);
         job.status=JOB_STATUS.CLOSED;
     }
 

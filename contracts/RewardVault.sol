@@ -2,8 +2,9 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract RewardVault {
+    using SafeERC20 for IERC20;
     IERC20 public lptoken;
     IERC20 public reward_token; // reputation token
     uint256 public reward_rate; // reward tokens per LPT per second
@@ -42,10 +43,10 @@ contract RewardVault {
         update_pool();
         if (user.amount > 0) {
             uint256 pending = user.amount * acc_reward_per_share / 1e12 - user.reward_debt;
-            if (pending > 0) reward_token.transfer(msg.sender, pending);
+            if (pending > 0) reward_token.safeTransfer(msg.sender, pending);
         }
 
-        lptoken.transferFrom(msg.sender, address(this), amount);
+        lptoken.safeTransferFrom(msg.sender, address(this), amount);
         user.amount += amount;
         total_staked += amount;
         user.reward_debt = user.amount * acc_reward_per_share / 1e12;
@@ -58,12 +59,12 @@ contract RewardVault {
         update_pool();
 
         uint256 pending=user.amount * acc_reward_per_share/1e12 - user.reward_debt;
-        if (pending > 0) reward_token.transfer(msg.sender, pending);
+        if (pending > 0) reward_token.safeTransfer(msg.sender, pending);
 
         user.amount-=amount;
         user.reward_debt=user.amount * acc_reward_per_share/1e12;
         total_staked -= amount;
-        lptoken.transfer(msg.sender, amount);
+        lptoken.safeTransfer(msg.sender, amount);
     }
 
 }

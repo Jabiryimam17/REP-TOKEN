@@ -6,7 +6,7 @@ import type { TypedContractEvent, TypedDeferredTopicFilter, TypedEventLog, Typed
   
 
   export interface VerifierSystemInterface extends Interface {
-    getFunction(nameOrSignature: "WEIGHT_MAX" | "acceptOwnership" | "add_verifier" | "callback_gas_limit" | "category_not_open" | "claim_rewards" | "finalize_verification" | "inactive_verifier" | "key_hash" | "owner" | "pending_rewards" | "rawFulfillRandomWords" | "reputation_token" | "request_confirmations" | "request_random_nums" | "reveal_decision" | "s_vrfCoordinator" | "setCoordinator" | "set_slash_bps" | "set_treasury" | "slash_bps" | "stake" | "submit_hashed_decision" | "subscription_id" | "transferOwnership" | "treasury_address" | "treasury_pending" | "verifier_requests" | "verifiers" | "verifiers_in_category" | "withdraw_treasury"): FunctionFragment;
+    getFunction(nameOrSignature: "WEIGHT_MAX" | "acceptOwnership" | "add_verifier" | "callback_gas_limit" | "category_not_open" | "claim_rewards" | "finalize_verification" | "get_numbers" | "inactive_verifier" | "key_hash" | "owner" | "pending_rewards" | "random_words" | "rawFulfillRandomWords" | "reputation_token" | "request_confirmations" | "request_random_nums" | "request_randomness" | "reveal_decision" | "s_vrfCoordinator" | "setCoordinator" | "set_slash_bps" | "set_treasury" | "slash_bps" | "stake" | "submit_hashed_decision" | "subscription_id" | "transferOwnership" | "treasury_address" | "treasury_pending" | "verifier_requests" | "verifiers" | "verifiers_in_category" | "withdraw_treasury"): FunctionFragment;
 
     getEvent(nameOrSignatureOrTopic: "CoordinatorSet" | "OwnershipTransferRequested" | "OwnershipTransferred" | "decision_revealed" | "hashed_decision_submitted" | "job_finalized" | "job_initialized" | "request_fulfilled(uint256,uint256[],bytes32)" | "request_fulfilled(uint256,uint256[])" | "request_sent" | "reward_credited" | "rewards_claimed" | "treasury_set" | "verifier_added" | "verifier_slashed" | "verifier_staked" | "verifier_unstaked"): EventFragment;
 
@@ -17,14 +17,17 @@ encodeFunctionData(functionFragment: 'callback_gas_limit', values?: undefined): 
 encodeFunctionData(functionFragment: 'category_not_open', values: [BigNumberish]): string;
 encodeFunctionData(functionFragment: 'claim_rewards', values?: undefined): string;
 encodeFunctionData(functionFragment: 'finalize_verification', values: [BytesLike]): string;
+encodeFunctionData(functionFragment: 'get_numbers', values?: undefined): string;
 encodeFunctionData(functionFragment: 'inactive_verifier', values?: undefined): string;
 encodeFunctionData(functionFragment: 'key_hash', values?: undefined): string;
 encodeFunctionData(functionFragment: 'owner', values?: undefined): string;
 encodeFunctionData(functionFragment: 'pending_rewards', values: [AddressLike]): string;
+encodeFunctionData(functionFragment: 'random_words', values: [BigNumberish]): string;
 encodeFunctionData(functionFragment: 'rawFulfillRandomWords', values: [BigNumberish, BigNumberish[]]): string;
 encodeFunctionData(functionFragment: 'reputation_token', values?: undefined): string;
 encodeFunctionData(functionFragment: 'request_confirmations', values?: undefined): string;
 encodeFunctionData(functionFragment: 'request_random_nums', values: [boolean, BytesLike]): string;
+encodeFunctionData(functionFragment: 'request_randomness', values: [BigNumberish]): string;
 encodeFunctionData(functionFragment: 'reveal_decision', values: [BytesLike, BytesLike, BigNumberish]): string;
 encodeFunctionData(functionFragment: 's_vrfCoordinator', values?: undefined): string;
 encodeFunctionData(functionFragment: 'setCoordinator', values: [AddressLike]): string;
@@ -49,14 +52,17 @@ decodeFunctionResult(functionFragment: 'callback_gas_limit', data: BytesLike): R
 decodeFunctionResult(functionFragment: 'category_not_open', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'claim_rewards', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'finalize_verification', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'get_numbers', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'inactive_verifier', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'key_hash', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'owner', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'pending_rewards', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'random_words', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'rawFulfillRandomWords', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'reputation_token', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'request_confirmations', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'request_random_nums', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'request_randomness', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'reveal_decision', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 's_vrfCoordinator', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'setCoordinator', data: BytesLike): Result;
@@ -370,6 +376,14 @@ decodeFunctionResult(functionFragment: 'withdraw_treasury', data: BytesLike): Re
     
 
     
+    get_numbers: TypedContractMethod<
+      [],
+      [bigint[]],
+      'view'
+    >
+    
+
+    
     inactive_verifier: TypedContractMethod<
       [],
       [void],
@@ -402,6 +416,14 @@ decodeFunctionResult(functionFragment: 'withdraw_treasury', data: BytesLike): Re
     
 
     
+    random_words: TypedContractMethod<
+      [arg0: BigNumberish, ],
+      [bigint],
+      'view'
+    >
+    
+
+    
     rawFulfillRandomWords: TypedContractMethod<
       [requestId: BigNumberish, randomWords: BigNumberish[], ],
       [void],
@@ -428,7 +450,15 @@ decodeFunctionResult(functionFragment: 'withdraw_treasury', data: BytesLike): Re
     
     request_random_nums: TypedContractMethod<
       [enable_native_payment: boolean, job_id: BytesLike, ],
-      [void],
+      [bigint],
+      'nonpayable'
+    >
+    
+
+    
+    request_randomness: TypedContractMethod<
+      [num_words: BigNumberish, ],
+      [bigint],
       'nonpayable'
     >
     
@@ -599,6 +629,11 @@ getFunction(nameOrSignature: 'finalize_verification'): TypedContractMethod<
       [void],
       'nonpayable'
     >;
+getFunction(nameOrSignature: 'get_numbers'): TypedContractMethod<
+      [],
+      [bigint[]],
+      'view'
+    >;
 getFunction(nameOrSignature: 'inactive_verifier'): TypedContractMethod<
       [],
       [void],
@@ -619,6 +654,11 @@ getFunction(nameOrSignature: 'pending_rewards'): TypedContractMethod<
       [bigint],
       'view'
     >;
+getFunction(nameOrSignature: 'random_words'): TypedContractMethod<
+      [arg0: BigNumberish, ],
+      [bigint],
+      'view'
+    >;
 getFunction(nameOrSignature: 'rawFulfillRandomWords'): TypedContractMethod<
       [requestId: BigNumberish, randomWords: BigNumberish[], ],
       [void],
@@ -636,7 +676,12 @@ getFunction(nameOrSignature: 'request_confirmations'): TypedContractMethod<
     >;
 getFunction(nameOrSignature: 'request_random_nums'): TypedContractMethod<
       [enable_native_payment: boolean, job_id: BytesLike, ],
-      [void],
+      [bigint],
+      'nonpayable'
+    >;
+getFunction(nameOrSignature: 'request_randomness'): TypedContractMethod<
+      [num_words: BigNumberish, ],
+      [bigint],
       'nonpayable'
     >;
 getFunction(nameOrSignature: 'reveal_decision'): TypedContractMethod<

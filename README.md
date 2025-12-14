@@ -1,110 +1,120 @@
-# REP TOKEN — Hardhat 3 project (Solidity, ethers v6, mocha)
+#
+REP TOKEN — Verifier‑driven Freelancer–Employer Protocol (Stablecoin payouts, RPT incentives, Chainlink VRF)
 
-This repository contains a set of Solidity smart contracts for a reputation-driven marketplace and treasury mechanics, built and tested with Hardhat 3. It uses ethers v6 for scripting, mocha for JavaScript/TypeScript tests support (via the Hardhat toolbox), and supports Foundry-compatible Solidity tests.
+This repository implements a blockchain‑native marketplace where clients and freelancers transact in a stablecoin while incentives, penalties, and verifier economics are governed by a separate ERC‑20 reputation token (`RPT`). The protocol uses on‑chain random selection of verifiers through Chainlink VRF to validate work, and applies a transparent, game‑theoretic reward/slashing scheme for all parties.
 
-Key contracts in this repo include (non-exhaustive):
-- ReputationToken.sol — ERC20-based reputation token
-- JobPayingSystem.sol — job posting/hiring, staking, dispute configuration and flows
-- VerifierSystem.sol — verifier management and Chainlink VRF integration
-- Treasure.sol — treasury and Uniswap V2 periphery interactions
-- RewardVault.sol — rewards distribution and vault accounting
-- EthioCoin.sol — example ERC20 token
+You can browse the contracts in `contracts/` and the Solidity tests in `test/`. The project is built with Hardhat 3 and currently sits at the end of the Testing stage in our delivery roadmap.
 
-Note: A separate design sketch exists at design.md; it’s a draft and may not be fully aligned with the current contract names or structure.
+Key highlights of the engineering approach:
+- Separation of payment and incentive layers: stablecoin for value transfer, `RPT` for alignment, staking, and penalties.
+- Verifier marketplace with category‑based pools and on‑chain random sampling via Chainlink VRF v2 Plus.
+- Commit–reveal decision flow for verifiers to minimize manipulation and improve liveness assumptions.
+- Pull‑based reward accounting to avoid unbounded loops and reduce gas risks.
+- Explicit state machines for jobs and disputes; reentrancy protection and careful use of OZ libraries.
 
-## Stack and Tooling
-- Language: Solidity 0.8.28
-- Framework: Hardhat 3 (TypeScript config)
-- Libraries: ethers v6, OpenZeppelin Contracts, Chainlink contracts, Uniswap V2 (core + periphery)
-- Test runners:
-  - Solidity tests (Foundry-compatible .t.sol) executed via Hardhat
-  - Mocha test support available via @nomicfoundation/hardhat-toolbox-mocha-ethers (no JS/TS tests present at the moment)
-- Package manager: npm (package.json present)
+Note: An early design sketch exists at `design.md`. Actual contract names and flows in code are authoritative.
 
-## Requirements
-- Node.js 18+ (LTS recommended)
+## Architecture at a Glance
+- JobPayingSystem.sol
+  - Orchestrates the client–freelancer workflow: job posting, hiring, acceptance, completion, dispute creation, and settlement.
+  - Enforces level‑based staking parameters, payment durations, and fee splits.
+  - Uses a stablecoin (configurable ERC‑20) to escrow job amounts and fees.
+  - Inherits verifier mechanics from `VerifierSystem`.
+- VerifierSystem.sol
+  - Manages verifier registration and staking by category; tracks locked/staked balances per verifier.
+  - Integrates Chainlink VRF v2 Plus for unbiased random selection of verifiers per dispute (`request_sent`, `request_fulfilled`).
+  - Implements commit–reveal for verifier scoring (`hashed_decision_submitted`, `decision_revealed`).
+  - Computes rewards and slashes; credits pull‑based `pending_rewards` and `treasury_pending` for the treasury.
+- ReputationToken.sol
+  - ERC‑20 token (`RPT`) used for staking, penalties, and incentive distribution.
+  - Ownable mint/burn functions to support treasury operations and protocol economics.
+- EthioCoin.sol
+  - Example ERC‑20 used as the protocol’s stablecoin in tests and local flows.
+- Treasure.sol / RewardVault.sol
+  - Treasury and rewards accounting modules (extensible for DEX interactions and vaulting strategies).
+
+## Economic Model (high‑level)
+- Stablecoin is used for job payments and fees; funds are transferred with explicit approvals.
+- `RPT` is staked by participants according to job level parameters. Slashing applies for misbehavior or failed verification.
+- Verifier rewards are split among verifiers, the treasury, and may include a portion allocated back to the honest disputing party.
+- Level configuration (`Level`) sets min verifier portion, client/freelancer stake amounts, max payout, and payment duration.
+
+## Verifier Selection and Security
+- Random Sampling: Verifiers are selected using Chainlink VRF v2 Plus via `VRFConsumerBaseV2Plus` and `VRFV2PlusClient`. Each VRF request maps to an internal job/dispute ID.
+- Commit–Reveal: Verifiers first commit a hashed score; after the submission window they reveal scores. This reduces coordination attacks and frontrunning.
+- Slashing & Rewards: Misbehaving or low‑weight verifiers are slashed (`slash_bps`), redistributing tokens to honest actors and the treasury.
+- Pull‑based Claims: Rewards are claimed via `pending_rewards` to prevent gas‑intensive loops and denial‑of‑service vectors.
+- Reentrancy: Critical external‑token operations are guarded by `ReentrancyGuard`.
+- Trusted Libraries: Uses OpenZeppelin for ERC‑20 and access control primitives.
+
+## Delivery Roadmap and Current Stage
+1. Basic contracts ✓
+2. Testing ✓ (current: end of testing stage)
+3. Security hardening (audits, invariants, fuzzing, formal checks)
+4. Optimizations (gas profiling, storage packing, micro‑architecture improvements)
+5. Backend and Frontend integration (indexers, services, UI flows)
+
+## What’s Tested Today
+Solidity tests are written in Foundry‑style `.t.sol` and executed through Hardhat 3:
+- `test/JobPayingSystem.t.sol`
+  - Level initialization and ordering
+  - Freelancer registration constraints
+  - Job lifecycle preconditions (amounts, fees, durations) and permissioning
+  - Fee/stake checks and category/verifier expectations
+- `test/ReputationToken.t.sol`
+  - ERC‑20 semantics, allowances, owner‑gated mint/burn, and ownership transfers
+  - Negative paths for approvals, burns, and transfers
+- `test/Treasure.t.sol`
+  - Treasury behaviors relevant to mint/burn/flows (as applicable)
+
+Chainlink VRF usage is present in `VerifierSystem.sol`; in‑depth VRF integration tests are planned next, alongside fuzzing and invariants for the commit–reveal and settlement mechanics.
+
+## Developer Quickstart
+Requirements
+- Node.js 18+
 - npm 9+
-- Optional: Foundry toolchain (not required to run tests through Hardhat)
+- Optional: Foundry toolchain (for local reproduction of Foundry UX; not required to run tests via Hardhat)
 
-## Installation and Setup
-1. Install dependencies:
-   - npm install
-2. Create a .env file (if you plan to connect to external networks like Sepolia):
-   - SEPOLIA_RPC_URL=https://...
-   - SEPOLIA_PRIVATE_KEY=0x...
+Install
+- `npm install`
 
-Environment variables are read via Hardhat config variables (configVariable) and can be set as OS env vars or using hardhat-keystore. This repo includes dotenv as a dependency, but the current Hardhat config reads from config variables; using OS environment variables works out of the box.
+Build & Test
+- Compile: `npx hardhat compile`
+- Run all tests: `npx hardhat test`
+- Only Solidity tests: `npx hardhat test solidity`
+- Clean: `npx hardhat clean`
 
-## Configuration
-Networks are defined in hardhat.config.ts:
-- hardhatMainnet: EDR simulated L1
-- hardhatOp: EDR simulated OP chain type
-- sepolia: HTTP network; requires SEPOLIA_RPC_URL and SEPOLIA_PRIVATE_KEY
+Networks and Env
+- Configure `.env` (for Sepolia or other networks):
+  - `SEPOLIA_RPC_URL=https://...`
+  - `SEPOLIA_PRIVATE_KEY=0x...`
+- Hardhat networks are defined in `hardhat.config.ts` (EDR Hardhat L1/OP types and `sepolia`).
+- VRF: provide a v2 Plus subscription and coordinator details appropriate for your chain when deploying.
 
-Solidity compiler profiles:
-- default: 0.8.28
-- production: 0.8.28 with optimizer enabled (200 runs)
+Scripts
+- `scripts/send-op-tx.ts` — sample EOA interaction on the OP‑type local chain. Run with `npx ts-node scripts/send-op-tx.ts`.
 
-## Common Tasks
-- Compile contracts:
-  - npx hardhat compile
-- Run all tests (Solidity + mocha targets):
-  - npx hardhat test
-- Run only Solidity tests:
-  - npx hardhat test solidity
-- Run only mocha test targets (if/when JS/TS tests exist):
-  - npx hardhat test mocha
-- Clean artifacts/cache:
-  - npx hardhat clean
-
-## Scripts
-There are currently no npm scripts defined in package.json.
-
-Available TypeScript script(s):
-- scripts/send-op-tx.ts
-  - Example of connecting to the OP chain type (hardhatOp) and sending a simple transaction using a signer.
-  - Run with: npx ts-node scripts/send-op-tx.ts (or configure a package script).
-
-TODO:
-- Add Ignition deployment modules under ignition/modules (none included yet).
-- Add package.json scripts for common flows (compile, test, deploy, lint, format).
-
-## Testing
-This project includes Solidity tests (Foundry-style .t.sol files) under test/ executed by Hardhat 3.
-
-Run tests:
-- npx hardhat test            # runs all configured test types
-- npx hardhat test solidity   # only Solidity tests
-- npx hardhat test mocha      # mocha tests (if present)
-
-Coverage:
-- TODO: Coverage setup is not present. Consider integrating solidity-coverage or Hardhat-native coverage when available for Hardhat 3.
-
-## Environment Variables
-Used by Hardhat networks:
-- SEPOLIA_RPC_URL — RPC endpoint for Sepolia
-- SEPOLIA_PRIVATE_KEY — Private key for deployments/txs on Sepolia
-
-You can set them as regular environment variables, or by using hardhat-keystore, e.g.:
-- npx hardhat keystore set SEPOLIA_PRIVATE_KEY
+## Security Posture (in progress)
+- Access Controls: owner‑gated admin for fee/treasury/level parameters; OZ `Ownable` used where applicable.
+- Token Interactions: uses `SafeERC20` and pull‑based claiming; explicit approvals are required; treasury acts as sink/source.
+- Invariants & Fuzzing: planned with Hardhat/Foundry integrations for verifier selection, commit–reveal timing, and settlement.
+- VRF Considerations: request/fulfill lifecycle tested on local; staging on Sepolia with real VRF subscription is planned.
+- Upgradability: current contracts are not upgradeable; focus is on simplicity and auditability.
 
 ## Project Structure
-- contracts/ — Solidity smart contracts (ReputationToken, JobPayingSystem, VerifierSystem, Treasure, RewardVault, etc.)
-- scripts/ — Utility scripts (send-op-tx.ts)
-- test/ — Solidity tests (*.t.sol)
-- ignition/ — Placeholder for Ignition deployment modules (currently empty)
-- artifacts/, cache/, types/ — Generated by Hardhat
-- hardhat.config.ts — Hardhat 3 configuration
-- design.md — Draft design notes
+- `contracts/` — Solidity smart contracts (JobPayingSystem, VerifierSystem, ReputationToken, EthioCoin, Treasure, RewardVault)
+- `test/` — Solidity tests (`*.t.sol`, Foundry‑style)
+- `scripts/` — Utility scripts
+- `ignition/` — Deployment modules placeholder
+- `hardhat.config.ts` — Hardhat 3 configuration (Solidity 0.8.28)
+- `artifacts/`, `cache/`, `types/` — generated
+- `design.md` — draft design notes
 
-## License
-No explicit license file was found in the repository at the time of writing.
-
-TODO:
-- Add a LICENSE file (e.g., MIT, Apache-2.0, or other) to clarify usage and distribution terms.
-
-## Notes and References
+## Notes
+- Chainlink VRF docs: https://docs.chain.link/vrf
 - Hardhat 3 docs: https://hardhat.org/docs
 - OpenZeppelin Contracts: https://docs.openzeppelin.com/contracts
-- Chainlink VRF: https://docs.chain.link/vrf
 - Uniswap V2: https://docs.uniswap.org/protocol/V2/overview
+
+## License
+No explicit license has been committed yet. Consider adding MIT/Apache‑2.0 or another suitable license.
