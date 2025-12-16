@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {VRFConsumerBaseV2Plus} from "@chainlink/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
 import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
 
 
-contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard {
+
+contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged {
     using SafeERC20 for IERC20;
 
     /* ========== EVENTS ========== */
@@ -62,7 +65,7 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard {
     }
 
     struct Verifier {
-        bool verified;//?
+        bool verified;
         bool is_active;
         uint8 in_dispute;
         uint256 locked;
@@ -78,14 +81,14 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard {
     mapping(address => Verifier) public verifiers;
     mapping(uint8 => address[]) public verifiers_in_category;
 //    function get_verifiers(uint8 category) public returns(address[]) {return veri}
-    mapping(uint256 => bytes32) public verifier_requests; // vrf request id -> job id
+    mapping(uint256 => bytes32) public verifier_requests; // verifier request id -> job id
 
     // pull-based reward accounting to avoid heavy on-chain loops with many transfers
     mapping(address => uint256) public pending_rewards;
     uint256 public treasury_pending; // tokens accumulated to treasury from slashes
 
     /* ========== CONSTRUCTOR ========== */
-    constructor(address _reputation_token, address _treasury, address _coordinator, uint _subscription_id) VRFConsumerBaseV2Plus(_coordinator) {
+    constructor(address _reputation_token, address _treasury, address _coordinator, uint _subscription_id, address _access_manager) VRFConsumerBaseV2Plus(_coordinator) AccessManaged(_access_manager) {
         require(_reputation_token != address(0), "zero token");
         require(_treasury != address(0), "zero treasury");
         reputation_token = IERC20(_reputation_token);
@@ -95,19 +98,19 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard {
     }
 
     /* ========== ADMIN ========== */
-    function set_treasury(address _treasury) external onlyOwner {
+    function set_treasury(address _treasury) external restricted {
         require(_treasury != address(0), "zero treasury");
         treasury_address = _treasury;
         emit treasury_set(_treasury);
     }
 
-    function set_slash_bps(uint256 _bps) external onlyOwner {
+    function set_slash_bps(uint256 _bps) external restricted {
         require(_bps <= 10000 && _bps > 0, "outside range");
         slash_bps = _bps;
     }
 
     /* ========== VERIFIER MANAGEMENT ========== */
-    function add_verifier(uint8 category, address verifier) external onlyOwner {
+    function add_verifier(uint8 category, address verifier) external restricted {
         require(verifier!=address(0), "Null address not allowed");
         require(!verifiers[verifier].verified, "already added");
         verifiers[verifier].verified = true;
@@ -117,13 +120,14 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard {
         emit verifier_added(verifier, category);
     }
 
-    function stake(uint256 amount) external {
+    function stake(uint256 amount) external nonReentrant{
         require(amount > 0, "zero stake");
         Verifier storage v = verifiers[msg.sender];
         require(v.verified, "not a verifier");
-        reputation_token.safeTransferFrom(msg.sender, address(this), amount);
         v.staked += amount;
         v.is_active=true;
+        reputation_token.safeTransferFrom(msg.sender, address(this), amount);
+        
         emit verifier_staked(msg.sender, amount);
     }
 
@@ -148,7 +152,7 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard {
     function request_random_nums(
         bool enable_native_payment,
         bytes32 job_id
-    ) public onlyOwner   {
+    ) public   {
         DisputedJob storage existing_job = disputed_jobs[job_id];
         require(!existing_job.open_for_dispute, "job already open");
         require(!category_not_open[existing_job.category], "category already open");
@@ -259,7 +263,7 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard {
     }
 
     /* ========== FINALIZE & REWARDS ========== */
-    function finalize_verification(bytes32 job_id) external onlyOwner nonReentrant {
+    function finalize_verification(bytes32 job_id) external restricted nonReentrant {
         DisputedJob storage job = disputed_jobs[job_id];
         require(job.open_for_dispute, "job not open");
         require(block.timestamp >= job.release_deadline, "release deadline not reached");
@@ -376,7 +380,7 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard {
         emit rewards_claimed(msg.sender, amt);
     }
 
-    function withdraw_treasury() external onlyOwner nonReentrant {
+    function withdraw_treasury() external restricted nonReentrant {
         uint256 amt = treasury_pending;
         require(amt > 0, "no treasury funds");
         treasury_pending = 0;

@@ -2,10 +2,11 @@
 pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
 
-contract Treasure is Ownable {
+contract Treasure is ReentrancyGuard, AccessManaged {
     using SafeERC20 for IERC20;
     IERC20 public reputation_token;
     IERC20 public stable_coin;
@@ -15,22 +16,22 @@ contract Treasure is Ownable {
 
     IUniswapV2Router02 public uniswap_router = IUniswapV2Router02(0xeE567Fe1712Faf6149d80dA1E6934E354124CfE3);
 
-    constructor(address stable_coin_address) Ownable(msg.sender) {
+    constructor(address stable_coin_address, address _access_manager) AccessManaged(_access_manager) {
         stable_coin = IERC20(stable_coin_address);
     }
 
-    function set_reward_vault(address new_reward_vault) public onlyOwner {
+    function set_reward_vault(address new_reward_vault) public restricted {
         reward_vault = new_reward_vault;
     }
 
-    function set_uniswap_router(address _uniswap_router) public onlyOwner {
+    function set_uniswap_router(address _uniswap_router) public restricted {
         uniswap_router = IUniswapV2Router02(_uniswap_router);
     }
-    function set_reputation_token(address reputation_token_address) public onlyOwner {
+    function set_reputation_token(address reputation_token_address) public restricted {
         reputation_token=IERC20(reputation_token_address);
     }
 
-    function withdraw_tokens(address to, uint256 amount) public onlyOwner {
+    function withdraw_tokens(address to, uint256 amount) public restricted {
         require(address(0)!=to, "Null address is not allowed.");
         require(amount > 0, "Zero transfer is not allowed.");
         require(reputation_token.balanceOf(address(this)) >= amount, "Insufficient balance in Treasure");
@@ -44,20 +45,20 @@ contract Treasure is Ownable {
         return stable_coin.balanceOf(address(this));
     }
 
-    function allocate_stable_coin(address beneficiary, uint256 amount) public onlyOwner {
+    function allocate_stable_coin(address beneficiary, uint256 amount) public restricted {
         require(address(0)!=beneficiary,"Null address is not allowed.");
         require(stable_coin.balanceOf(address(this))-locked_stable_coin >= amount, "Insufficient balance in Treasure.");
         allocated_stable_coin[beneficiary] += amount;
         locked_stable_coin += amount;
     }
 
-    function deallocate_stable_coin(address to, uint256 amount) public onlyOwner {
+    function deallocate_stable_coin(address to, uint256 amount) public restricted {
         require(address(0)!=to, "Null address is not allowed.");
         require(allocated_stable_coin[to] >= amount, "Insufficient allocated stable coin for this address.");
         allocated_stable_coin[to] -= amount;
         locked_stable_coin -= amount;
     }
-    function transfer_allocated_stable_coin(address to, uint256 amount) public onlyOwner {
+    function transfer_allocated_stable_coin(address to, uint256 amount) public restricted nonReentrant {
         require(amount > 0, "Zero transfer is not allowed.");
         require(address(0)!=to, "Null address is not allowed.");
         require(allocated_stable_coin[to] >= amount, "Insufficient allocated stable coin for this address.");
@@ -65,13 +66,13 @@ contract Treasure is Ownable {
         locked_stable_coin -= amount;
         stable_coin.safeTransfer(to, amount);
     }
-    function fill_reward_vault(uint256 amount) public onlyOwner {
+    function fill_reward_vault(uint256 amount) public restricted {
         require(amount > 0, "Zero transfer is not allowed.");
         require(reputation_token.balanceOf(address(this)) >= amount, "Insufficient balance in Treasure");
         reputation_token.safeTransfer(reward_vault, amount);
     }
 
-    function swap_reputation_for_stable(uint256 reputation_amount, uint256 min_stable_amount) public onlyOwner {
+    function swap_reputation_for_stable(uint256 reputation_amount, uint256 min_stable_amount) public restricted {
         require(reputation_amount > 0, "Zero transfer is not allowed.");
         require(reputation_token.balanceOf(address(this)) >= reputation_amount, "Insufficient reputation token balance in Treasure");
 
@@ -90,7 +91,7 @@ contract Treasure is Ownable {
         );
     }
 
-    function swap_stable_for_reputation(uint256 stable_amount, uint256 min_reputation_amount) public onlyOwner {
+    function swap_stable_for_reputation(uint256 stable_amount, uint256 min_reputation_amount) public restricted {
         require(stable_coin.balanceOf(address(this))-locked_stable_coin >= stable_amount, "Insufficient stable coin balance in Treasure");
 
         address[] memory path = new address[](2);
@@ -107,7 +108,7 @@ contract Treasure is Ownable {
             block.timestamp + 300
         );
     }
-    function buy_back(uint amount, address liquidator) public onlyOwner {
+    function buy_back(uint amount, address liquidator) public restricted {
         require(stable_coin.balanceOf(address(this)) >= amount, "Insufficient stable coin balance in Treasure");
         stable_coin.safeTransfer(liquidator, amount);
     }

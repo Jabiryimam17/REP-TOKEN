@@ -2,19 +2,22 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-contract RewardVault {
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+
+contract RewardVault is ReentrancyGuard{
     using SafeERC20 for IERC20;
     IERC20 public lptoken;
-    IERC20 public reward_token; // reputation token
-    uint256 public reward_rate; // reward tokens per LPT per second
+    IERC20 public reward_token;
+    uint256 public reward_rate;
     uint256 public last_reward_time;
-    uint256 public acc_reward_per_share; // accumulated reward per LPT share, times
+    uint256 public acc_reward_per_share;
     uint256 public total_staked;
 
     struct UserInfo {
-        uint256 amount; // How many LPT tokens the user has staked.
-        uint256 reward_debt; // Reward debt.
+        uint256 amount;
+        uint256 reward_debt;
     }
 
     mapping(address => UserInfo) public user_infos;
@@ -37,34 +40,32 @@ contract RewardVault {
         last_reward_time = block.timestamp;
     }
 
-    function stake(uint256 amount) public {
+    function stake(uint256 amount) public nonReentrant {
         require(amount > 0, "Cannot stake 0");
         UserInfo storage user = user_infos[msg.sender];
         update_pool();
-        if (user.amount > 0) {
-            uint256 pending = user.amount * acc_reward_per_share / 1e12 - user.reward_debt;
-            if (pending > 0) reward_token.safeTransfer(msg.sender, pending);
-        }
-
-        lptoken.safeTransferFrom(msg.sender, address(this), amount);
+        uint256 pending = user.amount * acc_reward_per_share / 1e12 - user.reward_debt;
         user.amount += amount;
         total_staked += amount;
         user.reward_debt = user.amount * acc_reward_per_share / 1e12;
+        if (pending > 0) reward_token.safeTransfer(msg.sender, pending);
+        lptoken.safeTransferFrom(msg.sender, address(this), amount);
+
     }
 
-    function withdraw(uint256 amount) public {
+    function withdraw(uint256 amount) public nonReentrant {
         require(amount > 0, "Can't withdraw empty");
         UserInfo storage user=user_infos[msg.sender];
         require(user.amount >= amount, "Not enough staked");
         update_pool();
 
         uint256 pending=user.amount * acc_reward_per_share/1e12 - user.reward_debt;
-        if (pending > 0) reward_token.safeTransfer(msg.sender, pending);
-
+        
         user.amount-=amount;
         user.reward_debt=user.amount * acc_reward_per_share/1e12;
         total_staked -= amount;
         lptoken.safeTransfer(msg.sender, amount);
+        if (pending > 0) reward_token.safeTransfer(msg.sender, pending);
     }
 
 }
