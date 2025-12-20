@@ -6,62 +6,68 @@ import type { TypedContractEvent, TypedDeferredTopicFilter, TypedEventLog, Typed
   
 
   export interface TreasureInterface extends Interface {
-    getFunction(nameOrSignature: "allocate_stable_coin" | "allocated_stable_coin" | "buy_back" | "deallocate_stable_coin" | "fill_reward_vault" | "get_balance_reputation_token" | "get_balance_stable_coin" | "locked_stable_coin" | "owner" | "renounceOwnership" | "reputation_token" | "reward_vault" | "set_reputation_token" | "set_reward_vault" | "set_uniswap_router" | "stable_coin" | "swap_reputation_for_stable" | "swap_stable_for_reputation" | "transferOwnership" | "transfer_allocated_stable_coin" | "uniswap_router" | "withdraw_tokens"): FunctionFragment;
+    getFunction(nameOrSignature: "allocate_stable_coin" | "allocated_stable_coin" | "authority" | "buy_back" | "deallocate_stable_coin" | "fill_reward_vault" | "get_balance_reputation_token" | "get_balance_stable_coin" | "isConsumingScheduledOp" | "job_manager" | "locked_stable_coin" | "pay_back_rpt" | "pay_back_stable_coin" | "reputation_token" | "reward_vault" | "setAuthority" | "set_reputation_token" | "set_reward_vault" | "set_uniswap_router" | "stable_coin" | "swap_reputation_for_stable" | "swap_stable_for_reputation" | "transfer_allocated_stable_coin" | "uniswap_router" | "withdraw_tokens"): FunctionFragment;
 
-    getEvent(nameOrSignatureOrTopic: "OwnershipTransferred"): EventFragment;
+    getEvent(nameOrSignatureOrTopic: "AuthorityUpdated"): EventFragment;
 
     encodeFunctionData(functionFragment: 'allocate_stable_coin', values: [AddressLike, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'allocated_stable_coin', values: [AddressLike]): string;
+encodeFunctionData(functionFragment: 'authority', values?: undefined): string;
 encodeFunctionData(functionFragment: 'buy_back', values: [BigNumberish, AddressLike]): string;
 encodeFunctionData(functionFragment: 'deallocate_stable_coin', values: [AddressLike, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'fill_reward_vault', values: [BigNumberish]): string;
 encodeFunctionData(functionFragment: 'get_balance_reputation_token', values?: undefined): string;
 encodeFunctionData(functionFragment: 'get_balance_stable_coin', values?: undefined): string;
+encodeFunctionData(functionFragment: 'isConsumingScheduledOp', values?: undefined): string;
+encodeFunctionData(functionFragment: 'job_manager', values?: undefined): string;
 encodeFunctionData(functionFragment: 'locked_stable_coin', values?: undefined): string;
-encodeFunctionData(functionFragment: 'owner', values?: undefined): string;
-encodeFunctionData(functionFragment: 'renounceOwnership', values?: undefined): string;
+encodeFunctionData(functionFragment: 'pay_back_rpt', values: [AddressLike, BigNumberish]): string;
+encodeFunctionData(functionFragment: 'pay_back_stable_coin', values: [AddressLike, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'reputation_token', values?: undefined): string;
 encodeFunctionData(functionFragment: 'reward_vault', values?: undefined): string;
+encodeFunctionData(functionFragment: 'setAuthority', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'set_reputation_token', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'set_reward_vault', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'set_uniswap_router', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'stable_coin', values?: undefined): string;
 encodeFunctionData(functionFragment: 'swap_reputation_for_stable', values: [BigNumberish, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'swap_stable_for_reputation', values: [BigNumberish, BigNumberish]): string;
-encodeFunctionData(functionFragment: 'transferOwnership', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'transfer_allocated_stable_coin', values: [AddressLike, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'uniswap_router', values?: undefined): string;
 encodeFunctionData(functionFragment: 'withdraw_tokens', values: [AddressLike, BigNumberish]): string;
 
     decodeFunctionResult(functionFragment: 'allocate_stable_coin', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'allocated_stable_coin', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'authority', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'buy_back', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'deallocate_stable_coin', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'fill_reward_vault', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'get_balance_reputation_token', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'get_balance_stable_coin', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'isConsumingScheduledOp', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'job_manager', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'locked_stable_coin', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'owner', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'renounceOwnership', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'pay_back_rpt', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'pay_back_stable_coin', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'reputation_token', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'reward_vault', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'setAuthority', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'set_reputation_token', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'set_reward_vault', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'set_uniswap_router', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'stable_coin', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'swap_reputation_for_stable', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'swap_stable_for_reputation', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'transferOwnership', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'transfer_allocated_stable_coin', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'uniswap_router', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'withdraw_tokens', data: BytesLike): Result;
   }
 
   
-    export namespace OwnershipTransferredEvent {
-      export type InputTuple = [previousOwner: AddressLike, newOwner: AddressLike];
-      export type OutputTuple = [previousOwner: string, newOwner: string];
-      export interface OutputObject {previousOwner: string, newOwner: string };
+    export namespace AuthorityUpdatedEvent {
+      export type InputTuple = [authority: AddressLike];
+      export type OutputTuple = [authority: string];
+      export interface OutputObject {authority: string };
       export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
       export type Filter = TypedDeferredTopicFilter<Event>
       export type Log = TypedEventLog<Event>
@@ -120,6 +126,14 @@ decodeFunctionResult(functionFragment: 'withdraw_tokens', data: BytesLike): Resu
     
 
     
+    authority: TypedContractMethod<
+      [],
+      [string],
+      'view'
+    >
+    
+
+    
     buy_back: TypedContractMethod<
       [amount: BigNumberish, liquidator: AddressLike, ],
       [void],
@@ -160,6 +174,22 @@ decodeFunctionResult(functionFragment: 'withdraw_tokens', data: BytesLike): Resu
     
 
     
+    isConsumingScheduledOp: TypedContractMethod<
+      [],
+      [string],
+      'view'
+    >
+    
+
+    
+    job_manager: TypedContractMethod<
+      [],
+      [string],
+      'view'
+    >
+    
+
+    
     locked_stable_coin: TypedContractMethod<
       [],
       [bigint],
@@ -168,16 +198,16 @@ decodeFunctionResult(functionFragment: 'withdraw_tokens', data: BytesLike): Resu
     
 
     
-    owner: TypedContractMethod<
-      [],
-      [string],
-      'view'
+    pay_back_rpt: TypedContractMethod<
+      [to: AddressLike, amount: BigNumberish, ],
+      [void],
+      'nonpayable'
     >
     
 
     
-    renounceOwnership: TypedContractMethod<
-      [],
+    pay_back_stable_coin: TypedContractMethod<
+      [to: AddressLike, amount: BigNumberish, ],
       [void],
       'nonpayable'
     >
@@ -196,6 +226,14 @@ decodeFunctionResult(functionFragment: 'withdraw_tokens', data: BytesLike): Resu
       [],
       [string],
       'view'
+    >
+    
+
+    
+    setAuthority: TypedContractMethod<
+      [newAuthority: AddressLike, ],
+      [void],
+      'nonpayable'
     >
     
 
@@ -248,14 +286,6 @@ decodeFunctionResult(functionFragment: 'withdraw_tokens', data: BytesLike): Resu
     
 
     
-    transferOwnership: TypedContractMethod<
-      [newOwner: AddressLike, ],
-      [void],
-      'nonpayable'
-    >
-    
-
-    
     transfer_allocated_stable_coin: TypedContractMethod<
       [to: AddressLike, amount: BigNumberish, ],
       [void],
@@ -292,6 +322,11 @@ getFunction(nameOrSignature: 'allocated_stable_coin'): TypedContractMethod<
       [bigint],
       'view'
     >;
+getFunction(nameOrSignature: 'authority'): TypedContractMethod<
+      [],
+      [string],
+      'view'
+    >;
 getFunction(nameOrSignature: 'buy_back'): TypedContractMethod<
       [amount: BigNumberish, liquidator: AddressLike, ],
       [void],
@@ -317,18 +352,28 @@ getFunction(nameOrSignature: 'get_balance_stable_coin'): TypedContractMethod<
       [bigint],
       'view'
     >;
+getFunction(nameOrSignature: 'isConsumingScheduledOp'): TypedContractMethod<
+      [],
+      [string],
+      'view'
+    >;
+getFunction(nameOrSignature: 'job_manager'): TypedContractMethod<
+      [],
+      [string],
+      'view'
+    >;
 getFunction(nameOrSignature: 'locked_stable_coin'): TypedContractMethod<
       [],
       [bigint],
       'view'
     >;
-getFunction(nameOrSignature: 'owner'): TypedContractMethod<
-      [],
-      [string],
-      'view'
+getFunction(nameOrSignature: 'pay_back_rpt'): TypedContractMethod<
+      [to: AddressLike, amount: BigNumberish, ],
+      [void],
+      'nonpayable'
     >;
-getFunction(nameOrSignature: 'renounceOwnership'): TypedContractMethod<
-      [],
+getFunction(nameOrSignature: 'pay_back_stable_coin'): TypedContractMethod<
+      [to: AddressLike, amount: BigNumberish, ],
       [void],
       'nonpayable'
     >;
@@ -341,6 +386,11 @@ getFunction(nameOrSignature: 'reward_vault'): TypedContractMethod<
       [],
       [string],
       'view'
+    >;
+getFunction(nameOrSignature: 'setAuthority'): TypedContractMethod<
+      [newAuthority: AddressLike, ],
+      [void],
+      'nonpayable'
     >;
 getFunction(nameOrSignature: 'set_reputation_token'): TypedContractMethod<
       [reputation_token_address: AddressLike, ],
@@ -372,11 +422,6 @@ getFunction(nameOrSignature: 'swap_stable_for_reputation'): TypedContractMethod<
       [void],
       'nonpayable'
     >;
-getFunction(nameOrSignature: 'transferOwnership'): TypedContractMethod<
-      [newOwner: AddressLike, ],
-      [void],
-      'nonpayable'
-    >;
 getFunction(nameOrSignature: 'transfer_allocated_stable_coin'): TypedContractMethod<
       [to: AddressLike, amount: BigNumberish, ],
       [void],
@@ -393,12 +438,12 @@ getFunction(nameOrSignature: 'withdraw_tokens'): TypedContractMethod<
       'nonpayable'
     >;
 
-    getEvent(key: 'OwnershipTransferred'): TypedContractEvent<OwnershipTransferredEvent.InputTuple, OwnershipTransferredEvent.OutputTuple, OwnershipTransferredEvent.OutputObject>;
+    getEvent(key: 'AuthorityUpdated'): TypedContractEvent<AuthorityUpdatedEvent.InputTuple, AuthorityUpdatedEvent.OutputTuple, AuthorityUpdatedEvent.OutputObject>;
 
     filters: {
       
-      'OwnershipTransferred(address,address)': TypedContractEvent<OwnershipTransferredEvent.InputTuple, OwnershipTransferredEvent.OutputTuple, OwnershipTransferredEvent.OutputObject>;
-      OwnershipTransferred: TypedContractEvent<OwnershipTransferredEvent.InputTuple, OwnershipTransferredEvent.OutputTuple, OwnershipTransferredEvent.OutputObject>;
+      'AuthorityUpdated(address)': TypedContractEvent<AuthorityUpdatedEvent.InputTuple, AuthorityUpdatedEvent.OutputTuple, AuthorityUpdatedEvent.OutputObject>;
+      AuthorityUpdated: TypedContractEvent<AuthorityUpdatedEvent.InputTuple, AuthorityUpdatedEvent.OutputTuple, AuthorityUpdatedEvent.OutputObject>;
     
     };
   }

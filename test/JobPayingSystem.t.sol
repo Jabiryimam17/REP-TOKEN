@@ -16,6 +16,7 @@ contract JobPayingSystemTest is Test {
     uint256 public subscription_id=1;
 
     function setUp() public {
+        
         vm.startPrank(owner);
         eth = new EthioCoin();
         rpt=new ReputationToken(treasure);

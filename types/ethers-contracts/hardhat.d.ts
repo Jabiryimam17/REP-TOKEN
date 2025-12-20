@@ -15,6 +15,7 @@ getContractFactory(name: 'JobPayingSystem', signerOrOptions?: ethers.Signer | Fa
 getContractFactory(name: 'ReputationToken', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.ReputationToken__factory>
 getContractFactory(name: 'RewardVault', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.RewardVault__factory>
 getContractFactory(name: 'Treasure', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.Treasure__factory>
+getContractFactory(name: 'Itreasury', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.Itreasury__factory>
 getContractFactory(name: 'VerifierSystem', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.VerifierSystem__factory>
 
   getContractAt(name: 'EthioCoin', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.EthioCoin>
@@ -22,6 +23,7 @@ getContractAt(name: 'JobPayingSystem', address: string | ethers.Addressable, sig
 getContractAt(name: 'ReputationToken', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.ReputationToken>
 getContractAt(name: 'RewardVault', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.RewardVault>
 getContractAt(name: 'Treasure', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.Treasure>
+getContractAt(name: 'Itreasury', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.Itreasury>
 getContractAt(name: 'VerifierSystem', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.VerifierSystem>
 
   deployContract(name: 'EthioCoin', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.EthioCoin>
@@ -29,6 +31,7 @@ deployContract(name: 'JobPayingSystem', signerOrOptions?: ethers.Signer | Deploy
 deployContract(name: 'ReputationToken', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ReputationToken>
 deployContract(name: 'RewardVault', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.RewardVault>
 deployContract(name: 'Treasure', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Treasure>
+deployContract(name: 'Itreasury', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Itreasury>
 deployContract(name: 'VerifierSystem', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.VerifierSystem>
 
   deployContract(name: 'EthioCoin', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.EthioCoin>
@@ -36,6 +39,7 @@ deployContract(name: 'JobPayingSystem', args: any[], signerOrOptions?: ethers.Si
 deployContract(name: 'ReputationToken', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ReputationToken>
 deployContract(name: 'RewardVault', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.RewardVault>
 deployContract(name: 'Treasure', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Treasure>
+deployContract(name: 'Itreasury', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Itreasury>
 deployContract(name: 'VerifierSystem', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.VerifierSystem>
 
     // default types

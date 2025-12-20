@@ -8,17 +8,20 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
 
-
+interface Itreasury {
+    function pay_back_rpt(address to, uint amount) external;
+    function pay_back_stable_coin(address to, uint amount) external;
+}
 
 contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged {
     using SafeERC20 for IERC20;
 
     /* ========== EVENTS ========== */
     event request_fulfilled(uint256 request_id, uint256[] random_values, bytes32 job_id);
-    event verifier_added(address indexed verifier, uint8 category);
+    event verifier_added(address indexed verifier, uint16 category);
     event verifier_staked(address indexed verifier, uint256 amount);
     event verifier_unstaked(address indexed verifier, uint256 amount);
-    event job_initialized(bytes32 indexed job_id, uint8 category, uint256 lock_amount, uint min_verifiers);
+    event job_initialized(bytes32 indexed job_id, uint16 category, uint256 lock_amount, uint min_verifiers);
     event hashed_decision_submitted(bytes32 indexed job_id, address indexed verifier);
     event decision_revealed(bytes32 indexed job_id, address indexed verifier, uint256 score);
     event job_finalized(bytes32 indexed job_id, DISPUTE_STATUS dispute_status);
@@ -34,7 +37,7 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
 
     /* ========== STORAGE ========== */
     IERC20 public reputation_token;
-    address public treasury_address;
+    Itreasury public treasury;
     uint256 public constant WEIGHT_MAX = 100;
     uint256 public slash_bps = 2000; // 20% of lock amount for zero-weight verifiers (basis points)
 
@@ -50,12 +53,12 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
         bool open_for_dispute;
         uint256 submission_deadline;
         uint256 release_deadline;
-        uint8 category;
-        uint256 dispute_fee_from_client;
-        uint256 dispute_fee_from_freelancer;
-        uint stakes_lost;
+        uint16 category;
+        uint stakes;
+        uint client_stake;
+        uint freelancer_stake;
+        uint8 level;
         uint256 lock_amount;
-        uint min_number_verifiers;
         DISPUTE_STATUS dispute_status;
         // mappings & arrays
         mapping(address => bytes32) hashed_decisions;
@@ -67,32 +70,34 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
     struct Verifier {
         bool verified;
         bool is_active;
+        bool assigned;
         uint8 in_dispute;
         uint256 locked;
         uint256 staked;
-        uint8 category;
+        uint16 category;
+        uint8 level;
+        uint16 idx_l;
     }
 
+    mapping(uint16=>mapping(uint8=>address[])) public leveled_verifiers;
     // jobs storage (cannot be public because of mappings inside struct)
     mapping(bytes32 => DisputedJob) internal disputed_jobs;
 
-    mapping(uint8 => bool) public category_not_open;
-
+    mapping(uint16 => mapping(uint8=>bool)) public category_open;
+    uint[] public stack_levels;
     mapping(address => Verifier) public verifiers;
-    mapping(uint8 => address[]) public verifiers_in_category;
-//    function get_verifiers(uint8 category) public returns(address[]) {return veri}
     mapping(uint256 => bytes32) public verifier_requests; // verifier request id -> job id
 
-    // pull-based reward accounting to avoid heavy on-chain loops with many transfers
     mapping(address => uint256) public pending_rewards;
-    uint256 public treasury_pending; // tokens accumulated to treasury from slashes
+    uint256 public treasury_pending;
 
     /* ========== CONSTRUCTOR ========== */
     constructor(address _reputation_token, address _treasury, address _coordinator, uint _subscription_id, address _access_manager) VRFConsumerBaseV2Plus(_coordinator) AccessManaged(_access_manager) {
+
         require(_reputation_token != address(0), "zero token");
         require(_treasury != address(0), "zero treasury");
         reputation_token = IERC20(_reputation_token);
-        treasury_address = _treasury;
+        treasury = Itreasury(_treasury);
         subscription_id = _subscription_id;
         emit treasury_set(_treasury);
     }
@@ -100,7 +105,7 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
     /* ========== ADMIN ========== */
     function set_treasury(address _treasury) external restricted {
         require(_treasury != address(0), "zero treasury");
-        treasury_address = _treasury;
+        treasury = Itreasury(_treasury);
         emit treasury_set(_treasury);
     }
 
@@ -110,13 +115,11 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
     }
 
     /* ========== VERIFIER MANAGEMENT ========== */
-    function add_verifier(uint8 category, address verifier) external restricted {
+    function add_verifier(uint16 category, address verifier) external restricted {
         require(verifier!=address(0), "Null address not allowed");
         require(!verifiers[verifier].verified, "already added");
         verifiers[verifier].verified = true;
         verifiers[verifier].category = category;
-        verifiers[verifier].is_active = true;
-        verifiers_in_category[category].push(verifier);
         emit verifier_added(verifier, category);
     }
 
@@ -124,23 +127,61 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
         require(amount > 0, "zero stake");
         Verifier storage v = verifiers[msg.sender];
         require(v.verified, "not a verifier");
+
         v.staked += amount;
         v.is_active=true;
-        reputation_token.safeTransferFrom(msg.sender, address(this), amount);
-        
+        _update_level(msg.sender);
+
+        reputation_token.safeTransferFrom(msg.sender, address(treasury), amount);
         emit verifier_staked(msg.sender, amount);
     }
 
+    function _update_level(address v_a) internal {
+        Verifier  storage v=verifiers[v_a];
+        uint8 new_level = find_lower_bound(v.staked);
+        uint16 cat = v.category;
+        if (!v.assigned) {
+            v.idx_l=uint16(leveled_verifiers[cat][new_level].length);
+            leveled_verifiers[cat][new_level].push(v_a);
+            v.level=new_level;
+            v.assigned=true;
+        } else {
+            if (verifiers[v_a].level==new_level) return;
+            delete_verifier(v_a);
+            v.idx_l=uint8(leveled_verifiers[cat][new_level].length);
+            v.level=new_level;
+            leveled_verifiers[cat][new_level].push(v_a);
+        }
+    }
     function inactive_verifier() external nonReentrant {
         Verifier storage v = verifiers[msg.sender];
         require(v.is_active, "not working or allowed");
         require(v.in_dispute==0, "in dispute");
-        require(!category_not_open[v.category], "You are on selection");
+        require(category_open[v.category][v.level], "You are on selection");
         uint256 amount = v.staked;
         v.staked = 0;
-        v.is_active = false;
-        if (amount > 0 ) reputation_token.safeTransfer(msg.sender, amount);
+        delete_verifier(msg.sender);
+        v.assigned=false;
+        v.is_active=false;
+        if (amount > 0 ) treasury.pay_back_rpt(msg.sender, amount);
         emit verifier_unstaked(msg.sender, amount);
+    }
+
+    function delete_verifier(address v_a) internal {
+        Verifier storage v = verifiers[v_a];
+        uint16 cat=v.category;
+        uint8 level=v.level;
+        uint len=leveled_verifiers[cat][level].length;
+        uint16 old_idx=verifiers[v_a].idx_l;
+
+        if (old_idx!=len-1) {
+            address r=leveled_verifiers[cat][level][len-1];
+            leveled_verifiers[cat][level][old_idx] = r;
+            verifiers[r].idx_l=old_idx;
+        }
+        
+        leveled_verifiers[cat][level].pop();
+
     }
 
 
@@ -151,28 +192,24 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
     // NOTE: keep function name as requested by user
     function request_random_nums(
         bool enable_native_payment,
-        bytes32 job_id
+        bytes32 job_id,
+        uint stake_amount,
+        uint verifiers_cnt
     ) public   {
         DisputedJob storage existing_job = disputed_jobs[job_id];
-        require(!existing_job.open_for_dispute, "job already open");
-        require(!category_not_open[existing_job.category], "category already open");
-        address[] storage cat_verifiers = verifiers_in_category[existing_job.category];
-        uint256 available = 0;
-        for (uint256 i = 0; i < cat_verifiers.length; i++) {
-            Verifier storage vv = verifiers[cat_verifiers[i]];
-            if (vv.is_active && vv.staked >= existing_job.lock_amount) available++;
-        }
-        require(available >= existing_job.min_number_verifiers, "not enough verifiers available");
-        category_not_open[existing_job.category] = true;
+        uint8 level=find_lower_bound(stake_amount);
+        uint16 cat = existing_job.category;
+        require(category_open[cat][level],"catagory for this level is in selection");
+        require(leveled_verifiers[cat][level].length > 2*verifiers_cnt, "not enough verifiers available at the moment");
 
-        // Call to RandomValuesGenerator (assumes VRF client variables exist in inherited contract)
+        category_open[cat][level] = false;
         uint256 request_id = s_vrfCoordinator.requestRandomWords(
             VRFV2PlusClient.RandomWordsRequest({
                 keyHash: key_hash,
                 subId: subscription_id,
                 requestConfirmations: request_confirmations,
                 callbackGasLimit: callback_gas_limit,
-                numWords: uint32(existing_job.min_number_verifiers),
+                numWords: uint32(verifiers_cnt),
                 extraArgs: VRFV2PlusClient._argsToBytes(
                     VRFV2PlusClient.ExtraArgsV1({nativePayment: enable_native_payment})
                 )
@@ -182,62 +219,76 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
         // initialize disputed job safely
         DisputedJob storage job = disputed_jobs[job_id];
         job.open_for_dispute = true;
+        job.stakes=stake_amount;
+        job.level=level;
         job.submission_deadline = block.timestamp + 24 hours; // default; caller can overwrite via separate function if desired
         job.release_deadline = block.timestamp + 48 hours;
         job.dispute_status = DISPUTE_STATUS.PENDING;
 
         verifier_requests[request_id] = job_id;
 
-        emit request_sent(request_id, job.min_number_verifiers, job_id);
-        emit job_initialized(job_id, job.category, job.lock_amount, job.min_number_verifiers);
+        emit request_sent(request_id, verifiers_cnt, job_id);
+        emit job_initialized(job_id, job.category, job.lock_amount, verifiers_cnt);
         
     }
     
 
-    
-
-
+    function find_lower_bound(uint stake_amount) internal view returns(uint8) {
+        uint8 n=uint8(stack_levels.length);
+        if (stake_amount > stack_levels[n-1]) revert("excess stack, lower it");
+        uint8 low=0;
+        uint8 high=n-1;
+        while (low < high) {
+            uint8 mid = (low+high) >> 1;
+            if (stack_levels[mid] >= stake_amount) high=mid;
+            else low = mid+1;
+        }
+        return high;
+    }
     /* ========== VRF CALLBACK (name preserved) ========== */
     // NOTE: keep function name as requested by user
    function fulfillRandomWords(uint256 request_id, uint256[] calldata random_values) internal override {
        bytes32 job_key = verifier_requests[request_id];
        DisputedJob storage job = disputed_jobs[job_key];
        require(job.open_for_dispute, "job not open");
+       address[] storage eligible = leveled_verifiers[job.category][job.level];
+       uint len = eligible.length;
+       for (uint i=0; i < random_values.length; ++i) {
+        uint r = random_values[i]%len;
+        address chosen = eligible[r];
+        eligible[r]=eligible[len-1];
+        verifiers[eligible[r]].idx_l=uint8(r);
+        eligible[len-1]=chosen;
 
-       address[] storage potential = verifiers_in_category[job.category];
-
-       bool[] memory used = new bool[](potential.length);
-       for (uint256 i = 0; i < potential.length; i++) {
-           if (verifiers[potential[i]].staked < job.lock_amount) used[i] = true;
+        len--;
+        job.verifiers_allowed[chosen]=true;
+        job.chosen_verifiers.push(chosen);
+        Verifier storage v=verifiers[chosen];
+        v.staked -= job.stakes;
+        v.locked += job.stakes;
+        v.idx_l=uint8(len);
+        update_verifier_place(v,chosen);
        }
-
-       // pick verifiers based on random values; ensure uniqueness
-       for (uint256 i = 0; i < random_values.length; i++) {
-           require(potential.length > 0, "no potential verifiers");
-           uint256 idx = random_values[i] % potential.length;
-           // find next unused
-           uint256 start = idx;
-           while (used[idx]) {
-               idx = (idx + 1) % potential.length;
-               require(idx != start || !used[idx], "not enough eligible verifiers");
-           }
-           address chosen = potential[idx];
-           job.chosen_verifiers.push(chosen);
-           job.verifiers_allowed[chosen] = true;
-
-           // lock stake
-           Verifier storage v = verifiers[chosen];
-           v.locked += job.lock_amount;
-           v.staked -= job.lock_amount;
-           v.in_dispute++;
-
-           used[idx] = true;
-       }
-
-       category_not_open[job.category] = false;
+       category_open[job.category][job.level]=true;
+    
        emit request_fulfilled(request_id, random_values, job_key);
    }
 
+   function update_verifier_place(Verifier storage v, address v_a) internal {
+    uint8 new_level=find_lower_bound(v.staked);
+    uint16 cat=v.category;
+    if (new_level != v.level) {
+        address[] storage verifiers_level=leveled_verifiers[cat][v.level];
+        uint len=verifiers_level.length;
+        address r_a = verifiers_level[len-1];
+        verifiers_level[v.idx_l]=r_a;
+        verifiers_level.pop();
+        verifiers[r_a].idx_l=v.idx_l;
+        v.level = new_level;
+        v.idx_l=uint16(leveled_verifiers[cat][new_level].length);
+        leveled_verifiers[cat][new_level].push(v_a);
+    }
+   }
     /* ========== SUBMIT / REVEAL ========== */
     function submit_hashed_decision(bytes32 job_id, bytes32 hashed_decision) external {
         DisputedJob storage job = disputed_jobs[job_id];
@@ -246,7 +297,7 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
         require(job.verifiers_allowed[msg.sender], "not allowed");
         job.hashed_decisions[msg.sender] = hashed_decision;
         // prevent double submit
-        job.verifiers_allowed[msg.sender] = false;
+        job.verifiers_allowed[msg.sender] = false; // by the way verifiers allowed has two purposes disallowing non-selected and the ones who decided
         emit hashed_decision_submitted(job_id, msg.sender);
     }
 
@@ -262,110 +313,89 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
         emit decision_revealed(job_id, msg.sender, decision);
     }
 
-    /* ========== FINALIZE & REWARDS ========== */
-    function finalize_verification(bytes32 job_id) external restricted nonReentrant {
-        DisputedJob storage job = disputed_jobs[job_id];
-        require(job.open_for_dispute, "job not open");
-        require(block.timestamp >= job.release_deadline, "release deadline not reached");
+    function calc_scores(address[] memory chosen_verifiers, uint[] memory scores, DisputedJob storage job) internal view returns(uint) {
 
         uint256 total_score = 0;
         uint256 participating = 0;
-        for (uint256 i = 0; i < job.chosen_verifiers.length; i++) {
-            address v = job.chosen_verifiers[i];
-            uint256 s = job.scores[v];
-            if (s > 0) {
-                total_score += s;
-                participating++;
-            }
+        
+        uint len=chosen_verifiers.length;
+        uint256 s;
+        for (uint256 i = 0; i < len; i++) {
+            s = job.scores[chosen_verifiers[i]];
+            scores[i]=s;
+            total_score += s;
+            if (s > 0) participating++;
         }
         require(participating > 0, "no reveals");
 
-        uint256 average_score = total_score / participating;
-
-        // build reward pool: locked collateral + winning side dispute fee
-        uint256 reward_pool = job.lock_amount * job.chosen_verifiers.length;
-        if (average_score >= 50) {
-            job.dispute_status = DISPUTE_STATUS.FREELANCER_WIN;
-            reward_pool += job.dispute_fee_from_client;
-            job.dispute_fee_from_client = 0;
-        } else {
-            job.dispute_status = DISPUTE_STATUS.CLIENT_WIN;
-            reward_pool += job.dispute_fee_from_freelancer;
-            job.stakes_lost+=job.dispute_fee_from_freelancer;
-            job.dispute_fee_from_freelancer = 0;
-        }
-
-        // compute weights
-        uint256[] memory weights = new uint256[](job.chosen_verifiers.length);
-        uint256 total_weight = 0;
-        for (uint256 i = 0; i < job.chosen_verifiers.length; i++) {
-            address v = job.chosen_verifiers[i];
-            uint256 s = job.scores[v];
-            job.verifiers_allowed[v] = false; // reset for safety
+        return total_score / participating;
+    }
+    /* ========== FINALIZE & REWARDS ========== */
+    function calc_weights(address[] memory chosen_verifiers, uint[] memory scores, uint[] memory weights, uint average_score) internal pure returns(uint total_weight) {
+        uint len=chosen_verifiers.length;
+        
+        for (uint256 i = 0; i < len; i++) {
+            uint s = scores[i];
             if (s == 0) {
                 weights[i] = 0;
                 continue;
             }
-            uint256 abs_diff = abs_uint(s, average_score);
-            uint256 weight = (WEIGHT_MAX - abs_diff);
-            weights[i] = weight;
-            total_weight += weight;
+            weights[i] = (WEIGHT_MAX - abs_uint(s, average_score));
+            total_weight += weights[i];
         }
 
         require(total_weight > 0, "total weight zero");
+        return total_weight;
+    }
+    function finalize_verification(bytes32 job_id) external restricted nonReentrant {
+        DisputedJob storage job = disputed_jobs[job_id];
+        require(job.open_for_dispute, "job not open");
+        require(block.timestamp >= job.release_deadline, "release deadline not reached");
+        address[] memory chosen_verifiers = job.chosen_verifiers;
+        uint len=chosen_verifiers.length;
+        uint256[] memory scores = new uint256[](len);
+        uint256 reward_pool = job.lock_amount * len;
+        uint average_score=calc_scores(chosen_verifiers, scores, job);
+        if (average_score >= 50) {
+            job.dispute_status = DISPUTE_STATUS.FREELANCER_WIN;
+            reward_pool += job.client_stake;
+        } else {
+            job.dispute_status = DISPUTE_STATUS.CLIENT_WIN;
+            reward_pool += job.freelancer_stake;
+        }
 
-        // distribute rewards into pending_rewards; unlock or slash locked stake
-        for (uint256 i = 0; i < job.chosen_verifiers.length; i++) {
-            address v = job.chosen_verifiers[i];
-            uint256 s = job.scores[v];
-
-            // unlock locked stake back to staked by default (we will slash if needed)
-            if (verifiers[v].locked >= job.lock_amount) {
-                verifiers[v].locked -= job.lock_amount;
-                verifiers[v].staked += job.lock_amount;
-            } else {
-                // defensive: if something odd, set locked to zero
-                verifiers[v].staked += verifiers[v].locked;
-                verifiers[v].locked = 0;
-            }
+        // compute weights
+        uint[] memory weights=new uint[](len);
+        uint total_weight=calc_weights(chosen_verifiers, scores, weights, average_score);
+        uint lock_amount=job.lock_amount;
+        uint c_slash_bps=slash_bps;
+        for (uint256 i = 0; i < len; i++) {
+            address v = chosen_verifiers[i];
+            uint s = scores[i];
+            Verifier storage ver = verifiers[v];
+            ver.locked -= lock_amount;
+            ver.staked += lock_amount;
+            
 
             // if revealed
             if (s > 0) {
-                uint256 reward = (reward_pool * weights[i]) / total_weight;
+                uint reward = (reward_pool * weights[i]) / total_weight;
                 if (reward > 0) {
                     pending_rewards[v] += reward;
-                    emit reward_credited(v, reward);
                 }
             } else {
-                // weight == 0 or no reveal -> slash portion of original lock_amount
-                if (slash_bps > 0) {
-                    uint256 slash_amount = (job.lock_amount * slash_bps) / 10000;
-                    // prefer slashing from staked (unlocked) if available, else reduce pending or record for treasury collection
-                    if (verifiers[v].staked >= slash_amount) {
-                        verifiers[v].staked -= slash_amount;
-                        treasury_pending += slash_amount;
-                        emit verifier_slashed(v, slash_amount, job_id);
-                    } else if (pending_rewards[v] >= slash_amount) {
-                        pending_rewards[v] -= slash_amount;
-                        treasury_pending += slash_amount;
-                        emit verifier_slashed(v, slash_amount, job_id);
-                    } else {
-                        // best effort: take whatever remains from staked/pending and move to treasury
-                        uint256 taken = verifiers[v].staked + pending_rewards[v];
-                        verifiers[v].staked = 0;
-                        pending_rewards[v] = 0;
-                        treasury_pending += taken;
-                        if (taken > 0) emit verifier_slashed(v, taken, job_id);
-                    }
+                if (c_slash_bps > 0) {
+                    uint256 slash_amount = (lock_amount * c_slash_bps) / 10000;
+                    uint v_stake=ver.staked;
+                    if (slash_amount > v_stake) slash_amount=v_stake;
+                    ver.staked -= slash_amount;
+                    treasury_pending += slash_amount;
                 }
             }
 
-            // reset score to avoid reuse
-            job.scores[v] = 0;
-            verifiers[v].in_dispute--;
+            ver.in_dispute--;
         }
 
-        // mark job closed
         delete job.chosen_verifiers;
         job.open_for_dispute = false;
         emit job_finalized(job_id, job.dispute_status);
@@ -376,16 +406,10 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
         uint256 amt = pending_rewards[msg.sender];
         require(amt > 0, "no rewards");
         pending_rewards[msg.sender] = 0;
-        reputation_token.safeTransfer(msg.sender, amt);
+        treasury.pay_back_rpt(msg.sender, amt);
         emit rewards_claimed(msg.sender, amt);
     }
 
-    function withdraw_treasury() external restricted nonReentrant {
-        uint256 amt = treasury_pending;
-        require(amt > 0, "no treasury funds");
-        treasury_pending = 0;
-        reputation_token.safeTransfer(treasury_address, amt);
-    }
 
 
     /* ========== INTERNAL HELPERS ========== */

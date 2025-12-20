@@ -24,5 +24,7 @@ export type { RewardVault } from './RewardVault.sol/RewardVault.js';
 export { RewardVault__factory } from './factories/RewardVault.sol/RewardVault__factory.js';
 export type { Treasure } from './Treasure.sol/Treasure.js';
 export { Treasure__factory } from './factories/Treasure.sol/Treasure__factory.js';
+export type { Itreasury } from './VerifierSystem.sol/Itreasury.js';
+export { Itreasury__factory } from './factories/VerifierSystem.sol/Itreasury__factory.js';
 export type { VerifierSystem } from './VerifierSystem.sol/VerifierSystem.js';
 export { VerifierSystem__factory } from './factories/VerifierSystem.sol/VerifierSystem__factory.js';

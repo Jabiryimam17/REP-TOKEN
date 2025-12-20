@@ -6,39 +6,39 @@ import type { TypedContractEvent, TypedDeferredTopicFilter, TypedEventLog, Typed
   
 
   export interface ReputationTokenInterface extends Interface {
-    getFunction(nameOrSignature: "allowance" | "approve" | "balanceOf" | "burn" | "decimals" | "mint" | "name" | "owner" | "renounceOwnership" | "symbol" | "totalSupply" | "transfer" | "transferFrom" | "transferOwnership"): FunctionFragment;
+    getFunction(nameOrSignature: "allowance" | "approve" | "authority" | "balanceOf" | "burn" | "decimals" | "isConsumingScheduledOp" | "mint" | "name" | "setAuthority" | "symbol" | "totalSupply" | "transfer" | "transferFrom"): FunctionFragment;
 
-    getEvent(nameOrSignatureOrTopic: "Approval" | "OwnershipTransferred" | "Transfer"): EventFragment;
+    getEvent(nameOrSignatureOrTopic: "Approval" | "AuthorityUpdated" | "Transfer"): EventFragment;
 
     encodeFunctionData(functionFragment: 'allowance', values: [AddressLike, AddressLike]): string;
 encodeFunctionData(functionFragment: 'approve', values: [AddressLike, BigNumberish]): string;
+encodeFunctionData(functionFragment: 'authority', values?: undefined): string;
 encodeFunctionData(functionFragment: 'balanceOf', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'burn', values: [AddressLike, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'decimals', values?: undefined): string;
+encodeFunctionData(functionFragment: 'isConsumingScheduledOp', values?: undefined): string;
 encodeFunctionData(functionFragment: 'mint', values: [AddressLike, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'name', values?: undefined): string;
-encodeFunctionData(functionFragment: 'owner', values?: undefined): string;
-encodeFunctionData(functionFragment: 'renounceOwnership', values?: undefined): string;
+encodeFunctionData(functionFragment: 'setAuthority', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'symbol', values?: undefined): string;
 encodeFunctionData(functionFragment: 'totalSupply', values?: undefined): string;
 encodeFunctionData(functionFragment: 'transfer', values: [AddressLike, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'transferFrom', values: [AddressLike, AddressLike, BigNumberish]): string;
-encodeFunctionData(functionFragment: 'transferOwnership', values: [AddressLike]): string;
 
     decodeFunctionResult(functionFragment: 'allowance', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'approve', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'authority', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'balanceOf', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'burn', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'decimals', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'isConsumingScheduledOp', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'mint', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'name', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'owner', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'renounceOwnership', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'setAuthority', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'symbol', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'totalSupply', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'transfer', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'transferFrom', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'transferOwnership', data: BytesLike): Result;
   }
 
   
@@ -54,10 +54,10 @@ decodeFunctionResult(functionFragment: 'transferOwnership', data: BytesLike): Re
 
   
 
-    export namespace OwnershipTransferredEvent {
-      export type InputTuple = [previousOwner: AddressLike, newOwner: AddressLike];
-      export type OutputTuple = [previousOwner: string, newOwner: string];
-      export interface OutputObject {previousOwner: string, newOwner: string };
+    export namespace AuthorityUpdatedEvent {
+      export type InputTuple = [authority: AddressLike];
+      export type OutputTuple = [authority: string];
+      export interface OutputObject {authority: string };
       export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
       export type Filter = TypedDeferredTopicFilter<Event>
       export type Log = TypedEventLog<Event>
@@ -128,6 +128,14 @@ decodeFunctionResult(functionFragment: 'transferOwnership', data: BytesLike): Re
     
 
     
+    authority: TypedContractMethod<
+      [],
+      [string],
+      'view'
+    >
+    
+
+    
     balanceOf: TypedContractMethod<
       [account: AddressLike, ],
       [bigint],
@@ -152,6 +160,14 @@ decodeFunctionResult(functionFragment: 'transferOwnership', data: BytesLike): Re
     
 
     
+    isConsumingScheduledOp: TypedContractMethod<
+      [],
+      [string],
+      'view'
+    >
+    
+
+    
     mint: TypedContractMethod<
       [to: AddressLike, amount: BigNumberish, ],
       [void],
@@ -168,16 +184,8 @@ decodeFunctionResult(functionFragment: 'transferOwnership', data: BytesLike): Re
     
 
     
-    owner: TypedContractMethod<
-      [],
-      [string],
-      'view'
-    >
-    
-
-    
-    renounceOwnership: TypedContractMethod<
-      [],
+    setAuthority: TypedContractMethod<
+      [newAuthority: AddressLike, ],
       [void],
       'nonpayable'
     >
@@ -215,14 +223,6 @@ decodeFunctionResult(functionFragment: 'transferOwnership', data: BytesLike): Re
     >
     
 
-    
-    transferOwnership: TypedContractMethod<
-      [newOwner: AddressLike, ],
-      [void],
-      'nonpayable'
-    >
-    
-
 
     getFunction<T extends ContractMethod = ContractMethod>(key: string | FunctionFragment): T;
 
@@ -235,6 +235,11 @@ getFunction(nameOrSignature: 'approve'): TypedContractMethod<
       [spender: AddressLike, value: BigNumberish, ],
       [boolean],
       'nonpayable'
+    >;
+getFunction(nameOrSignature: 'authority'): TypedContractMethod<
+      [],
+      [string],
+      'view'
     >;
 getFunction(nameOrSignature: 'balanceOf'): TypedContractMethod<
       [account: AddressLike, ],
@@ -251,6 +256,11 @@ getFunction(nameOrSignature: 'decimals'): TypedContractMethod<
       [bigint],
       'view'
     >;
+getFunction(nameOrSignature: 'isConsumingScheduledOp'): TypedContractMethod<
+      [],
+      [string],
+      'view'
+    >;
 getFunction(nameOrSignature: 'mint'): TypedContractMethod<
       [to: AddressLike, amount: BigNumberish, ],
       [void],
@@ -261,13 +271,8 @@ getFunction(nameOrSignature: 'name'): TypedContractMethod<
       [string],
       'view'
     >;
-getFunction(nameOrSignature: 'owner'): TypedContractMethod<
-      [],
-      [string],
-      'view'
-    >;
-getFunction(nameOrSignature: 'renounceOwnership'): TypedContractMethod<
-      [],
+getFunction(nameOrSignature: 'setAuthority'): TypedContractMethod<
+      [newAuthority: AddressLike, ],
       [void],
       'nonpayable'
     >;
@@ -291,14 +296,9 @@ getFunction(nameOrSignature: 'transferFrom'): TypedContractMethod<
       [boolean],
       'nonpayable'
     >;
-getFunction(nameOrSignature: 'transferOwnership'): TypedContractMethod<
-      [newOwner: AddressLike, ],
-      [void],
-      'nonpayable'
-    >;
 
     getEvent(key: 'Approval'): TypedContractEvent<ApprovalEvent.InputTuple, ApprovalEvent.OutputTuple, ApprovalEvent.OutputObject>;
-getEvent(key: 'OwnershipTransferred'): TypedContractEvent<OwnershipTransferredEvent.InputTuple, OwnershipTransferredEvent.OutputTuple, OwnershipTransferredEvent.OutputObject>;
+getEvent(key: 'AuthorityUpdated'): TypedContractEvent<AuthorityUpdatedEvent.InputTuple, AuthorityUpdatedEvent.OutputTuple, AuthorityUpdatedEvent.OutputObject>;
 getEvent(key: 'Transfer'): TypedContractEvent<TransferEvent.InputTuple, TransferEvent.OutputTuple, TransferEvent.OutputObject>;
 
     filters: {
@@ -307,8 +307,8 @@ getEvent(key: 'Transfer'): TypedContractEvent<TransferEvent.InputTuple, Transfer
       Approval: TypedContractEvent<ApprovalEvent.InputTuple, ApprovalEvent.OutputTuple, ApprovalEvent.OutputObject>;
     
 
-      'OwnershipTransferred(address,address)': TypedContractEvent<OwnershipTransferredEvent.InputTuple, OwnershipTransferredEvent.OutputTuple, OwnershipTransferredEvent.OutputObject>;
-      OwnershipTransferred: TypedContractEvent<OwnershipTransferredEvent.InputTuple, OwnershipTransferredEvent.OutputTuple, OwnershipTransferredEvent.OutputObject>;
+      'AuthorityUpdated(address)': TypedContractEvent<AuthorityUpdatedEvent.InputTuple, AuthorityUpdatedEvent.OutputTuple, AuthorityUpdatedEvent.OutputObject>;
+      AuthorityUpdated: TypedContractEvent<AuthorityUpdatedEvent.InputTuple, AuthorityUpdatedEvent.OutputTuple, AuthorityUpdatedEvent.OutputObject>;
     
 
       'Transfer(address,address,uint256)': TypedContractEvent<TransferEvent.InputTuple, TransferEvent.OutputTuple, TransferEvent.OutputObject>;

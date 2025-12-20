@@ -11,13 +11,15 @@ contract Treasure is ReentrancyGuard, AccessManaged {
     IERC20 public reputation_token;
     IERC20 public stable_coin;
     address public reward_vault;
+    address public job_manager;
     mapping(address => uint256) public allocated_stable_coin;
     uint public locked_stable_coin;
 
     IUniswapV2Router02 public uniswap_router = IUniswapV2Router02(0xeE567Fe1712Faf6149d80dA1E6934E354124CfE3);
 
-    constructor(address stable_coin_address, address _access_manager) AccessManaged(_access_manager) {
+    constructor(address stable_coin_address, address _access_manager, address _job_manager) AccessManaged(_access_manager) {
         stable_coin = IERC20(stable_coin_address);
+        job_manager=_job_manager;
     }
 
     function set_reward_vault(address new_reward_vault) public restricted {
@@ -111,5 +113,15 @@ contract Treasure is ReentrancyGuard, AccessManaged {
     function buy_back(uint amount, address liquidator) public restricted {
         require(stable_coin.balanceOf(address(this)) >= amount, "Insufficient stable coin balance in Treasure");
         stable_coin.safeTransfer(liquidator, amount);
+    }
+    
+    function pay_back_rpt(address to, uint amount) external nonReentrant() {
+        require(msg.sender==job_manager || msg.sender==reward_vault);
+        reputation_token.safeTransfer(to, amount);
+    }
+
+    function pay_back_stable_coin(address to, uint amount) external nonReentrant() {
+        require(msg.sender==job_manager || msg.sender==reward_vault);
+        stable_coin.safeTransfer( to, amount);
     }
 }
