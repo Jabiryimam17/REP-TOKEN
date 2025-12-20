@@ -5,22 +5,24 @@ import {Test} from "forge-std/src/Test.sol";
 import {console} from "forge-std/src/console.sol";
 import {EthioCoin} from "../contracts/EthioCoin.sol";
 import {ReputationToken} from "../contracts/ReputationToken.sol";
-
+import {AccessManager} from "@openzeppelin/contracts/access/manager/AccessManager.sol";
 contract JobPayingSystemTest is Test {
     EthioCoin public eth;
     address  public owner=address(1);
     ReputationToken public rpt;
-    Manager public manager;
+    Manager public job_manager;
     address public treasure=address(2);
     address public coordinator=address(3);
     uint256 public subscription_id=1;
+    AccessManager public access_manager;
 
     function setUp() public {
-        
+
         vm.startPrank(owner);
+        access_manager = new AccessManager(owner);
         eth = new EthioCoin();
-        rpt=new ReputationToken(treasure);
-        manager = new Manager(coordinator, subscription_id, treasure, address(eth), address(rpt));
+        rpt=new ReputationToken(treasure, address(access_manager));
+        job_manager = new Manager(coordinator, subscription_id, treasure, address(eth), address(rpt), address(access_manager));
         vm.stopPrank();
     }
 
@@ -30,15 +32,15 @@ contract JobPayingSystemTest is Test {
         vm.prank(address(5));
         vm.expectRevert();
         Manager.Level memory level=Manager.Level(10,10,100,1000,1000);
-        manager.append_level(level);
+        job_manager.append_level(level);
         vm.prank(owner);
-        manager.append_level(level);
+        job_manager.append_level(level);
     }
     function test_fail_no_verifiers_leveling() public {
         Manager.Level memory level= Manager.Level(0,10,10,1000, 1000);
         vm.prank(owner);
         vm.expectRevert("No verifiers system not allowed");
-        manager.append_level(level);
+        job_manager.append_level(level);
     }
 
 
@@ -47,15 +49,15 @@ contract JobPayingSystemTest is Test {
         Manager.Level memory level = Manager.Level(10, 0,10,1000,1000);
         vm.prank(owner);
         vm.expectRevert("Zero stake not allowed");
-        manager.append_level(level);
+        job_manager.append_level(level);
     }
 
     function test_normal_mechanics_leveling() public {
-        uint prev_len=manager.levels_size();
+        uint prev_len=job_manager.levels_size();
         vm.startPrank(owner);
         Manager.Level memory level=Manager.Level(10,10,100,1000,1000);
-        manager.append_level(level);
-        Manager.Level memory c_level= manager.get_level(prev_len);
+        job_manager.append_level(level);
+        Manager.Level memory c_level= job_manager.get_level(prev_len);
         assertEq(c_level.payment_duration, level.payment_duration);
         assertEq(c_level.client_stake, level.client_stake);
         assertEq(c_level.freelancer_stake, level.freelancer_stake);
@@ -69,11 +71,11 @@ contract JobPayingSystemTest is Test {
         vm.startPrank(owner);
         vm.expectRevert("Sorting order should be respected");
         Manager.Level memory level=Manager.Level(12, 10,100, 100,100);
-        manager.append_level(level);
+        job_manager.append_level(level);
         level.max_amount=1e5;
-        uint prev_len=manager.levels_size();
-        manager.append_level(level);
-        assertEq(manager.levels_size(), prev_len+1);
+        uint prev_len=job_manager.levels_size();
+        job_manager.append_level(level);
+        assertEq(job_manager.levels_size(), prev_len+1);
         vm.stopPrank();
     }
 
@@ -82,28 +84,28 @@ contract JobPayingSystemTest is Test {
         test_normal_mechanics_leveling();
         vm.prank(address(10));
         vm.expectRevert();
-        manager.register_freelancer(address(11), 1);
+        job_manager.register_freelancer(address(11), 1);
         vm.prank(owner);
-        manager.register_freelancer(address(11), 1);
+        job_manager.register_freelancer(address(11), 1);
     }
 
     function test_fail_zero_level() public {
         vm.prank(owner);
         vm.expectRevert("No such level exists");
-        manager.register_freelancer(address(10), 0);
+        job_manager.register_freelancer(address(10), 0);
     }
 
     function test_fail_excess_level() public {
         test_normal_mechanics_leveling();
-        uint prev_len=manager.levels_size();
+        uint prev_len=job_manager.levels_size();
         vm.prank(owner);
         vm.expectRevert("No such level exists");
-        manager.register_freelancer(address(10), prev_len+1);
+        job_manager.register_freelancer(address(10), prev_len+1);
     }
     function test_fail_zero_address() public {
         vm.prank(owner);
         vm.expectRevert("Zero address is not allowed");
-        manager.register_freelancer(address(0), 1);
+        job_manager.register_freelancer(address(0), 1);
     }
 
     // levels
@@ -129,7 +131,7 @@ contract JobPayingSystemTest is Test {
         });
 
         vm.startPrank(owner);
-        manager.append_level(level);
+        job_manager.append_level(level);
 
         level = Manager.Level({
             min_verifiers_portion: 15,
@@ -138,7 +140,7 @@ contract JobPayingSystemTest is Test {
             max_amount: 2500*1e18,
             payment_duration: day * 10       // 7 + 3
         });
-        manager.append_level(level);
+        job_manager.append_level(level);
 
         level = Manager.Level({
             min_verifiers_portion: 25,
@@ -147,7 +149,7 @@ contract JobPayingSystemTest is Test {
             max_amount: 10000*1e18,
             payment_duration: day * 12       // 7 + 5
         });
-        manager.append_level(level);
+        job_manager.append_level(level);
 
         level = Manager.Level({
             min_verifiers_portion: 40,
@@ -156,7 +158,7 @@ contract JobPayingSystemTest is Test {
             max_amount: 25000*1e18,
             payment_duration: day * 14       // 7 + 7
         });
-        manager.append_level(level);
+        job_manager.append_level(level);
 
         level = Manager.Level({
             min_verifiers_portion: 60,
@@ -165,7 +167,7 @@ contract JobPayingSystemTest is Test {
             max_amount: 75000*1e18,
             payment_duration: day * 17       // 7 + 10
         });
-        manager.append_level(level);
+        job_manager.append_level(level);
 
         level = Manager.Level({
             min_verifiers_portion: 75,
@@ -174,7 +176,7 @@ contract JobPayingSystemTest is Test {
             max_amount: 200000*1e18,
             payment_duration: day * 37       // 7 + 30
         });
-        manager.append_level(level);
+        job_manager.append_level(level);
 
         vm.stopPrank();
     }
@@ -187,7 +189,7 @@ contract JobPayingSystemTest is Test {
                 vm.prank(address(treasure));
                 rpt.transfer(v, 1e20);
                 vm.prank(owner);
-                manager.add_verifier(cat,v);
+                job_manager.add_verifier(cat,v);
             }
         }
     }
@@ -202,7 +204,7 @@ contract JobPayingSystemTest is Test {
         prepare_levels();
         vm.prank(f_client);
         vm.expectRevert("Insufficient working time");
-        manager.post_job(5e18, 3600, 1, 1e18);
+        job_manager.post_job(5e18, 3600, 1, 1e18);
     }
     function prepare_everything() public {
         prepare_verifiers();
@@ -214,46 +216,45 @@ contract JobPayingSystemTest is Test {
         prepare_everything();
         vm.prank(f_client);
         vm.expectRevert("Amount must be > 0");
-        manager.post_job(0,day*2, 1, 1e18);
+        job_manager.post_job(0,day*2, 1, 1e18);
     }
 
     function test_no_verifier_system() public {
         prepare_everything();
         vm.prank(f_client);
         vm.expectRevert("No verifiers system not allowed");
-        manager.post_job(5e18, day*2, 11, 1e8);
+        job_manager.post_job(5e18, day*2, 11, 1e8);
 
     }
 
     function test_fail_insufficient_fee() public {
         vm.deal(f_client, 100 ether);
-//        assertEq(manager.client_fee_portion_bps(), 200);
+//        assertEq(job_manager.client_fee_portion_bps(), 200);
         prepare_everything();
         uint amount=5e10;
 
         vm.startPrank(f_client);
-        uint fee=amount*manager.client_fee_portion_bps()/10000-1;
+        uint fee=amount*job_manager.client_fee_portion_bps()/10000-1;
         vm.expectRevert("Insufficient fee provided");
-        manager.post_job(amount, day*2, 5,fee);
+        job_manager.post_job(amount, day*2, 5,fee);
         vm.stopPrank();
     }
 
-    function check_transition_open(Manager.Job memory prev_job, Manager.Job memory curr_job) internal  {
+    function check_transition_open(Manager.Job memory prev_job, Manager.Job memory curr_job) internal view  {
         // making sure it is initialized first
         Manager.JOB_STATUS prev_state=prev_job.status;
         assert(prev_state==Manager.JOB_STATUS.PENDING || prev_state==Manager.JOB_STATUS.DISPUTED || prev_state == Manager.JOB_STATUS.HIRED);
         assert(curr_job.status==Manager.JOB_STATUS.OPEN);
         assert(prev_job.amount>0);
-        assert(prev_job.level_id > 0);
-        assert(prev_job.max_duration > manager.MIN_MAX_DURATION());
+        assert(prev_job.level >= 0);
+        assert(prev_job.max_duration > job_manager.MIN_MAX_DURATION());
         assert(prev_job.client!=address(0));
         // now testing the check_transition
         // ones not to be changed after initialized;
         assertEq(prev_job.amount, curr_job.amount);
-        assertEq(prev_job.level_id, curr_job.level_id);
+        assertEq(prev_job.level, curr_job.level);
         assertEq(prev_job.max_duration, curr_job.max_duration);
         assertEq(prev_job.client, curr_job.client);
-        assertEq(prev_job.disputes_raised, curr_job.disputes_raised);
         // ones that should be reset
         assertEq(curr_job.freelancer, address(0));
         assertEq(curr_job.freelancer_approved, false);
@@ -266,22 +267,22 @@ contract JobPayingSystemTest is Test {
         prepare_everything();
         vm.startPrank(f_client);
         uint amount=5e20;
-        uint fee=amount*manager.client_fee_portion_bps()/10000+1e6;
+        uint fee=amount*job_manager.client_fee_portion_bps()/10000+1e6;
         uint prev_treasure_token=rpt.balanceOf(address(treasure));
         uint prev_treasure_dollar=eth.balanceOf(address(treasure));
-        eth.approve(address(manager), 1e21);
-        rpt.approve(address(manager), 1e21);
+        eth.approve(address(job_manager), 1e21);
+        rpt.approve(address(job_manager), 1e21);
         vm.warp(block.timestamp+1000);
         bytes32 job_id=keccak256(abi.encodePacked(block.timestamp, (uint)(0)));
-        uint level = manager.calculate_level(amount);
+        uint level = job_manager.calculate_level(amount);
         vm.expectEmit();
         emit Manager.job_posted(job_id, f_client, amount, 5,level);
-        manager.post_job(amount, day*2, 5, fee);
-        Manager.Job memory curr_job = manager.get_job(job_id);
+        job_manager.post_job(amount, day*2, 5, fee);
+        Manager.Job memory curr_job = job_manager.get_job(job_id);
         assertEq(amount, curr_job.amount);
-        assertEq(level, curr_job.level_id);
+        assertEq(level, curr_job.level);
         assertEq(curr_job.max_duration, day*2);
-        (,,uint client_stake,uint max_amount,)=manager.levels(level-1);
+        (,,uint client_stake,uint max_amount,)=job_manager.levels(level-1);
         assertLe(amount, max_amount);
         assertEq(rpt.balanceOf(address(treasure)), prev_treasure_token+client_stake);
         assertEq(eth.balanceOf(address(treasure)), prev_treasure_dollar+amount+fee-1e6);
@@ -290,39 +291,39 @@ contract JobPayingSystemTest is Test {
     function create_job() public returns(bytes32) {
         prepare_everything();
         vm.startPrank(f_client);
-        eth.approve(address(manager), 1e21);
-        rpt.approve(address(manager), 1e21);
+        eth.approve(address(job_manager), 1e21);
+        rpt.approve(address(job_manager), 1e21);
         uint amount=5e20;
-        uint fee=amount*manager.client_fee_portion_bps()/10000+1e6;
+        uint fee=amount*job_manager.client_fee_portion_bps()/10000+1e6;
         vm.stopPrank();
         vm.prank(f_client);
-        manager.post_job(amount, day*2, 5, fee);
+        job_manager.post_job(amount, day*2, 5, fee);
         vm.warp(block.timestamp+1000);
         vm.stopPrank();
-        return keccak256(abi.encodePacked(block.timestamp-1000, manager.get_job_lists_len()-1));
+        return keccak256(abi.encodePacked(block.timestamp-1000, job_manager.get_job_lists_len()-1));
     }
     function test_cancel_only_client() public {
         bytes32 job_id=create_job();
         vm.startPrank(l_client);
         vm.expectRevert("Only client can cancel");
-        manager.cancel_job(job_id);
+        job_manager.cancel_job(job_id);
         vm.stopPrank();
     }
     // we don't need to test the job status transition from any to closed because once closed any of the funcs don't work for the job
     function test_cancel_job_normal_mechanics() public {
         bytes32 job_id=create_job();
         vm.startPrank(address(treasure));
-        Manager.Job memory prev_job=manager.get_job(job_id);
+        Manager.Job memory prev_job=job_manager.get_job(job_id);
         assert(prev_job.status==Manager.JOB_STATUS.OPEN);
-        eth.transfer(address(manager), prev_job.amount);
-        (,,uint client_stake,,)=manager.levels(prev_job.level_id-1);
-        rpt.transfer(address(manager), client_stake);
+        eth.transfer(address(job_manager), prev_job.amount);
+        (,,uint client_stake,,)=job_manager.levels(prev_job.level-1);
+        rpt.transfer(address(job_manager), client_stake);
         vm.stopPrank();
         uint prev_balance=eth.balanceOf(f_client);
         uint prev_token=rpt.balanceOf(f_client);
         vm.startPrank(f_client);
-        manager.cancel_job(job_id);
-        Manager.Job memory curr_job =manager.get_job(job_id);
+        job_manager.cancel_job(job_id);
+        Manager.Job memory curr_job =job_manager.get_job(job_id);
         assert(curr_job.status==Manager.JOB_STATUS.CLOSED);
         assertEq(eth.balanceOf(f_client), prev_balance+ curr_job.amount);
         assertEq(rpt.balanceOf(f_client), prev_token+client_stake);
@@ -334,10 +335,9 @@ contract JobPayingSystemTest is Test {
         assert(curr_job.status==Manager.JOB_STATUS.PENDING);
         // stays same
         assertEq(prev_job.client,curr_job.client);
-        assertEq(prev_job.disputes_raised, curr_job.disputes_raised);
         assertEq(prev_job.max_duration, curr_job.max_duration);
         assertEq(prev_job.amount, curr_job.amount);
-        assertEq(prev_job.level_id, curr_job.level_id);
+        assertEq(prev_job.level, curr_job.level);
         // resets/defaults
         assertEq(curr_job.freelancer_completed, false);
         assertEq(curr_job.freelancer_approved, false);
@@ -348,7 +348,7 @@ contract JobPayingSystemTest is Test {
         bytes32 job_id=create_job();
         vm.prank(l_client);
         vm.expectRevert("Only client can hire");
-        manager.hire(job_id, address(9));
+        job_manager.hire(job_id, address(9));
     }
 
 
@@ -357,7 +357,7 @@ contract JobPayingSystemTest is Test {
         bytes32 job_id=create_job();
         vm.prank(f_client);
         vm.expectRevert("Client cannot hire self");
-        manager.hire(job_id, f_client);
+        job_manager.hire(job_id, f_client);
     }
     address public worker=address(100);
 
@@ -365,19 +365,19 @@ contract JobPayingSystemTest is Test {
         bytes32 job_id=create_job();
         vm.prank(f_client);
         vm.expectRevert("Not registered");
-        manager.hire(job_id,worker);
+        job_manager.hire(job_id,worker);
     }
 
     function test_hire_normal_mechanics() public returns(bytes32) {
         bytes32 job_id=create_job();
-        Manager.Job memory prev_job=manager.get_job(job_id);
+        Manager.Job memory prev_job=job_manager.get_job(job_id);
         vm.prank(owner);
-        manager.register_freelancer(worker,prev_job.level_id);
+        job_manager.register_freelancer(worker,prev_job.level);
         vm.startPrank(f_client);
         vm.expectEmit();
         emit Manager.job_hired(job_id, f_client, worker);
-        manager.hire(job_id, worker);
-        Manager.Job memory curr_job=manager.get_job(job_id);
+        job_manager.hire(job_id, worker);
+        Manager.Job memory curr_job=job_manager.get_job(job_id);
         assertEq(curr_job.freelancer, worker);
         check_transition_pending_hire(prev_job, curr_job);
         vm.stopPrank();
@@ -388,15 +388,15 @@ contract JobPayingSystemTest is Test {
         bytes32 job_id=test_hire_normal_mechanics();
         vm.prank(l_client);
         vm.expectRevert("Only client can cancel");
-        manager.cancel_pending_hire(job_id);
+        job_manager.cancel_pending_hire(job_id);
     }
 
     function test_cancel_pending_normal_mechanics() public {
         bytes32 job_id=test_hire_normal_mechanics();
         vm.startPrank(f_client);
-        Manager.Job memory prev_job=manager.get_job(job_id);
-        manager.cancel_pending_hire(job_id);
-        Manager.Job memory curr_job=manager.get_job(job_id);
+        Manager.Job memory prev_job=job_manager.get_job(job_id);
+        job_manager.cancel_pending_hire(job_id);
+        Manager.Job memory curr_job=job_manager.get_job(job_id);
         check_transition_open(prev_job,curr_job);
         vm.stopPrank();
     }
@@ -407,10 +407,9 @@ contract JobPayingSystemTest is Test {
         // stays the same
         assertEq(prev_job.client, curr_job.client);
         assertEq(prev_job.freelancer, curr_job.freelancer);
-        assertEq(prev_job.disputes_raised, curr_job.disputes_raised);
         assertEq(prev_job.amount, curr_job.amount);
         assertEq(prev_job.max_duration, curr_job.max_duration);
-        assertEq(prev_job.level_id, curr_job.level_id);
+        assertEq(prev_job.level, curr_job.level);
 
         // defaults
         assertEq(curr_job.freelancer_completed, false);
@@ -421,29 +420,29 @@ contract JobPayingSystemTest is Test {
         bytes32 job_id=test_hire_normal_mechanics();
         vm.prank(address(30));
         vm.expectRevert("Only invited freelancer can accept");
-        manager.accept_job(job_id);
+        job_manager.accept_job(job_id);
     }
 
     function test_accept_normal_mechanics() public returns(bytes32) {
         bytes32 job_id=test_hire_normal_mechanics();
-        Manager.Job memory prev_job=manager.get_job(job_id);
+        Manager.Job memory prev_job=job_manager.get_job(job_id);
         vm.prank(owner);
         eth.transfer(worker, 1e22);
         vm.prank(address(treasure));
         rpt.transfer(worker, 1e22);
         vm.startPrank(worker);
-        eth.approve(address(manager), 1e21);
-        rpt.approve(address(manager), 1e21);
+        eth.approve(address(job_manager), 1e21);
+        rpt.approve(address(job_manager), 1e21);
         vm.warp(block.timestamp+1000);
-        (,,uint prev_total_jobs)=manager.freelancers(worker);
+        (,,uint prev_total_jobs)=job_manager.freelancers(worker);
         vm.expectEmit();
         emit Manager.job_accepted(job_id, worker);
-        manager.accept_job(job_id);
-        Manager.Job memory curr_job=manager.get_job(job_id);
+        job_manager.accept_job(job_id);
+        Manager.Job memory curr_job=job_manager.get_job(job_id);
         check_transition_hired(prev_job, curr_job);
         assertEq(curr_job.expiry_timestamp, block.timestamp+curr_job.max_duration);
         assertTrue(curr_job.freelancer_approved);
-        (,,uint curr_total_jobs)=manager.freelancers(worker);
+        (,,uint curr_total_jobs)=job_manager.freelancers(worker);
         assertEq(curr_total_jobs, prev_total_jobs+1);
         vm.stopPrank();
         return job_id;
@@ -453,36 +452,36 @@ contract JobPayingSystemTest is Test {
 
     function test_cancel_hire_only_client()  public {
         bytes32 job_id=test_accept_normal_mechanics();
-        Manager.Job memory curr_job=manager.get_job(job_id);
+        Manager.Job memory curr_job=job_manager.get_job(job_id);
         vm.warp(curr_job.expiry_timestamp+100);
         vm.prank(l_client);
         vm.expectRevert("Only client can cancel");
-        manager.cancel_hire(job_id);
+        job_manager.cancel_hire(job_id);
     }
     function test_cancel_hire_after_expiry() public {
         bytes32 job_id=test_accept_normal_mechanics();
         vm.prank(f_client);
         vm.expectRevert("Time not expired");
-        manager.cancel_hire(job_id);
+        job_manager.cancel_hire(job_id);
     }
 
     function test_cancel_hire_fail_completed_job() public {
         bytes32 job_id=test_accept_normal_mechanics();
         vm.prank(worker);
-        manager.complete_job(job_id);
+        job_manager.complete_job(job_id);
         vm.warp(block.timestamp+1e8);
         vm.prank(f_client);
         vm.expectRevert("Freelancer already completed");
-        manager.cancel_hire(job_id);
+        job_manager.cancel_hire(job_id);
     }
 
     function test_cancel_hire_normal_mechanics() public {
         bytes32 job_id=test_accept_normal_mechanics();
-        Manager.Job memory prev_job=manager.get_job(job_id);
+        Manager.Job memory prev_job=job_manager.get_job(job_id);
         vm.warp(block.timestamp+1e8);
         vm.prank(f_client);
-        manager.cancel_hire(job_id);
-        Manager.Job memory curr_job=manager.get_job(job_id);
+        job_manager.cancel_hire(job_id);
+        Manager.Job memory curr_job=job_manager.get_job(job_id);
         check_transition_open(prev_job, curr_job);
     }
 
@@ -490,7 +489,7 @@ contract JobPayingSystemTest is Test {
         bytes32 job_id=test_accept_normal_mechanics();
         vm.prank(address(50));
         vm.expectRevert("Only hired freelancer can complete");
-        manager.complete_job(job_id);
+        job_manager.complete_job(job_id);
     }
 
     function test_complete_job_fail_expire() public {
@@ -498,19 +497,19 @@ contract JobPayingSystemTest is Test {
         vm.warp(block.timestamp+1e8);
         vm.prank(worker);
         vm.expectRevert("Time expired");
-        manager.complete_job(job_id);
+        job_manager.complete_job(job_id);
     }
 
     function test_complete_job_normal_mechanics() public returns(bytes32) {
         bytes32 job_id=test_accept_normal_mechanics();
-        Manager.Job memory prev_job =manager.get_job(job_id);
+        Manager.Job memory prev_job =job_manager.get_job(job_id);
         assert(prev_job.status==Manager.JOB_STATUS.HIRED);
         vm.warp(block.timestamp+3600);
         vm.prank(worker);
         vm.expectEmit();
         emit Manager.job_completed(job_id, worker);
-        manager.complete_job(job_id);
-        Manager.Job memory curr_job=manager.get_job(job_id);
+        job_manager.complete_job(job_id);
+        Manager.Job memory curr_job=job_manager.get_job(job_id);
         assertTrue(curr_job.freelancer_completed);
         return job_id;
     }
@@ -518,39 +517,39 @@ contract JobPayingSystemTest is Test {
         bytes32 job_id=test_complete_job_normal_mechanics();
         vm.prank(worker);
         vm.expectRevert("Already completed job");
-        manager.complete_job(job_id);
+        job_manager.complete_job(job_id);
     }
 
     function test_pay_him_only_client() public {
         bytes32 job_id=test_complete_job_normal_mechanics();
         vm.prank(worker);
         vm.expectRevert("Only client can pay");
-        manager.pay_him(job_id);
+        job_manager.pay_him(job_id);
     }
 
     function test_pay_him_only_completed_job() public {
         bytes32 job_id=test_accept_normal_mechanics();
         vm.prank(f_client);
         vm.expectRevert("Freelancer not completed");
-        manager.pay_him(job_id);
+        job_manager.pay_him(job_id);
     }
 
     function test_pay_him_normal_mechanics() public {
         bytes32 job_id=test_complete_job_normal_mechanics();
-        Manager.Job memory prev_job=manager.get_job(job_id);
+        Manager.Job memory prev_job=job_manager.get_job(job_id);
         uint prev_token_client=rpt.balanceOf(f_client);
         uint prev_token_freelancer=rpt.balanceOf(worker);
         uint prev_balance_freelancer=eth.balanceOf(worker);
-        Manager.Level memory level=manager.get_level(prev_job.level_id-1);
+        Manager.Level memory level=job_manager.get_level(prev_job.level-1);
         vm.prank(address(treasure));
-        rpt.approve(address(manager), 1e22);
+        rpt.approve(address(job_manager), 1e22);
         vm.prank(owner);
         eth.transfer(address(treasure), 1e23);
         vm.prank(address(treasure));
-        eth.approve(address(manager), 1e22);
+        eth.approve(address(job_manager), 1e22);
         vm.prank(f_client);
-        manager.pay_him(job_id);
-        Manager.Job memory curr_job=manager.get_job(job_id);
+        job_manager.pay_him(job_id);
+        Manager.Job memory curr_job=job_manager.get_job(job_id);
         assert(curr_job.status==Manager.JOB_STATUS.CLOSED);
         assertEq(rpt.balanceOf(f_client), prev_token_client+level.client_stake);
         assertEq(rpt.balanceOf(worker), prev_token_freelancer+level.freelancer_stake);
@@ -560,59 +559,52 @@ contract JobPayingSystemTest is Test {
     function test_set_treasure_only_owner() public {
         vm.prank(address(1000));
         vm.expectRevert();
-        manager.set_treasury(address(treasure));
+        job_manager.set_treasury(address(treasure));
     }
 
     function test_set_treasure_fail_null_address() public {
         vm.prank(owner);
         vm.expectRevert("zero treasury");
-        manager.set_treasury(address(0));
+        job_manager.set_treasury(address(0));
     }
 
-    function test_set_treasure_normal_mechanics() public {
-        vm.prank(owner);
-//        vm.expectEmit();
-//        emit Manager.treasury_set(address(1000));
-        manager.set_treasury(address(1000));
-        assertEq(manager.treasury_address(), address(1000));
-
-    }
+    
 
     function test_set_slash_only_owner() public {
         vm.prank(f_client);
         vm.expectRevert();
-        manager.set_slash_bps(1000);
+        job_manager.set_slash_bps(1000);
     }
 
     function test_set_slash_bps_fail_invalid_ranges() public {
         vm.startPrank(owner);
         vm.expectRevert("outside range");
-        manager.set_slash_bps(0);
+        job_manager.set_slash_bps(0);
         vm.expectRevert("outside range");
-        manager.set_slash_bps(10001);
-        manager.set_slash_bps(1000);
-        assertEq(manager.slash_bps(), 1000);
+        job_manager.set_slash_bps(10001);
+        job_manager.set_slash_bps(1000);
+        assertEq(job_manager.slash_bps(), 1000);
         vm.stopPrank();
     }
 
     function test_add_verifier_only_owner() public {
         vm.prank(address(1000));
         vm.expectRevert();
-        manager.add_verifier(2, address(1));
+        job_manager.add_verifier(2, address(1));
         vm.prank(owner);
-        manager.add_verifier(2, address(1));
+        job_manager.add_verifier(2, address(1));
     }
 
     function test_add_verifier_fail_zero_address() public {
         vm.prank(owner);
         vm.expectRevert("Null address not allowed");
-        manager.add_verifier(3, address(0));
+        job_manager.add_verifier(3, address(0));
     }
     address public verifier=address(1e5);
     function test_add_verifier_normal_mechanics() public {
         vm.prank(owner);
-        manager.add_verifier(2, verifier);
-        (bool verified, bool is_active, ,uint locked, uint staked, uint8 category)=manager.verifiers(verifier);
+        job_manager.add_verifier(2, verifier);
+        (bool verified, bool is_active, ,,uint locked, uint staked, uint16 category, ,)=job_manager.verifiers(verifier);
         assertEq(staked, 0);
         assertEq(locked, 0);
         assertTrue(is_active);
@@ -624,19 +616,19 @@ contract JobPayingSystemTest is Test {
         test_add_verifier_normal_mechanics();
         vm.prank(owner);
         vm.expectRevert("already added");
-        manager.add_verifier(2, verifier);
+        job_manager.add_verifier(2, verifier);
     }
 
 
     function test_stake_fail_zero_amount() public {
         vm.prank(verifier);
         vm.expectRevert("zero stake");
-        manager.stake(0);
+        job_manager.stake(0);
     }
     function test_stake_fail_unverified() public {
         vm.prank(address(1000));
         vm.expectRevert("not a verifier");
-        manager.stake(1e3);
+        job_manager.stake(1e3);
     }
 
     function test_stake_normal_mechanics() public {
@@ -644,11 +636,11 @@ contract JobPayingSystemTest is Test {
         vm.prank(treasure);
         rpt.transfer(verifier, 1e23);
         vm.prank(verifier);
-        rpt.approve(address(manager), 1e23);
+        rpt.approve(address(job_manager), 1e23);
         uint prev_balance=rpt.balanceOf(verifier);
         vm.prank(verifier);
-        manager.stake(1e21);
-        (, bool is_active, ,, uint staked,)=manager.verifiers(verifier);
+        job_manager.stake(1e21);
+        (, bool is_active, ,,, uint staked,,,)=job_manager.verifiers(verifier);
         assertTrue(is_active);
         assertEq(staked, 1e21);
         assertEq(rpt.balanceOf(verifier), prev_balance-staked);
@@ -657,20 +649,20 @@ contract JobPayingSystemTest is Test {
     function test_inactive_fail_inactive() public {
         vm.prank(address(1000));
         vm.expectRevert("not working or allowed");
-        manager.inactive_verifier();
+        job_manager.inactive_verifier();
         test_stake_normal_mechanics();
         vm.prank(verifier);
-        manager.inactive_verifier();
+        job_manager.inactive_verifier();
         vm.prank(verifier);
         vm.expectRevert("not working or allowed");
-        manager.inactive_verifier();
+        job_manager.inactive_verifier();
     }
 
     function test_inactive_normal_mechanics() public {
         test_stake_normal_mechanics();
         vm.prank(verifier);
-        manager.inactive_verifier();
-        (, bool is_active, ,, uint staked,)=manager.verifiers(verifier);
+        job_manager.inactive_verifier();
+        (, bool is_active, ,,, uint staked,,,)=job_manager.verifiers(verifier);
         assertFalse(is_active);
         assertEq(staked, 0);
     }

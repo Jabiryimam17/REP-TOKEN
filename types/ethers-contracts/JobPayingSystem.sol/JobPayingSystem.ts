@@ -18,7 +18,7 @@ export declare namespace JobPayingSystem {
     }
 
   export interface JobPayingSystemInterface extends Interface {
-    getFunction(nameOrSignature: "MIN_MAX_DURATION" | "STAKE_DECIMAL" | "VERIFIERS_RECYCLING_PER_JOB" | "VERIFIER_DECIMAL" | "WEIGHT_MAX" | "acceptOwnership" | "accept_job" | "add_verifier" | "append_level" | "authority" | "callback_gas_limit" | "cancel_hire" | "cancel_job" | "cancel_pending_hire" | "category_open" | "claim_after_dispute" | "claim_rewards" | "client_fee_portion_bps" | "complete_job" | "finalize_verification" | "freelancer_fee_portion_bps" | "freelancers" | "get_job" | "get_job_lists_len" | "get_level" | "hire" | "inactive_verifier" | "isConsumingScheduledOp" | "job_lists" | "key_hash" | "leveled_verifiers" | "levels" | "levels_size" | "owner" | "pay_him" | "pending_rewards" | "post_job" | "raise_dispute" | "rawFulfillRandomWords" | "refund_after_dispute" | "register_freelancer" | "reputation_token" | "request_confirmations" | "request_random_nums" | "reveal_decision" | "s_vrfCoordinator" | "setAuthority" | "setCoordinator" | "set_client_fee_portion" | "set_slash_bps" | "set_treasury" | "slash_bps" | "stable_coin" | "stack_levels" | "stake" | "submit_hashed_decision" | "subscription_id" | "transferOwnership" | "treasury" | "treasury_pending" | "verifier_requests" | "verifiers"): FunctionFragment;
+    getFunction(nameOrSignature: "MIN_MAX_DURATION" | "STAKE_DECIMAL" | "VERIFIERS_RECYCLING_PER_JOB" | "VERIFIER_DECIMAL" | "WEIGHT_MAX" | "acceptOwnership" | "accept_job" | "add_verifier" | "append_level" | "authority" | "calculate_level" | "callback_gas_limit" | "cancel_hire" | "cancel_job" | "cancel_pending_hire" | "category_open" | "claim_after_dispute" | "claim_rewards" | "client_fee_portion_bps" | "complete_job" | "finalize_verification" | "freelancer_fee_portion_bps" | "freelancers" | "get_job" | "get_job_lists_len" | "get_level" | "hire" | "inactive_verifier" | "isConsumingScheduledOp" | "job_lists" | "key_hash" | "leveled_verifiers" | "levels" | "levels_size" | "owner" | "pay_him" | "pending_rewards" | "post_job" | "raise_dispute" | "rawFulfillRandomWords" | "refund_after_dispute" | "register_freelancer" | "reputation_token" | "request_confirmations" | "request_random_nums" | "reveal_decision" | "s_vrfCoordinator" | "setAuthority" | "setCoordinator" | "set_client_fee_portion" | "set_slash_bps" | "set_treasury" | "slash_bps" | "stable_coin" | "stack_levels" | "stake" | "submit_hashed_decision" | "subscription_id" | "transferOwnership" | "treasury" | "treasury_pending" | "verifier_requests" | "verifiers"): FunctionFragment;
 
     getEvent(nameOrSignatureOrTopic: "AuthorityUpdated" | "CoordinatorSet" | "OwnershipTransferRequested" | "OwnershipTransferred" | "decision_revealed" | "hashed_decision_submitted" | "job_accepted" | "job_completed" | "job_disputed" | "job_finalized" | "job_hired" | "job_initialized" | "job_posted" | "request_fulfilled(uint256,uint256[],bytes32)" | "request_fulfilled(uint256,uint256[])" | "request_sent" | "reward_credited" | "rewards_claimed" | "treasury_set" | "verifier_added" | "verifier_slashed" | "verifier_staked" | "verifier_unstaked"): EventFragment;
 
@@ -32,6 +32,7 @@ encodeFunctionData(functionFragment: 'accept_job', values: [BytesLike]): string;
 encodeFunctionData(functionFragment: 'add_verifier', values: [BigNumberish, AddressLike]): string;
 encodeFunctionData(functionFragment: 'append_level', values: [JobPayingSystem.LevelStruct]): string;
 encodeFunctionData(functionFragment: 'authority', values?: undefined): string;
+encodeFunctionData(functionFragment: 'calculate_level', values: [BigNumberish]): string;
 encodeFunctionData(functionFragment: 'callback_gas_limit', values?: undefined): string;
 encodeFunctionData(functionFragment: 'cancel_hire', values: [BytesLike]): string;
 encodeFunctionData(functionFragment: 'cancel_job', values: [BytesLike]): string;
@@ -95,6 +96,7 @@ decodeFunctionResult(functionFragment: 'accept_job', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'add_verifier', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'append_level', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'authority', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'calculate_level', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'callback_gas_limit', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'cancel_hire', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'cancel_job', data: BytesLike): Result;
@@ -535,6 +537,14 @@ decodeFunctionResult(functionFragment: 'verifiers', data: BytesLike): Result;
     authority: TypedContractMethod<
       [],
       [string],
+      'view'
+    >
+    
+
+    
+    calculate_level: TypedContractMethod<
+      [amount: BigNumberish, ],
+      [bigint],
       'view'
     >
     
@@ -1006,6 +1016,11 @@ getFunction(nameOrSignature: 'append_level'): TypedContractMethod<
 getFunction(nameOrSignature: 'authority'): TypedContractMethod<
       [],
       [string],
+      'view'
+    >;
+getFunction(nameOrSignature: 'calculate_level'): TypedContractMethod<
+      [amount: BigNumberish, ],
+      [bigint],
       'view'
     >;
 getFunction(nameOrSignature: 'callback_gas_limit'): TypedContractMethod<

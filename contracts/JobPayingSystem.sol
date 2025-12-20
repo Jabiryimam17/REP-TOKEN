@@ -261,7 +261,7 @@ contract JobPayingSystem is VerifierSystem {
 
 
     // --- Helpers ---
-    function calculate_level(uint256 amount) internal view returns (uint256) {// we will make it private only public for testing
+    function calculate_level(uint256 amount) public view returns (uint256) {// we will make it private only public for testing
         require(levels.length > 0, "No levels configured");
         uint256 low = 0;
         uint256 high = levels.length - 1;

@@ -6,6 +6,8 @@ import {console} from "forge-std/src/console.sol";
 import {EthioCoin} from "../contracts/EthioCoin.sol";
 import {ReputationToken} from  "../contracts/ReputationToken.sol";
 import {RewardVault} from "../contracts/RewardVault.sol";
+import {AccessManager} from "@openzeppelin/contracts/access/manager/AccessManager.sol";
+
 contract TreasureTest is Test {
 
     EthioCoin public eth;
@@ -16,13 +18,15 @@ contract TreasureTest is Test {
     address public owner=address(1);
     address public f_user=address(2);
     address public l_user=address(3);
-
+    address public job_manager=address(1111);
+    AccessManager public access_manager;
     function setUp() public {
         vm.startPrank(owner);
         lptoken=new EthioCoin();
         eth =new EthioCoin();
-        treasure=new Treasure(address(eth));
-        rpt =new ReputationToken(address(treasure));
+        access_manager = new AccessManager(owner);
+        treasure=new Treasure(address(eth), address(access_manager), job_manager);
+        rpt =new ReputationToken(address(treasure), address(access_manager));
         reward_vault=new RewardVault(lptoken, rpt, 317*1e3);
         treasure.set_reward_vault(address(reward_vault));
         treasure.set_reputation_token(address(rpt));
@@ -31,16 +35,16 @@ contract TreasureTest is Test {
     }
 
     //PHASE 1: TESTING INITAL SET UP AND INTERACTION WITH OTHER CONTRACTS
-    function test_owner_setup () public {
-        require(treasure.owner()==owner);
-    }
+    // function test_owner_setup () public {
+    //     require(treasure.owner()==owner);
+    // }
 
     function test_treasure_initial_balance() public {
-        assertEq(rpt.balanceOf(address(treasure)),1e24);
+        assertEq(rpt.balanceOf(address(treasure)),1e30);
     }
     function test_balances() public {
 
-        assertEq(treasure.get_balance_reputation_token(),1e24);
+        assertEq(treasure.get_balance_reputation_token(),1e30);
         assertEq(treasure.get_balance_stable_coin(), 1e19);
     }
 

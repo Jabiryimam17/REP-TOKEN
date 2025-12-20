@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import {ReputationToken} from "../contracts/ReputationToken.sol";
 import {Test} from "forge-std/src/Test.sol";
 import {console} from "forge-std/src/console.sol";
+import {AccessManager} from "@openzeppelin/contracts/access/manager/AccessManager.sol";
 
 contract ReputationTokenTest is Test {
 
@@ -12,20 +13,21 @@ contract ReputationTokenTest is Test {
     address treasure =address(1);
     address user_2=address(2);
     address user_3=address(3);
+    AccessManager public access_manager;
+
+    
     function setUp() public {
         deployer=address(this);
-        rpt = new ReputationToken(treasure);
+        access_manager = new AccessManager(deployer);
+        rpt = new ReputationToken(treasure, address(access_manager));
     }
 
     function test_initial_supply() public view {
-        uint expected_supply=1_000_000 *10** rpt.decimals();
+        uint expected_supply=1e12 *10** rpt.decimals();
         require(rpt.totalSupply()==expected_supply, "not appropriate amount");
     }
 
-    function test_owner() view public {
-        require(rpt.owner()== deployer);
-        require(rpt.balanceOf(treasure)== rpt.totalSupply());
-    }
+    
 
     function test_transfer() public {
         vm.startPrank(treasure);
@@ -88,11 +90,11 @@ contract ReputationTokenTest is Test {
 
         require(rpt.balanceOf(user_3)==approve_amount,"Not transferred successfully");
 
-        require(rpt.totalSupply()==1_000_000*10**(rpt.decimals()));
+        require(rpt.totalSupply()==1e12*10**(rpt.decimals()));
     }
 
     function test_treasure_balance() public view {
-        require(rpt.balanceOf(treasure)==1_000_000*10**rpt.decimals());
+        require(rpt.balanceOf(treasure)==1e12*10**rpt.decimals());
         require(rpt.balanceOf(treasure)==rpt.totalSupply());
     }
 
@@ -158,31 +160,31 @@ contract ReputationTokenTest is Test {
         vm.stopPrank();
     }
 
-    function test_access_control_owner()  public {
+    // function test_access_control_owner()  public {
 
-        vm.startPrank(user_2);
-        vm.expectRevert();
-        rpt.transferOwnership(user_3);
-        vm.expectRevert();
-        rpt.renounceOwnership();
-        vm.stopPrank();
-    }
-    function test_transfer_ownership() public {
+    //     vm.startPrank(user_2);
+    //     vm.expectRevert();
+    //     rpt.transferOwnership(user_3);
+    //     vm.expectRevert();
+    //     rpt.renounceOwnership();
+    //     vm.stopPrank();
+    // }
+    // function test_transfer_ownership() public {
 
-        vm.startPrank(deployer);
-        address new_owner=address(999);
-        rpt.transferOwnership(new_owner);
-        require(rpt.owner()==new_owner);
-        vm.stopPrank();
-    }
-    function test_renounce_ownership() public {
+    //     vm.startPrank(deployer);
+    //     address new_owner=address(999);
+    //     rpt.transferOwnership(new_owner);
+    //     require(rpt.owner()==new_owner);
+    //     vm.stopPrank();
+    // }
+    // function test_renounce_ownership() public {
 
-        vm.prank(deployer);
-        address owner=rpt.owner();
-        rpt.renounceOwnership();
-        require(rpt.owner()!=owner);
-        require(rpt.owner()==address(0));
-    }
+    //     vm.prank(deployer);
+    //     address owner=rpt.owner();
+    //     rpt.renounceOwnership();
+    //     require(rpt.owner()!=owner);
+    //     require(rpt.owner()==address(0));
+    // }
 
 
 

@@ -5,6 +5,8 @@ import {Test} from "forge-std/src/Test.sol";
 import {console} from "forge-std/src/console.sol";
 import {EthioCoin} from "../contracts/EthioCoin.sol";
 import {ReputationToken} from "../contracts/ReputationToken.sol";
+import {AccessManager} from "@openzeppelin/contracts/access/manager/AccessManager.sol";
+
 contract RewardVaultTest is Test {
     EthioCoin public lptoken;
     address public lp_owner;
@@ -12,10 +14,13 @@ contract RewardVaultTest is Test {
     address public treasure=address(1);
     address user=address(2);
     RewardVault public reward_vault;
+    AccessManager public access_manager;
+
     function setUp() public {
         lptoken =new EthioCoin();
         lp_owner = lptoken.owner();
-        reward_token = new ReputationToken(treasure);
+        access_manager = new AccessManager(address(this));
+        reward_token = new ReputationToken(treasure, address(access_manager));
         reward_vault=new RewardVault(lptoken, reward_token, 317*10**3);
     }
 
