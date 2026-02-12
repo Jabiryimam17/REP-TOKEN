@@ -1,2 +1,5 @@
-import db from "../db/index.js";
-export default () => db.query("SELECT * FROM users where verified=0");
+import db from "../models/index.js";
+
+export default () => {
+    return db.query("SELECT * FROM users where verified=0");
+}

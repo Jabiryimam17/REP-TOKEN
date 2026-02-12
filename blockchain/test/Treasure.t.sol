@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
-import {Treasure} from "../contracts/Treasure.sol";
+import {Treasury} from "../contracts/Treasury.sol";
 import {Test} from "forge-std/src/Test.sol";
 import {console} from "forge-std/src/console.sol";
 import {EthioCoin} from "../contracts/EthioCoin.sol";
@@ -13,7 +13,7 @@ contract TreasureTest is Test {
     EthioCoin public eth;
     EthioCoin public lptoken;
     ReputationToken public rpt;
-    Treasure public treasure;
+    Treasury public treasure;
     RewardVault public reward_vault;
     address public owner=address(1);
     address public f_user=address(2);

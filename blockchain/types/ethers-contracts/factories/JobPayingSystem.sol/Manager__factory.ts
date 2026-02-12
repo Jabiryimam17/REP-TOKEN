@@ -4,8 +4,8 @@
 import type { Addressable } from "ethers";
 import { Contract, ContractFactory, ContractTransactionResponse, Interface } from "ethers"
 import type { Signer, BigNumberish, AddressLike, ContractDeployTransaction, ContractRunner } from "ethers"
-import type { NonPayableOverrides } from "../../common"
-  import type { Manager, ManagerInterface } from "../../JobPayingSystem.sol/Manager";
+import type { NonPayableOverrides } from "../../common.js"
+  import type { Manager, ManagerInterface } from "../../JobPayingSystem.sol/Manager.js";
 
   const _abi = [
   {

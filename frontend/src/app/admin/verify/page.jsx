@@ -30,7 +30,7 @@ export default function AdminVerifyPage() {
       idType: "Passport",
       uploadedAt: "2 hours ago",
       idImage: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=800",
-      profileLink: "/freelancer/profile/satoshi"
+      profileLink: "/freelancers/profile/satoshi"
     },
     {
       id: "REQ-002",
@@ -60,7 +60,7 @@ export default function AdminVerifyPage() {
       idType: "National ID",
       uploadedAt: "3 days ago",
       idImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=800",
-      profileLink: "/freelancer/profile/alice"
+      profileLink: "/freelancers/profile/alice"
     }
   ]);
 
@@ -338,11 +338,17 @@ export default function AdminVerifyPage() {
                 </div>
                 
                 <div className="w-full h-full min-h-[400px] rounded-2xl overflow-hidden shadow-lg border-4 border-white dark:border-slate-700 relative group">
-                  <img 
-                    src={selectedUser.idImage} 
-                    alt="National ID" 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
+                  {selectedUser.idImage ? (
+                    <img 
+                      src={selectedUser.idImage} 
+                      alt="National ID" 
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-slate-200 dark:bg-slate-700 text-slate-400">
+                      <FileText className="w-12 h-12" />
+                    </div>
+                  )}
                   <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors"></div>
                   <button className="absolute bottom-4 right-4 p-3 bg-white/90 backdrop-blur-md rounded-xl text-slate-900 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity">
                     <Maximize2 className="w-5 h-5" />

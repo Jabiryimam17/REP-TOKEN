@@ -1,24 +1,40 @@
 import jwt from "jsonwebtoken";
 
-import { serialize } from "cookie";
+import {serialize} from "cookie";
 import fs from "fs";
 import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+dotenv.config({ path: "../../.env" });
 
-dotenv.config({ path: "../.env" });
 
-const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
-const MAX_AGE = 60 * 60 * 60;
-const private_key = fs.readFileSync("./keys/private.key", "utf8");
-const public_key = fs.readFileSync("./keys/public.key", "utf8");
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const MAX_AGE = 60 * 60;
+
+const private_key = fs.readFileSync(
+    path.join(__dirname, "../../src/config/keys/private.pem"),
+    "utf8"
+);
+
+const public_key = fs.readFileSync(
+    path.join(__dirname, "../../src/config/keys/public.pem"),
+    "utf8"
+);
 
 export function generate_token(user) {
-  const token = jwt.sign(user, private_key, {
+  const pass_phrase = process.env.PRIVATE_KEY_PASSPHRASE;
+  const payload = {sub: user.id, role: user.role};
+  return jwt.sign(payload, {
+    key:private_key,
+    passphrase: pass_phrase,
+  }, {
     algorithm: "RS256",
     expiresIn: MAX_AGE,
   });
-  return token;
 }
-
 export function verify_token(token) {
   try {
     return jwt.verify(token, public_key, {

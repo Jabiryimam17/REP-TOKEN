@@ -4,8 +4,8 @@
 import type { Addressable } from "ethers";
 import { Contract, ContractFactory, ContractTransactionResponse, Interface } from "ethers"
 import type { Signer, ContractDeployTransaction, ContractRunner } from "ethers"
-import type { NonPayableOverrides } from "../../common"
-  import type { Counter, CounterInterface } from "../../Counter.sol/Counter";
+import type { NonPayableOverrides } from "../../common.js"
+  import type { Counter, CounterInterface } from "../../Counter.sol/Counter.js";
 
   const _abi = [
   {

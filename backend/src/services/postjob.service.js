@@ -1,4 +1,4 @@
-import {db} from "../db/index.js"
+import db from "../models/index.js"
 
 export default (job)=> {
     db.query("INSERT INTO jobs SET ?", job);

@@ -7,7 +7,7 @@ import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/V
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
-import {ISystemRegistry} from "./SystemRegistry.sol";
+import {IRegistry} from "./Registry.sol";
 
 interface Itreasury {
     function pay_back_rpt(address to, uint amount) external;
@@ -16,7 +16,7 @@ interface Itreasury {
 
 contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged {
     using SafeERC20 for IERC20;
-    ISystemRegistry public registry;
+    IRegistry public registry;
 
     event request_fulfilled(uint256 request_id, uint256[] random_values, bytes32 job_id);
     event verifier_added(address indexed verifier, uint16 category);
@@ -87,17 +87,17 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
     uint256 public treasury_pending;
 
     
-    constructor( address _registry, address _coordinator, uint _subscription_id, address _access_manager) VRFConsumerBaseV2Plus(_coordinator) AccessManaged(_access_manager) {
+    constructor(  address _coordinator, uint _subscription_id, address _registry, address _access_manager) VRFConsumerBaseV2Plus(_coordinator) AccessManaged(_access_manager) {
 
-        registry=ISystemRegistry(_registry);
+        registry=IRegistry(_registry);
         subscription_id = _subscription_id;
     }
 
     function _ethio_coin() internal view returns (IERC20) {
-        return IERC20(registry.ethiocoin());
+        return IERC20(registry.get_ethiocoin());
     }
     function _treasury() internal view returns(Itreasury) {
-        return Itreasury(registry.treasury());
+        return Itreasury(registry.get_treasury());
     }
 
     function set_slash_bps(uint256 _bps) external restricted {
@@ -122,7 +122,7 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
         v.is_active=true;
         _update_level(msg.sender);
 
-        reputation_token.safeTransferFrom(msg.sender, address(registry.treasury()), amount);
+        reputation_token.safeTransferFrom(msg.sender, address(registry.get_treasury()), amount);
         emit verifier_staked(msg.sender, amount);
     }
 
@@ -175,7 +175,15 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
     }
 
 
-    
+    function post_job(bytes32 job_id, uint8 cat, uint client_stake, uint freelancer_stake) external {
+        DisputedJob storage dj=disputed_jobs[job_id];
+        dj.category=cat;
+        dj.client_stake=client_stake;
+        dj.freelancer_stake= freelancer_stake;
+    }
+    function get_dispute_status(bytes32 job_id) external view returns(DISPUTE_STATUS) {
+        return disputed_jobs[job_id].dispute_status;
+    }
 
 
     
@@ -392,8 +400,18 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
     }
 
 
-
     function abs_uint(uint256 a, uint256 b) internal pure returns (uint256) {
         return (a >= b) ? (a - b) : (b - a);
     }
+}
+interface IVerifierSystem {
+    enum DISPUTE_STATUS {PENDING, FREELANCER_WIN, CLIENT_WIN}
+    function request_random_nums(
+        bool enable_native_payment,
+        bytes32 job_id,
+        uint stake_amount,
+        uint verifiers_cnt
+    ) external;
+    function get_dispute_status(bytes32 job_id) external view returns(DISPUTE_STATUS);
+    function post_job(bytes32 job_id, uint8 cat, uint client_stake, uint freelancer_stake) external;
 }

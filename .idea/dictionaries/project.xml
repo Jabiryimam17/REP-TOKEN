@@ -4,6 +4,7 @@
       <w>ethiocoin</w>
       <w>lptoken</w>
       <w>openzeppelin</w>
+      <w>selfdestruct</w>
     </words>
   </dictionary>
 </component>

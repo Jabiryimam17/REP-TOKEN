@@ -31,13 +31,13 @@ contract JobPayingSystemTest is Test {
     function test_only_owner_leveling() public {
         vm.prank(address(5));
         vm.expectRevert();
-        Manager.Level memory level=Manager.Level(10,10,100,1000,1000);
+        Manager.WLevel memory level=Manager.WLevel(10,10,100,1000,1000);
         job_manager.append_level(level);
         vm.prank(owner);
         job_manager.append_level(level);
     }
     function test_fail_no_verifiers_leveling() public {
-        Manager.Level memory level= Manager.Level(0,10,10,1000, 1000);
+        Manager.WLevel memory level= Manager.WLevel(0,10,10,1000, 1000);
         vm.prank(owner);
         vm.expectRevert("No verifiers system not allowed");
         job_manager.append_level(level);
@@ -46,7 +46,7 @@ contract JobPayingSystemTest is Test {
 
 
     function test_fail_no_stake_leveling() public {
-        Manager.Level memory level = Manager.Level(10, 0,10,1000,1000);
+        Manager.WLevel memory level = Manager.WLevel(10, 0,10,1000,1000);
         vm.prank(owner);
         vm.expectRevert("Zero stake not allowed");
         job_manager.append_level(level);
@@ -55,9 +55,9 @@ contract JobPayingSystemTest is Test {
     function test_normal_mechanics_leveling() public {
         uint prev_len=job_manager.levels_size();
         vm.startPrank(owner);
-        Manager.Level memory level=Manager.Level(10,10,100,1000,1000);
+        Manager.WLevel memory level=Manager.WLevel(10,10,100,1000,1000);
         job_manager.append_level(level);
-        Manager.Level memory c_level= job_manager.get_level(prev_len);
+        Manager.WLevel memory c_level= job_manager.get_level(prev_len);
         assertEq(c_level.payment_duration, level.payment_duration);
         assertEq(c_level.client_stake, level.client_stake);
         assertEq(c_level.freelancer_stake, level.freelancer_stake);
@@ -70,7 +70,7 @@ contract JobPayingSystemTest is Test {
         test_normal_mechanics_leveling();
         vm.startPrank(owner);
         vm.expectRevert("Sorting order should be respected");
-        Manager.Level memory level=Manager.Level(12, 10,100, 100,100);
+        Manager.WLevel memory level=Manager.WLevel(12, 10,100, 100,100);
         job_manager.append_level(level);
         level.max_amount=1e5;
         uint prev_len=job_manager.levels_size();
@@ -122,7 +122,7 @@ contract JobPayingSystemTest is Test {
     uint public constant day = 3600 * 24;
 
     function prepare_levels() public {
-        Manager.Level memory level = Manager.Level({
+        Manager.WLevel memory level = Manager.WLevel({
             min_verifiers_portion: 5,
             freelancer_stake: 5*1e18,
             client_stake: 100*1e18,
@@ -133,7 +133,7 @@ contract JobPayingSystemTest is Test {
         vm.startPrank(owner);
         job_manager.append_level(level);
 
-        level = Manager.Level({
+        level = Manager.WLevel({
             min_verifiers_portion: 15,
             freelancer_stake: 100*1e18,
             client_stake: 500*1e18,
@@ -142,7 +142,7 @@ contract JobPayingSystemTest is Test {
         });
         job_manager.append_level(level);
 
-        level = Manager.Level({
+        level = Manager.WLevel({
             min_verifiers_portion: 25,
             freelancer_stake: 200*1e18,
             client_stake: 1000*1e18,
@@ -151,7 +151,7 @@ contract JobPayingSystemTest is Test {
         });
         job_manager.append_level(level);
 
-        level = Manager.Level({
+        level = Manager.WLevel({
             min_verifiers_portion: 40,
             freelancer_stake: 500*1e18,
             client_stake: 5000*1e18,
@@ -160,7 +160,7 @@ contract JobPayingSystemTest is Test {
         });
         job_manager.append_level(level);
 
-        level = Manager.Level({
+        level = Manager.WLevel({
             min_verifiers_portion: 60,
             freelancer_stake: 1000*1e18,
             client_stake: 10000*1e18,
@@ -169,7 +169,7 @@ contract JobPayingSystemTest is Test {
         });
         job_manager.append_level(level);
 
-        level = Manager.Level({
+        level = Manager.WLevel({
             min_verifiers_portion: 75,
             freelancer_stake: 2000*1e18,
             client_stake: 25000*1e18,
@@ -282,7 +282,7 @@ contract JobPayingSystemTest is Test {
         assertEq(amount, curr_job.amount);
         assertEq(level, curr_job.level);
         assertEq(curr_job.max_duration, day*2);
-        (,,uint client_stake,uint max_amount,)=job_manager.levels(level-1);
+        (,,uint client_stake,uint max_amount,)=job_manager.work_levels(level-1);
         assertLe(amount, max_amount);
         assertEq(rpt.balanceOf(address(treasure)), prev_treasure_token+client_stake);
         assertEq(eth.balanceOf(address(treasure)), prev_treasure_dollar+amount+fee-1e6);
@@ -316,7 +316,7 @@ contract JobPayingSystemTest is Test {
         Manager.Job memory prev_job=job_manager.get_job(job_id);
         assert(prev_job.status==Manager.JOB_STATUS.OPEN);
         eth.transfer(address(job_manager), prev_job.amount);
-        (,,uint client_stake,,)=job_manager.levels(prev_job.level-1);
+        (,,uint client_stake,,)=job_manager.work_levels(prev_job.level-1);
         rpt.transfer(address(job_manager), client_stake);
         vm.stopPrank();
         uint prev_balance=eth.balanceOf(f_client);
@@ -540,7 +540,7 @@ contract JobPayingSystemTest is Test {
         uint prev_token_client=rpt.balanceOf(f_client);
         uint prev_token_freelancer=rpt.balanceOf(worker);
         uint prev_balance_freelancer=eth.balanceOf(worker);
-        Manager.Level memory level=job_manager.get_level(prev_job.level-1);
+        Manager.WLevel memory level=job_manager.get_level(prev_job.level-1);
         vm.prank(address(treasure));
         rpt.approve(address(job_manager), 1e22);
         vm.prank(owner);

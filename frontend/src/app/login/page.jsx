@@ -13,51 +13,78 @@ import {
   AlertCircle,
   Loader2
 } from "lucide-react";
+import axios from "axios";
+import { useApp } from "@/context/AppContext";
 
 export default function LoginPage() {
+  const { login: setAuth } = useApp();
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [email, set_email] = useState("");
+  const [password, set_password] = useState("");
+  const [loading, set_loading] = useState(false);
+  const [error, set_error] = useState("");
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
+    set_loading(true);
+    set_error("");
 
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    // Mock User Logic based on email prefix or just a random mock
-    // In a real app, this would come from the backend API
-    let user = null;
-    
-    if (email.includes("freelancer")) {
-      user = { name: "Alex Rivera", role: "freelancer" };
-    } else if (email.includes("employer")) {
-      user = { name: "Nexus Finance", role: "employer" };
-    } else if (email.includes("verifier")) {
-      user = { name: "Marcus Aurelius", role: "verifier" };
-    } else {
-      // Default mock for demo
-      user = { name: "Demo User", role: "freelancer" };
+    // Email validation
+    const email_regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) {
+      set_error("Email is required.");
+      set_loading(false);
+      return;
+    }
+    if (!email_regex.test(email)) {
+      set_error("Please enter a valid email address.");
+      set_loading(false);
+      return;
     }
 
-    if (password === "password" || email.length > 5) {
-      console.log("Logged in as:", user);
+    // Password validation: 6 characters with mixed alphabets (at least one uppercase and one lowercase)
+    if (!password) {
+      set_error("Password is required.");
+      set_loading(false);
+      return;
+    }
+    const has_upper = /[A-Z]/.test(password);
+    const has_lower = /[a-z]/.test(password);
+    
+    if (password.length !== 6) {
+      set_error("Password must be exactly 6 characters long.");
+      set_loading(false);
+      return;
+    }
+    
+    if (!has_upper || !has_lower) {
+      set_error("Password must contain mixed alphabet (both uppercase and lowercase).");
+      set_loading(false);
+      return;
+    }
+
+    try {
+      const response = await axios.post("http://localhost:3333/api/auth/login", {password:password, email:email},{withCredentials:true});
       
+      const { role } = response.data;
+      
+      setAuth(); // Update global auth state immediately
+
       // Redirect based on role
-      if (user.role === "freelancer") {
+      if (role === "freelancer") {
         router.push("/freelancer/dashboard");
-      } else if (user.role === "employer") {
+      } else if (role === "employer") {
         router.push("/employer");
-      } else if (user.role === "verifier") {
+      } else if (role === "verifier") {
         router.push("/verifier");
+      } else {
+        router.push("/");
       }
-    } else {
-      setError("Invalid email or password. Hint: use 'freelancer@demo.com' and any password.");
-      setLoading(false);
+      
+    } catch(e){
+      console.error("Login failed:", e);
+      set_error(e.response?.data?.message || "Invalid email or password. Please try again.");
+      set_loading(false);
     }
   };
 
@@ -102,7 +129,7 @@ export default function LoginPage() {
                     type="email"
                     required
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => set_email(e.target.value)}
                     className="block w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none text-slate-900 dark:text-white"
                     placeholder="name@company.com"
                   />
@@ -126,7 +153,7 @@ export default function LoginPage() {
                     type="password"
                     required
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => set_password(e.target.value)}
                     className="block w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none text-slate-900 dark:text-white"
                     placeholder="••••••••"
                   />

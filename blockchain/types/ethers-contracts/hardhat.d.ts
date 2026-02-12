@@ -6,41 +6,81 @@
 import { ethers } from 'ethers'
 import { DeployContractOptions, FactoryOptions, HardhatEthersHelpers as HardhatEthersHelpersBase} from "@nomicfoundation/hardhat-ethers/types";
 
-import * as Contracts from "./index";
+import * as Contracts from "./index.js";
 
 declare module "@nomicfoundation/hardhat-ethers/types" {
   interface HardhatEthersHelpers extends HardhatEthersHelpersBase {
-  getContractFactory(name: 'EthioCoin', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.EthioCoin__factory>
+  getContractFactory(name: 'AccessManagerHelper', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.AccessManagerHelper__factory>
+getContractFactory(name: 'IAccessManager', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IAccessManager__factory>
+getContractFactory(name: 'EthioCoin', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.EthioCoin__factory>
+getContractFactory(name: 'Itreasury', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.Itreasury__factory>
 getContractFactory(name: 'JobPayingSystem', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.JobPayingSystem__factory>
+getContractFactory(name: 'IRegistry', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IRegistry__factory>
+getContractFactory(name: 'Registry', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.Registry__factory>
 getContractFactory(name: 'ReputationToken', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.ReputationToken__factory>
 getContractFactory(name: 'RewardVault', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.RewardVault__factory>
-getContractFactory(name: 'Treasure', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.Treasure__factory>
+getContractFactory(name: 'RPTAccessManager', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.RPTAccessManager__factory>
+getContractFactory(name: 'Treasury', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.Treasury__factory>
+getContractFactory(name: 'UniswapV2Factory', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.UniswapV2Factory__factory>
+getContractFactory(name: 'UniswapV2Router02', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.UniswapV2Router02__factory>
 getContractFactory(name: 'Itreasury', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.Itreasury__factory>
+getContractFactory(name: 'IVerifierSystem', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IVerifierSystem__factory>
 getContractFactory(name: 'VerifierSystem', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.VerifierSystem__factory>
+getContractFactory(name: 'WETH9', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.WETH9__factory>
 
-  getContractAt(name: 'EthioCoin', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.EthioCoin>
+  getContractAt(name: 'AccessManagerHelper', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.AccessManagerHelper>
+getContractAt(name: 'IAccessManager', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IAccessManager>
+getContractAt(name: 'EthioCoin', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.EthioCoin>
+getContractAt(name: 'Itreasury', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.Itreasury>
 getContractAt(name: 'JobPayingSystem', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.JobPayingSystem>
+getContractAt(name: 'IRegistry', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IRegistry>
+getContractAt(name: 'Registry', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.Registry>
 getContractAt(name: 'ReputationToken', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.ReputationToken>
 getContractAt(name: 'RewardVault', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.RewardVault>
-getContractAt(name: 'Treasure', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.Treasure>
+getContractAt(name: 'RPTAccessManager', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.RPTAccessManager>
+getContractAt(name: 'Treasury', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.Treasury>
+getContractAt(name: 'UniswapV2Factory', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.UniswapV2Factory>
+getContractAt(name: 'UniswapV2Router02', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.UniswapV2Router02>
 getContractAt(name: 'Itreasury', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.Itreasury>
+getContractAt(name: 'IVerifierSystem', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IVerifierSystem>
 getContractAt(name: 'VerifierSystem', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.VerifierSystem>
+getContractAt(name: 'WETH9', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.WETH9>
 
-  deployContract(name: 'EthioCoin', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.EthioCoin>
+  deployContract(name: 'AccessManagerHelper', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.AccessManagerHelper>
+deployContract(name: 'IAccessManager', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IAccessManager>
+deployContract(name: 'EthioCoin', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.EthioCoin>
+deployContract(name: 'Itreasury', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Itreasury>
 deployContract(name: 'JobPayingSystem', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.JobPayingSystem>
+deployContract(name: 'IRegistry', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IRegistry>
+deployContract(name: 'Registry', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Registry>
 deployContract(name: 'ReputationToken', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ReputationToken>
 deployContract(name: 'RewardVault', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.RewardVault>
-deployContract(name: 'Treasure', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Treasure>
+deployContract(name: 'RPTAccessManager', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.RPTAccessManager>
+deployContract(name: 'Treasury', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Treasury>
+deployContract(name: 'UniswapV2Factory', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.UniswapV2Factory>
+deployContract(name: 'UniswapV2Router02', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.UniswapV2Router02>
 deployContract(name: 'Itreasury', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Itreasury>
+deployContract(name: 'IVerifierSystem', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IVerifierSystem>
 deployContract(name: 'VerifierSystem', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.VerifierSystem>
+deployContract(name: 'WETH9', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.WETH9>
 
-  deployContract(name: 'EthioCoin', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.EthioCoin>
+  deployContract(name: 'AccessManagerHelper', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.AccessManagerHelper>
+deployContract(name: 'IAccessManager', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IAccessManager>
+deployContract(name: 'EthioCoin', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.EthioCoin>
+deployContract(name: 'Itreasury', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Itreasury>
 deployContract(name: 'JobPayingSystem', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.JobPayingSystem>
+deployContract(name: 'IRegistry', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IRegistry>
+deployContract(name: 'Registry', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Registry>
 deployContract(name: 'ReputationToken', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ReputationToken>
 deployContract(name: 'RewardVault', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.RewardVault>
-deployContract(name: 'Treasure', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Treasure>
+deployContract(name: 'RPTAccessManager', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.RPTAccessManager>
+deployContract(name: 'Treasury', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Treasury>
+deployContract(name: 'UniswapV2Factory', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.UniswapV2Factory>
+deployContract(name: 'UniswapV2Router02', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.UniswapV2Router02>
 deployContract(name: 'Itreasury', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Itreasury>
+deployContract(name: 'IVerifierSystem', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IVerifierSystem>
 deployContract(name: 'VerifierSystem', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.VerifierSystem>
+deployContract(name: 'WETH9', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.WETH9>
 
     // default types
     getContractFactory(

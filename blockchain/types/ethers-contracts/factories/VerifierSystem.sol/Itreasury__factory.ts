@@ -3,7 +3,7 @@
 /* eslint-disable */
 
   import { Contract, Interface, type ContractRunner } from "ethers";
-  import type { Itreasury, ItreasuryInterface } from "../../VerifierSystem.sol/Itreasury";
+  import type { Itreasury, ItreasuryInterface } from "../../VerifierSystem.sol/Itreasury.js";
 
   const _abi = [
   {

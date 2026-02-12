@@ -1,4 +1,4 @@
-import verify_service from "#services/verify.service.js"
+import verify_service from "#services/verify_kyc.service.js"
 export default async (req, res) => {
     try {
         const {id}=req.params;

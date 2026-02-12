@@ -52,7 +52,7 @@ contract RewardVaultTest is Test {
 
     function test_stake_one_person() public {
         test_update_pool();
-        (uint prev_amount, uint prev_reward_debt)=reward_vault.user_infos(user);
+        (uint prev_amount, uint prev_reward_debt)=reward_vault.liqudators(user);
         vm.warp(block.timestamp+1000);
         uint prev_balance=reward_token.balanceOf(user);
 
@@ -60,7 +60,7 @@ contract RewardVaultTest is Test {
         reward_vault.stake(10**8);
         uint arps =reward_vault.acc_reward_per_share();
         require(reward_token.balanceOf(user)==prev_balance+prev_amount* arps /1e12-prev_reward_debt);
-        (uint amount, uint reward_debt)=reward_vault.user_infos(user);
+        (uint amount, uint reward_debt)=reward_vault.liqudators(user);
         require(reward_debt==amount * arps/1e12);
     }
 
@@ -77,7 +77,7 @@ contract RewardVaultTest is Test {
         lptoken.approve(address(reward_vault), 1e11);
         reward_vault.stake(1e8);
         require(reward_vault.acc_reward_per_share()==1585*1e9+317*1e10);// time_diff*reward_rate)1e12/total_stake
-        (, uint prev_reward_debt)=reward_vault.user_infos(later);
+        (, uint prev_reward_debt)=reward_vault.liqudators(later);
         require(prev_reward_debt ==1e8*reward_vault.acc_reward_per_share()/1e12);
         vm.stopPrank();
         vm.warp(block.timestamp+1000);
@@ -98,7 +98,7 @@ contract RewardVaultTest is Test {
     function test_withdraw_excess_amount() public {
         test_update_pool();
         vm.startPrank(user);
-        (uint amount,) = reward_vault.user_infos(user);
+        (uint amount,) = reward_vault.liqudators(user);
         vm.expectRevert();
         reward_vault.withdraw(amount+1);
         vm.stopPrank();
@@ -107,7 +107,7 @@ contract RewardVaultTest is Test {
     function test_withdraw_transfer() public {
         test_update_pool();
         uint prev_balance=reward_token.balanceOf(user);
-        (, uint reward_debt) = reward_vault.user_infos(user);
+        (, uint reward_debt) = reward_vault.liqudators(user);
         uint last_time=reward_vault.last_reward_time();
         vm.warp(last_time+1000);
         vm.prank(user);
@@ -120,7 +120,7 @@ contract RewardVaultTest is Test {
         test_update_pool();
         vm.prank(user);
         reward_vault.withdraw(1e8);
-        (uint amount, uint reward_debt)=reward_vault.user_infos(user);
+        (uint amount, uint reward_debt)=reward_vault.liqudators(user);
         require(amount == 1e8);
         require(reward_debt == 1e8*reward_vault.acc_reward_per_share()/1e12);
         require(reward_vault.total_staked()==1e8);

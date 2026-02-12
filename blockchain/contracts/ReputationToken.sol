@@ -3,12 +3,10 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
-
+import {IRegistry} from "./Registry.sol";
 
 contract ReputationToken is ERC20,AccessManaged {
-
-    constructor(address treasure, address _access_manager) ERC20("ReputationToken", "RPT")  AccessManaged(_access_manager) {
-        _mint(treasure, 1e12 * 10 ** decimals());
+    constructor(address registry, address _access_manager) ERC20("ReputationToken", "RPT")  AccessManaged(_access_manager) {
     }
 
     function mint(address to, uint256 amount) public restricted {
