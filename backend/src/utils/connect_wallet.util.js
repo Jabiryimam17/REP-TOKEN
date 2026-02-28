@@ -1,13 +1,11 @@
 'use client';
 
 import {JsonRpcProvider} from "ethers";
-
+import dotenv from "dotenv";
+dotenv.config({path:"../../.env"});
 export default async () => {
+    const sepolia_rpc_url = process.env.SEPOLIA_RPC_URL;
 
-    const provider = new JsonRpcProvider("http://localhost:8545");
-    const signer = await provider.getSigner();
-    return {provider, signer};
-
-
+    return new JsonRpcProvider(sepolia_rpc_url);
 }
 

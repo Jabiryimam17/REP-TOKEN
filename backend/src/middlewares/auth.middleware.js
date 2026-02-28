@@ -8,6 +8,7 @@ export default function auth_middleware(req, res, next) {
     const user=token && verify_token(token);
     if (!user) return res.status(401).json({message:"Unauthorized"});
     req.user = user;
+
     req.user.id = user.sub;
     next();
 }

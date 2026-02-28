@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Briefcase, 
   Clock, 
@@ -28,62 +28,144 @@ import {
   TrendingUp,
   ShieldCheck,
   UserPlus,
-  Send
+  Send,
+  X,
+  User
 } from "lucide-react";
+import { get_employer_jobs } from "@/services/employer.service";
+import { get_job_blockchain, cancel_job, cancel_pending_hire, cancel_hire, complete_job, pay_freelancer } from "@/services/jobs.service";
+import { ethers } from "ethers";
+
+const JOB_STATUS = {
+    NONE: 0,
+    OPEN: 1,
+    PENDING: 2,
+    HIRED: 3,
+    DISPUTED: 4,
+    CLOSED: 5
+};
 
 export default function EmployerDashboard() {
-  // Mock employer data
-  const employer = {
-    name: "Nexus Finance",
-    verified: true,
-    publicAddresses: {
-      ethereum: "0x1234...5678",
-      bitcoin: "bc1q...wxyz",
-      solana: "7xKX...2bdR"
-    },
-    balances: {
-      stakedAmount: 50000,
-      stableCoin: 125000.75,
-      currency: "USDC"
-    },
-    stats: {
-      totalJobsPosted: 24,
-      activeJobs: 5,
-      completedJobs: 18,
-      totalSpent: "240k"
-    },
-    jobs: {
-      workingOn: [
-        { id: 101, title: "DeFi Protocol Audit", freelancer: "Alex Rivera", amount: "5,000", description: "Comprehensive security audit of the core lending smart contracts.", status: "In Progress", link: "/jobs/101" }
-      ],
-      bidding: [
-        { id: 201, title: "Layer 2 Bridge Implementation", bidsCount: 12, budgetRange: "10k - 15k", description: "Design and build a secure cross-chain bridge.", status: "Open for Bids", link: "/jobs/201" }
-      ],
-      inDispute: [
-        { id: 301, title: "Governance DAO Dashboard", freelancer: "BlockSmith", amount: "3,200", description: "Frontend for voting and proposal management.", status: "Under Review", link: "/jobs/301" }
-      ],
-      paymentWaiting: [
-        { id: 401, title: "Staking Contract V2", freelancer: "SolidStacker", amount: "4,000", description: "Optimization of reward distribution logic.", status: "Milestone Approved", link: "/jobs/401" }
-      ],
-      finished: [
-        { id: 501, title: "Wallet Integration Module", freelancer: "CryptoWiz", amount: "1,800", description: "ConnectKit and RainbowKit setup for dApp.", status: "Completed", link: "/jobs/501" }
-      ],
-      requested: [
-        { id: 601, title: "Smart Contract Specialist", freelancer: "Sarah Chen", amount: "15,000", description: "Direct request for long-term partnership.", status: "Awaiting Acceptance", link: "/jobs/601" }
-      ]
+  const [jobs, setJobs] = useState({
+    workingOn: [],
+    bidding: [],
+    inDispute: [],
+    paymentWaiting: [],
+    finished: [],
+    requested: []
+  });
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("workingOn");
+  const [showRequestForm, setShowRequestForm] = useState(false);
+  const [selectedJobBids, setSelectedJobBids] = useState(null);
+  const [showBidsModal, setShowBidsModal] = useState(false);
+
+  const fetchJobs = async () => {
+    setLoading(true);
+    try {
+      const apiJobs = await get_employer_jobs();
+      const enrichedJobs = await Promise.all(apiJobs.map(async (job) => {
+        const blockchainData = await get_job_blockchain(job.id);
+        return { ...job, blockchain: blockchainData };
+      }));
+
+      const classified = {
+        workingOn: [],
+        bidding: [],
+        inDispute: [],
+        paymentWaiting: [],
+        finished: [],
+        requested: []
+      };
+
+      enrichedJobs.forEach(job => {
+        const status = Number(job.blockchain?.status || 0);
+        const isExpired = job.blockchain?.expiry_timestamp && Number(job.blockchain.expiry_timestamp) * 1000 < Date.now();
+        const isCompleted = job.blockchain?.freelancer_completed;
+
+        if (status === JOB_STATUS.OPEN) {
+          classified.bidding.push(job);
+        } else if (status === JOB_STATUS.PENDING) {
+          classified.requested.push(job);
+        } else if (status === JOB_STATUS.HIRED) {
+          if (isCompleted) {
+              classified.paymentWaiting.push(job);
+          } else if (isExpired) {
+              // Expired and not completed
+              classified.workingOn.push({...job, expired: true});
+          } else {
+              classified.workingOn.push(job);
+          }
+        } else if (status === JOB_STATUS.DISPUTED) {
+          classified.inDispute.push(job);
+        } else if (status === JOB_STATUS.CLOSED) {
+          classified.finished.push(job);
+        }
+      });
+
+      setJobs(classified);
+    } catch (error) {
+      console.error("Error fetching jobs:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const [activeTab, setActiveTab] = useState("workingOn");
-  const [showRequestForm, setShowRequestForm] = useState(false);
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
+  const handleCancelJob = async (jobId) => {
+    if (!confirm("Are you sure you want to cancel this job?")) return;
+    const success = await cancel_job(jobId);
+    if (success) {
+      alert("Job canceled successfully");
+      fetchJobs();
+    } else {
+      alert("Failed to cancel job");
+    }
+  };
+
+  const handleCancelPendingHire = async (jobId) => {
+    if (!confirm("Are you sure you want to cancel this pending hire?")) return;
+    const success = await cancel_pending_hire(jobId);
+    if (success) {
+      alert("Pending hire canceled successfully");
+      fetchJobs();
+    } else {
+      alert("Failed to cancel pending hire");
+    }
+  };
+
+  const handleCancelHire = async (jobId) => {
+    if (!confirm("Are you sure you want to cancel this hire (expired)?")) return;
+    const success = await cancel_hire(jobId);
+    if (success) {
+      alert("Hire canceled successfully");
+      fetchJobs();
+    } else {
+      alert("Failed to cancel hire");
+    }
+  };
+
+  const handlePayFreelancer = async (jobId) => {
+    if (!confirm("Are you sure you want to pay the freelancer?")) return;
+    const success = await pay_freelancer(jobId);
+    if (success) {
+      alert("Freelancer paid successfully");
+      fetchJobs();
+    } else {
+      alert("Failed to pay freelancer");
+    }
+  }
 
   const jobTabs = [
-    { id: "workingOn", label: "Working On", icon: Cpu, count: employer.jobs.workingOn.length },
-    { id: "bidding", label: "Bidding", icon: Hourglass, count: employer.jobs.bidding.length },
-    { id: "inDispute", label: "In Dispute", icon: AlertCircle, count: employer.jobs.inDispute.length, color: "text-red-500" },
-    { id: "paymentWaiting", label: "Waiting Payment", icon: Wallet, count: employer.jobs.paymentWaiting.length },
-    { id: "finished", label: "Finished", icon: CheckCircle2, count: employer.jobs.finished.length },
-    { id: "requested", label: "Requested", icon: UserPlus, count: employer.jobs.requested.length, color: "text-indigo-600" },
+    { id: "workingOn", label: "Working On", icon: Cpu, count: jobs.workingOn.length },
+    { id: "bidding", label: "Bidding", icon: Hourglass, count: jobs.bidding.length },
+    { id: "inDispute", label: "In Dispute", icon: AlertCircle, count: jobs.inDispute.length, color: "text-red-500" },
+    { id: "paymentWaiting", label: "Waiting Payment", icon: Wallet, count: jobs.paymentWaiting.length },
+    { id: "finished", label: "Finished", icon: CheckCircle2, count: jobs.finished.length },
+    { id: "requested", label: "Requested", icon: UserPlus, count: jobs.requested.length, color: "text-indigo-600" },
   ];
 
   const renderJobBlock = (job) => (
@@ -91,28 +173,35 @@ export default function EmployerDashboard() {
       <div className="flex justify-between items-start mb-4">
         <div>
           <h4 className="font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 transition-colors">
-            <a href={job.link} className="flex items-center">
+            <a href={`/jobs/${job.id}`} className="flex items-center">
               {job.title}
               <ArrowUpRight className="w-4 h-4 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
             </a>
           </h4>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 flex items-center">
-            {job.freelancer ? (
-              <>Freelancer: <span className="font-semibold ml-1 text-slate-700 dark:text-slate-300">{job.freelancer}</span></>
+            {job.blockchain?.freelancer && job.blockchain.freelancer !== '0x0000000000000000000000000000000000000000' ? (
+              <>Freelancer: <span className="font-semibold ml-1 text-slate-700 dark:text-slate-300">{job.blockchain.freelancer.slice(0,6)}...{job.blockchain.freelancer.slice(-4)}</span></>
             ) : (
-              <>Bids: <span className="font-semibold ml-1 text-slate-700 dark:text-slate-300">{job.bidsCount} proposals</span></>
+              <>Bids: <span className="font-semibold ml-1 text-slate-700 dark:text-slate-300">{job.bids?.length || 0} proposals</span></>
             )}
           </p>
         </div>
         <div className="text-right">
-          <p className="font-bold text-slate-900 dark:text-white">{job.amount || job.budgetRange} {employer.balances.currency}</p>
-          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{job.amount ? "Budget" : "Range"}</span>
+          <p className="font-bold text-slate-900 dark:text-white">{job.blockchain?.amount ? ethers.formatUnits(job.blockchain.amount, 18) : (job.amount ? ethers.formatUnits(job.amount, 18) : "0")} USDC</p>
+          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Budget</span>
         </div>
       </div>
       
       <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 mb-4">
         {job.description}
       </p>
+
+      {job.expired && (
+        <div className="mb-4 flex items-center text-red-500 text-xs font-bold">
+            <AlertCircle className="w-4 h-4 mr-1" />
+            JOB EXPIRED
+        </div>
+      )}
 
       <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-800">
         <div className="flex items-center">
@@ -121,9 +210,57 @@ export default function EmployerDashboard() {
             activeTab === 'finished' ? 'bg-emerald-500' : 
             activeTab === 'paymentWaiting' ? 'bg-amber-500' : 'bg-indigo-500'
           }`}></div>
-          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight">{job.status}</span>
+          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight">
+              {Object.keys(JOB_STATUS).find(key => JOB_STATUS[key] === Number(job.blockchain?.status)) || 'Unknown'}
+          </span>
         </div>
-        <button className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline">Manage Project</button>
+        
+        <div className="flex gap-2">
+            {activeTab === 'bidding' && (
+                <>
+                <button 
+                    onClick={() => {
+                        setSelectedJobBids(job.bids || []);
+                        setShowBidsModal(true);
+                    }}
+                    className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+                >
+                    View Bids
+                </button>
+                <button 
+                    onClick={() => handleCancelJob(job.id)}
+                    className="text-xs font-bold text-red-600 dark:text-red-400 hover:underline"
+                >
+                    Cancel Job
+                </button>
+                </>
+            )}
+            {activeTab === 'requested' && (
+                <button 
+                    onClick={() => handleCancelPendingHire(job.id)}
+                    className="text-xs font-bold text-red-600 dark:text-red-400 hover:underline"
+                >
+                    Cancel Pending Hire
+                </button>
+            )}
+            {activeTab === 'workingOn' && job.expired && (
+                <button 
+                    onClick={() => handleCancelHire(job.id)}
+                    className="text-xs font-bold text-red-600 dark:text-red-400 hover:underline"
+                >
+                    Cancel Hire
+                </button>
+            )}
+            {activeTab === 'paymentWaiting' && (
+                <button 
+                    onClick={() => handlePayFreelancer(job.id)}
+                    className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
+                >
+                    Pay Freelancer
+                </button>
+            )}
+            <a href={`/jobs/${job.id}`} className="text-xs font-bold text-slate-600 dark:text-slate-400 hover:underline">Details</a>
+        </div>
       </div>
     </div>
   );
@@ -140,15 +277,9 @@ export default function EmployerDashboard() {
                 <LayoutDashboard className="w-8 h-8 mr-3 text-indigo-600" />
                 Employer Dashboard
               </h1>
-              {employer.verified && (
-                <div className="ml-3 flex items-center bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-full border border-blue-100 dark:border-blue-800">
-                  <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400 mr-1" />
-                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Verified Employer</span>
-                </div>
-              )}
             </div>
             <p className="text-slate-500 dark:text-slate-400">
-              Managing <span className="font-bold text-slate-700 dark:text-slate-300">{employer.name}</span>'s talent and projects.
+              Managing your talent and projects.
             </p>
           </div>
           <div className="flex items-center space-x-3">
@@ -165,13 +296,6 @@ export default function EmployerDashboard() {
             >
               Request Freelancer
             </button>
-            <button className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 hover:text-indigo-600 transition-colors relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
-            </button>
-            <div className="h-10 w-10 rounded-full bg-slate-900 dark:bg-slate-800 flex items-center justify-center text-white font-bold border-2 border-white dark:border-slate-900 shadow-sm">
-              {employer.name.charAt(0)}
-            </div>
           </div>
         </div>
 
@@ -179,51 +303,6 @@ export default function EmployerDashboard() {
           
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-8">
-            
-            {/* Wallet & Staked */}
-            <div className="bg-slate-900 rounded-3xl p-6 text-white shadow-xl overflow-hidden relative">
-              <div className="absolute -right-4 -bottom-4 opacity-10">
-                <Shield className="w-32 h-32" />
-              </div>
-              <h3 className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-4">Platform Stake</h3>
-              <div className="mb-6">
-                <p className="text-3xl font-black mb-1">{employer.balances.stakedAmount.toLocaleString()} <span className="text-lg font-medium">RP</span></p>
-                <div className="inline-flex items-center px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/20">
-                  <TrendingUp className="w-3 h-3 mr-1" />
-                  +5.2% Yield
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center py-2 border-t border-white/10">
-                  <span className="text-xs text-slate-400">Available Funds</span>
-                  <span className="font-bold">{employer.balances.stableCoin.toLocaleString()} {employer.balances.currency}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Public Addresses */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm">
-              <h3 className="text-slate-900 dark:text-white text-sm font-bold mb-4 flex items-center">
-                <Wallet className="w-4 h-4 mr-2 text-indigo-600" />
-                Company Wallets
-              </h3>
-              <div className="space-y-4">
-                {Object.entries(employer.publicAddresses).map(([chain, address]) => (
-                  <div key={chain} className="group">
-                    <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">{chain}</p>
-                    <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-100 dark:border-slate-800 group-hover:border-indigo-200 dark:group-hover:border-indigo-900 transition-colors">
-                      <code className="text-[10px] text-slate-600 dark:text-slate-400 truncate w-32">
-                        {address}
-                      </code>
-                      <button className="text-slate-400 hover:text-indigo-600 transition-colors">
-                        <ExternalLink className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             {/* Stats */}
             <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm">
               <h3 className="text-slate-900 dark:text-white text-sm font-bold mb-4 flex items-center">
@@ -232,16 +311,12 @@ export default function EmployerDashboard() {
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl">
-                  <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Active</p>
-                  <p className="text-lg font-black text-slate-900 dark:text-white">{employer.stats.activeJobs}</p>
+                  <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Working</p>
+                  <p className="text-lg font-black text-slate-900 dark:text-white">{jobs.workingOn.length}</p>
                 </div>
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl">
-                  <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Posted</p>
-                  <p className="text-lg font-black text-slate-900 dark:text-white">{employer.stats.totalJobsPosted}</p>
-                </div>
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl col-span-2">
-                  <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Total Spent</p>
-                  <p className="text-lg font-black text-indigo-600">{employer.stats.totalSpent} {employer.balances.currency}</p>
+                  <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Finished</p>
+                  <p className="text-lg font-black text-slate-900 dark:text-white">{jobs.finished.length}</p>
                 </div>
               </div>
             </div>
@@ -322,48 +397,66 @@ export default function EmployerDashboard() {
 
             {/* Job List */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {employer.jobs[activeTab].length > 0 ? (
-                employer.jobs[activeTab].map(renderJobBlock)
+              {loading ? (
+                  <div className="col-span-full py-20 flex flex-col items-center justify-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                  </div>
+              ) : jobs[activeTab].length > 0 ? (
+                jobs[activeTab].map(renderJobBlock)
               ) : (
                 <div className="col-span-full py-12 flex flex-col items-center justify-center bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
                   <Briefcase className="w-12 h-12 text-slate-300 mb-4" />
                   <p className="text-slate-500 dark:text-slate-400 font-medium">No projects found in this category</p>
-                  <button className="mt-4 text-indigo-600 font-bold text-sm hover:underline">Post a new job</button>
+                  <a href="/jobs/post" className="mt-4 text-indigo-600 font-bold text-sm hover:underline">Post a new job</a>
                 </div>
               )}
-            </div>
-
-            {/* Activity Feed / Notifications */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-white mb-6 flex items-center">
-                <Flame className="w-5 h-5 mr-2 text-orange-500" />
-                Recent Activity
-              </h3>
-              <div className="space-y-6">
-                <div className="flex items-start">
-                  <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center mr-4 mt-1">
-                    <Plus className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-900 dark:text-white">New bid received for <span className="font-bold">Layer 2 Bridge Implementation</span></p>
-                    <p className="text-xs text-slate-500 mt-1">2 hours ago</p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center mr-4 mt-1">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-900 dark:text-white">Milestone 2 approved by <span className="font-bold">Nexus Finance</span></p>
-                    <p className="text-xs text-slate-500 mt-1">5 hours ago</p>
-                  </div>
-                </div>
-              </div>
             </div>
 
           </div>
         </div>
       </div>
+
+      {/* Bids Modal */}
+      {showBidsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in duration-200">
+            <div className="p-8">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Recent Bids</h3>
+                    <button onClick={() => setShowBidsModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
+                        <X className="w-6 h-6 text-slate-500" />
+                    </button>
+                </div>
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                    {selectedJobBids && selectedJobBids.length > 0 ? (
+                        selectedJobBids.map((bid, idx) => (
+                            <div key={idx} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700">
+                                <div className="flex justify-between items-center mb-2">
+                                    <div className="flex items-center">
+                                        <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold mr-3">
+                                            {(bid.fu_f_name || "F").charAt(0)}
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-slate-900 dark:text-white">{bid.fu_f_name || "Freelancer"}</p>
+                                            <p className="text-xs text-slate-500">{bid.freelancer_email}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-bold text-slate-900 dark:text-white">{ethers.formatUnits(bid.amount || 0, 18)} USDC</p>
+                                        <p className="text-[10px] text-slate-500 uppercase font-bold">{bid.finishing_days} Days</p>
+                                    </div>
+                                </div>
+                                <p className="text-sm text-slate-600 dark:text-slate-400 italic">"{bid.cover_letter}"</p>
+                            </div>
+                        ))
+                    ) : (
+                        <p className="text-center py-8 text-slate-500">No bids yet for this job.</p>
+                    )}
+                </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

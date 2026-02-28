@@ -20,6 +20,7 @@ contract JobPayingSystem is AccessManaged, ReentrancyGuard {
     event job_accepted(bytes32 indexed job_id, address indexed freelancer);
     event job_completed(bytes32 indexed job_id, address indexed freelancer);
     event job_disputed(bytes32 indexed job_id, address indexed client, address indexed freelancer, bool stake_burnt);
+    event transfer_address(address indexed old_address, address indexed new_address);
 
     uint8 public constant VERIFIERS_RECYCLING_PER_JOB = 5;
 
@@ -30,6 +31,7 @@ contract JobPayingSystem is AccessManaged, ReentrancyGuard {
         uint allowed_levels;
         uint successful_jobs;
         uint total_jobs;
+        uint ongoing;
         bool verified;
     }
     uint public constant STAKE_DECIMAL = 1000; 
@@ -60,7 +62,7 @@ contract JobPayingSystem is AccessManaged, ReentrancyGuard {
     }
 
     bytes32[] public job_lists;
-    mapping(bytes32 => Job) private jobs;
+    mapping(bytes32 => Job) public jobs;
     mapping(address => Freelancer) public freelancers;
     IRegistry public registry;
     constructor(
@@ -84,7 +86,29 @@ contract JobPayingSystem is AccessManaged, ReentrancyGuard {
         return IVerifierSystem(registry.get_verifier());
     }
     function set_client_fee_portion(uint val) public restricted {client_fee_portion_bps=val;}
+    function update_level_freelancer(address freelancer, uint new_level) external restricted {
+        require(freelancers[freelancer].verified, "Freelancer not registered");
+        require(new_level < work_levels.length, "No such level");
+        freelancers[freelancer].allowed_levels = new_level;
+    }
+    function reset_levels(WLevel[] calldata _levels) external restricted {
+        delete work_levels;
+        for (uint i=0; i<_levels.length; i++) {
+            require(_levels[i].min_verifiers_portion >0, "No verifiers system not allowed");
+            require(_levels[i].freelancer_stake > 0 && _levels[i].client_stake >0, "Zero stake not allowed");
+            require(i==0 || _levels[i].max_amount > _levels[i-1].max_amount, "Sorting order should be respected");
+            work_levels.push(_levels[i]);
+        }
 
+    }
+    function update_level(WLevel calldata _level, uint index) external restricted {
+        require(index < work_levels.length, "No such level");
+        require(_level.min_verifiers_portion >0, "No verifiers system not allowed");
+        require(_level.freelancer_stake > 0 && _level.client_stake >0, "Zero stake not allowed");
+        if (index > 0) require(_level.max_amount > work_levels[index-1].max_amount, "Sorting order should be respected");
+        if (index < work_levels.length-1) require(_level.max_amount < work_levels[index+1].max_amount, "Sorting order should be respected");
+        work_levels[index] = _level;
+    }
     function append_level(WLevel calldata _level) external restricted {
         require(_level.min_verifiers_portion >0, "No verifiers system not allowed");
         require(_level.freelancer_stake > 0 && _level.client_stake >0, "Zero stake not allowed");
@@ -96,30 +120,38 @@ contract JobPayingSystem is AccessManaged, ReentrancyGuard {
     }
     function levels_size() public view returns (uint) {return work_levels.length;}
     function get_level(uint index) public view returns(WLevel memory) {return work_levels[index];}
+    function get_levels() public view returns(WLevel[] memory) {return work_levels;}
     function register_freelancer(address freelancer, uint allowed_levels) external restricted {
 
         require(address(0)!=freelancer,"Zero address is not allowed");
         require(allowed_levels >= 0 && allowed_levels < work_levels.length,"No such level exists");
         require(freelancers[freelancer].total_jobs==0, "Already in work");
-        freelancers[freelancer] = Freelancer(allowed_levels, 0, 0, true);
+        freelancers[freelancer] = Freelancer(allowed_levels, 0, 0, 0, true);
     }
 
 
+    function transfer_freelancer(address new_free) external {
+        require(address(0)!=new_free,"Zero address is not allowed");
+        require(freelancers[msg.sender].verified && freelancers[msg.sender].ongoing == 0, "Old freelancer not in work");
+        require(!freelancers[new_free].verified, "New freelancer already in work");
+        freelancers[new_free] = freelancers[msg.sender];
+        delete freelancers[msg.sender];
+        emit transfer_address(msg.sender, new_free);
+    }
 
     uint public constant MIN_MAX_DURATION=3600*24;
-    function post_job(uint amount, uint max_duration, uint8 category, uint fee_given) external nonReentrant {
+    function post_job(bytes32 job_id, uint amount, uint max_duration, uint8 category) external nonReentrant {
         require(max_duration > MIN_MAX_DURATION,"Insufficient working time");
         require(amount > 0, "Amount must be > 0");
         require(amount <= work_levels[work_levels.length-1].max_amount, "No such payout allowed");
         uint fee = amount * client_fee_portion_bps / 10000;
-        require(fee_given >= fee, "Insufficient fee provided");
+
 
         _ethio_coin().safeTransferFrom(msg.sender, address(registry.get_treasury()), fee+amount);
         uint level = calculate_level(amount);
         uint client_stake= work_levels[level].client_stake;
         _rpt().safeTransferFrom(msg.sender, address(registry.get_treasury()), client_stake);
 
-        bytes32 job_id = keccak256(abi.encodePacked( block.timestamp, job_lists.length));
         Job storage new_job = jobs[job_id];
         new_job.client = msg.sender;
         new_job.amount = amount;
@@ -148,7 +180,6 @@ contract JobPayingSystem is AccessManaged, ReentrancyGuard {
         if (job.amount > 0) _treasury().pay_back_stable_coin(job.client, job.amount);
         _treasury().pay_back_rpt(job.client, work_levels[job.level].client_stake);
     }
-
     function hire(bytes32 job_id, address freelancer) external {
         Job storage job = jobs[job_id];
         require(job.client == msg.sender, "Only client can hire");
@@ -187,6 +218,7 @@ contract JobPayingSystem is AccessManaged, ReentrancyGuard {
         job.expiry_timestamp = block.timestamp + job.max_duration;
         freelancers[job.freelancer].total_jobs++;
         job.status = JOB_STATUS.HIRED;
+        freelancers[msg.sender].ongoing++;
         emit job_accepted(job_id, msg.sender);
     }
 
@@ -197,14 +229,14 @@ contract JobPayingSystem is AccessManaged, ReentrancyGuard {
         require(job.status == JOB_STATUS.HIRED, "Job not hired");
         require(!job.freelancer_completed, "Freelancer already completed");
 
-        
+        freelancers[job.freelancer].ongoing--;
         job.freelancer = address(0);
         job.freelancer_approved=false;
         job.status = JOB_STATUS.OPEN;
         job.expiry_timestamp=0;
     }
 
-    function complete_job(bytes32 job_id) external {
+    function complete_job(bytes32 job_id)  external {
         Job storage job = jobs[job_id];
         require(job.expiry_timestamp >= block.timestamp, "Time expired");
         require(job.status == JOB_STATUS.HIRED, "Job not hired");
@@ -215,7 +247,7 @@ contract JobPayingSystem is AccessManaged, ReentrancyGuard {
         emit job_completed(job_id, msg.sender);
     }
 
-    function pay_him(bytes32 job_id) external nonReentrant {
+    function pay_freelancer(bytes32 job_id) external nonReentrant {
         Job storage job = jobs[job_id];
         require(job.client == msg.sender, "Only client can pay");
         require(job.freelancer_completed, "Freelancer not completed");
@@ -226,7 +258,7 @@ contract JobPayingSystem is AccessManaged, ReentrancyGuard {
         _treasury().pay_back_rpt(job.client, work_levels[level].client_stake);
         _treasury().pay_back_rpt(freelancer, work_levels[level].freelancer_stake);
         _treasury().pay_back_stable_coin(freelancer, job.amount);
-        
+        freelancers[freelancer].ongoing--;
     }
 
     function raise_dispute(bytes32 job_id) external {
@@ -252,7 +284,7 @@ contract JobPayingSystem is AccessManaged, ReentrancyGuard {
         job.status=JOB_STATUS.CLOSED;
         _treasury().pay_back_stable_coin(msg.sender, job.amount);
         _treasury().pay_back_rpt(msg.sender, work_levels[job.level].freelancer_stake);
-        
+        freelancers[msg.sender].ongoing--;
     }
 
     function refund_after_dispute(bytes32 job_id) external nonReentrant {
@@ -264,12 +296,12 @@ contract JobPayingSystem is AccessManaged, ReentrancyGuard {
         _treasury().pay_back_stable_coin(msg.sender, job.amount);
         job.status=JOB_STATUS.CLOSED;
         _treasury().pay_back_rpt(msg.sender, work_levels[job.level].client_stake);
-        
+        freelancers[job.freelancer].ongoing--;
     }
 
 
 
-    function calculate_level(uint256 amount) public view returns (uint256) {
+    function calculate_level(uint256 amount) internal view returns (uint256) {
         require(work_levels.length > 0, "No levels configured");
         uint256 low = 0;
         uint256 high = work_levels.length - 1;

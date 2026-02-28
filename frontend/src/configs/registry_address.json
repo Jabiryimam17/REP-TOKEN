@@ -1,5 +1,5 @@
 {
-  "network": "localhost",
-  "chain_id": 1,
-  "registry": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+  "network": "sepolia",
+  "chain_id": 11155111,
+  "registry": "0x7915f54253485bba062a49fD3Ce1B296552f7948"
 }

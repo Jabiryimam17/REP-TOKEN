@@ -31,18 +31,16 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
     event verifier_slashed(address indexed verifier, uint256 amount, bytes32 indexed job_id);
     event request_sent(uint256 request_id, uint num_words, bytes32 job_id);
     event request_fulfilled(uint256 request_id, uint256[] random_words);
-
+    event address_transferred(address indexed old_address, address indexed new_address);
     enum DISPUTE_STATUS {PENDING, FREELANCER_WIN, CLIENT_WIN}
 
     IERC20 public reputation_token;
     uint256 public constant WEIGHT_MAX = 100;
-    uint256 public slash_bps = 2000; 
-
-
+    uint256 public slash_bps = 2000;
     uint256 public subscription_id;
-    bytes32 constant public key_hash=0x8596b430971ac45bdf6088665b9ad8e8630c9d5049ab54b14dff711bee7c0e26;
+    bytes32 public key_hash=0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae;
 
-    uint32 public callback_gas_limit=100_000;
+    uint32 public callback_gas_limit=100000;
 
     uint16 public request_confirmations=2;
 
@@ -76,9 +74,10 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
     }
 
     mapping(uint16=>mapping(uint8=>address[])) public leveled_verifiers;
-    mapping(bytes32 => DisputedJob) internal disputed_jobs;
+    mapping(bytes32 => DisputedJob) public disputed_jobs;
 
     mapping(uint16 => mapping(uint8=>bool)) public category_open;
+    string[] public categories;
     uint[] public stack_levels;
     mapping(address => Verifier) public verifiers;
     mapping(uint256 => bytes32) public verifier_requests; 
@@ -100,18 +99,80 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
         return Itreasury(registry.get_treasury());
     }
 
+    function _rpt() internal view returns (IERC20) {
+        return IERC20(registry.get_rpt());
+    }
+    function set_up_vrf(
+        uint _subscription_id,
+        uint16 _request_confirmations,
+        bytes32 _key_hash,
+        uint32 _callback_gas_limit
+     ) external restricted {
+
+         subscription_id = _subscription_id;
+         key_hash = _key_hash;
+         callback_gas_limit = _callback_gas_limit;
+         request_confirmations = _request_confirmations;
+     }
+
+    function add_stack_level(uint256 stake_amount) external restricted {
+        require(stake_amount > 0, "zero stake");
+        uint n = stack_levels.length;
+        require(n==0 || stake_amount > stack_levels[n-1],"Invalid stake amount");
+        stack_levels.push(stake_amount);
+    }
+    function get_stack_levels() external view returns(uint256[] memory) {
+        return stack_levels;
+    }
+
+    function add_stack_levels(uint256[] calldata stake_amounts) external restricted {
+        uint n=stake_amounts.length;
+        require(n > 0, "empty array");
+        delete stack_levels;
+        stack_levels.push(stake_amounts[0]);
+        for (uint i=1; i < n;i++){
+            uint stake_amount=stake_amounts[i];
+            require(stake_amount > stack_levels[i-1], "Invalid stake amount");
+            stack_levels.push(stake_amount);
+        }
+    }
     function set_slash_bps(uint256 _bps) external restricted {
         require(_bps <= 10000 && _bps > 0, "outside range");
         slash_bps = _bps;
     }
 
+    function add_category(string calldata category_name) external restricted {
+        categories.push(category_name);
+    }
+    function get_categories() external view returns(string[] memory) {
+        return categories;
+    }
+
+    function get_cat_level_verifiers(uint16 category, uint8 level) external view returns(address[] memory) {
+        return leveled_verifiers[category][level];
+    }
     function add_verifier(uint16 category, address verifier) external restricted {
         require(verifier!=address(0), "Null address not allowed");
         require(!verifiers[verifier].verified, "already added");
+        require(category < categories.length, "invalid category");
         verifiers[verifier].verified = true;
         verifiers[verifier].category = category;
         emit verifier_added(verifier, category);
     }
+
+    function transfer_address(address new_address) external nonReentrant {
+        require(new_address!=address(0), "Null address not allowed");
+        require(!verifiers[new_address].verified, "address already used");
+        if (verifiers[msg.sender].staked > 0) _unstake();
+        verifiers[new_address]=verifiers[msg.sender];
+        uint reward = pending_rewards[msg.sender];
+        pending_rewards[new_address]=reward;
+        delete pending_rewards[msg.sender];
+        delete verifiers[msg.sender];
+        emit address_transferred(msg.sender, new_address);
+
+    }
+
 
     function stake(uint256 amount) external nonReentrant{
         require(amount > 0, "zero stake");
@@ -122,7 +183,7 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
         v.is_active=true;
         _update_level(msg.sender);
 
-        reputation_token.safeTransferFrom(msg.sender, address(registry.get_treasury()), amount);
+        _rpt().safeTransferFrom(msg.sender, address(registry.get_treasury()), amount);
         emit verifier_staked(msg.sender, amount);
     }
 
@@ -143,20 +204,24 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
             leveled_verifiers[cat][new_level].push(v_a);
         }
     }
-    function inactive_verifier() external nonReentrant {
+    
+    function unstake() public nonReentrant {
+        _unstake();
+    }
+    function _unstake() public {
         Verifier storage v = verifiers[msg.sender];
         require(v.is_active, "not working or allowed");
         require(v.in_dispute==0, "in dispute");
-        require(category_open[v.category][v.level], "You are on selection");
+        require(!category_open[v.category][v.level], "You are on selection");
         uint256 amount = v.staked;
         v.staked = 0;
         delete_verifier(msg.sender);
         v.assigned=false;
         v.is_active=false;
+
         if (amount > 0 ) _treasury().pay_back_rpt(msg.sender, amount);
         emit verifier_unstaked(msg.sender, amount);
     }
-
     function delete_verifier(address v_a) internal {
         Verifier storage v = verifiers[v_a];
         uint16 cat=v.category;
@@ -174,8 +239,10 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
 
     }
 
+// TODO: allow only job system to post
 
     function post_job(bytes32 job_id, uint8 cat, uint client_stake, uint freelancer_stake) external {
+        require(cat >= 0 && cat < categories.length, "invalid category");
         DisputedJob storage dj=disputed_jobs[job_id];
         dj.category=cat;
         dj.client_stake=client_stake;

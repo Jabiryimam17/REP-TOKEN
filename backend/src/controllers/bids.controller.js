@@ -2,7 +2,7 @@ import bids_service from "#services/bids.service.js"
 export const bids_controller = async (req, res) => {
     try {
         const { id } = req.params;
-        const result = bids_service(id);
+        const result = await bids_service(id);
         if (result) {
             res.status(200).json({ message: "Bids fetched successfully", data: result });
         } else {

@@ -39,9 +39,29 @@ import {
   Mail,
   Github,
   Linkedin,
-  Twitter
+  Twitter,
+  UserPlus
 } from "lucide-react";
 import axios from "axios";
+import { 
+  get_job_blockchain, 
+  accept_work, 
+  complete_job,
+  check_freelancer_allowance
+} from "@/services/jobs.service";
+import { ethers } from "ethers";
+import { approve as approve_ethio } from "@/services/eth_coin.service.js"
+import { approve as approve_rpt } from "@/services/rpt.service.js"
+import { get_addresses } from "@/services/system_addresses.service.js";
+
+const JOB_STATUS = {
+    NONE: 0,
+    OPEN: 1,
+    PENDING: 2,
+    HIRED: 3,
+    DISPUTED: 4,
+    CLOSED: 5
+};
 
 export default function FreelancerDashboard() {
   const [active_view, set_active_view] = useState("overview"); // overview or profile
@@ -127,7 +147,7 @@ export default function FreelancerDashboard() {
             description: data.profile.description || "",
             location: data.profile.location || "",
             skills: data.profile.skills ? (typeof data.profile.skills === 'string' ? JSON.parse(data.profile.skills) : data.profile.skills) : [],
-            education: data.education.map(edu => ({
+            education: (data.education || []).map(edu => ({
               school: edu.school,
               degree: edu.degree,
               startYear: edu.startYear,
@@ -156,71 +176,70 @@ export default function FreelancerDashboard() {
           });
 
           // Process jobs into categories
-          const jobsByStatus = {
-            workingOn: (data.jobs || []).filter(j => j.status === 'active').map(j => ({
-              id: j.id,
-              title: j.title,
-              employer: `${j.employer_f_name} ${j.employer_l_name}`,
-              amount: j.budget,
-              description: j.description,
-              note: j.note,
-              link: `/jobs/${j.id}`
-            })),
-            bidOn: (data.jobs || []).filter(j => j.status === 'pending').map(j => ({
-              id: j.id,
-              title: j.title,
-              employer: `${j.employer_f_name} ${j.employer_l_name}`,
-              amount: j.budget,
-              description: j.description,
-              note: j.note,
-              link: `/jobs/${j.id}`
-            })),
-            inDispute: (data.jobs || []).filter(j => j.status === 'disputed').map(j => ({
-              id: j.id,
-              title: j.title,
-              employer: `${j.employer_f_name} ${j.employer_l_name}`,
-              amount: j.budget,
-              description: j.description,
-              note: j.note,
-              link: `/jobs/${j.id}`
-            })),
-            paymentWaiting: (data.jobs || []).filter(j => j.status === 'completed_waiting_payment').map(j => ({
-              id: j.id,
-              title: j.title,
-              employer: `${j.employer_f_name} ${j.employer_l_name}`,
-              amount: j.budget,
-              description: j.description,
-              note: j.note,
-              link: `/jobs/${j.id}`
-            })),
-            finished: (data.jobs || []).filter(j => j.status === 'completed').map(j => ({
-              id: j.id,
-              title: j.title,
-              employer: `${j.employer_f_name} ${j.employer_l_name}`,
-              amount: j.budget,
-              description: j.description,
-              note: j.note,
-              link: `/jobs/${j.id}`
-            })),
-            requested: (data.jobs || []).filter(j => j.status === 'invited').map(j => ({
-              id: j.id,
-              title: j.title,
-              employer: `${j.employer_f_name} ${j.employer_l_name}`,
-              amount: j.budget,
-              description: j.description,
-              note: j.note,
-              link: `/jobs/${j.id}`
-            }))
+          const enrichedJobs = await Promise.all((data.jobs || []).map(async (job) => {
+            const blockchainData = await get_job_blockchain(job.id);
+            return { ...job, blockchain: blockchainData };
+          }));
+
+          const classified = {
+            workingOn: [],
+            bidOn: [],
+            inDispute: [],
+            paymentWaiting: [],
+            finished: [],
+            requested: []
           };
+
+          enrichedJobs.forEach(job => {
+            const status = Number(job.blockchain?.status || 0);
+            const isExpired = job.blockchain?.expiry_timestamp && Number(job.blockchain.expiry_timestamp) * 1000 < Date.now();
+            const isCompleted = job.blockchain?.freelancer_completed;
+
+            const jobFormatted = {
+              id: job.id,
+              title: job.title,
+              employer: `${job.employer_f_name} ${job.employer_l_name}`,
+              amount: job.blockchain?.amount ? ethers.formatUnits(job.blockchain.amount, 18) : (job.amount ? ethers.formatUnits(job.amount, 18) : "0"),
+              description: job.description,
+              blockchain: job.blockchain,
+              expired: isExpired && !isCompleted,
+              link: `/jobs/${job.id}`
+            };
+
+            if (status === JOB_STATUS.OPEN) {
+              classified.bidOn.push(jobFormatted);
+            } else if (status === JOB_STATUS.PENDING) {
+              classified.requested.push(jobFormatted);
+            } else if (status === JOB_STATUS.HIRED) {
+              if (isCompleted) {
+                  classified.paymentWaiting.push(jobFormatted);
+              } else if (jobFormatted.expired) {
+                  classified.workingOn.push(jobFormatted);
+              } else {
+                  classified.workingOn.push(jobFormatted);
+              }
+            } else if (status === JOB_STATUS.DISPUTED) {
+              classified.inDispute.push(jobFormatted);
+            } else if (status === JOB_STATUS.CLOSED) {
+              classified.finished.push(jobFormatted);
+            }
+          });
 
           set_freelancer_data(prev => ({
             ...prev,
-            jobs: jobsByStatus,
+            jobs: classified,
             // Mocking stats and balances for now as they might come from other services or fields
             balances: {
               rpTokens: 12500, // Still mock for now
               stableCoin: data.profile.min_wage * 10 || 0, // Just a placeholder
               currency: "USDC"
+            },
+            stats: {
+              totalJobs: classified.finished.length + classified.workingOn.length,
+              successfulJobs: classified.finished.length,
+              successRate: classified.finished.length + classified.workingOn.length > 0 ? 
+                `${Math.round((classified.finished.length / (classified.finished.length + classified.workingOn.length)) * 100)}%` : "0%",
+              totalEarned: classified.finished.reduce((acc, job) => acc + parseFloat(job.amount || 0), 0).toLocaleString()
             }
           }));
         }
@@ -235,6 +254,62 @@ export default function FreelancerDashboard() {
     fetch_data();
   }, []);
 
+  const [job_allowances, set_job_allowances] = useState({});
+  const [approving, set_approving] = useState(false);
+
+  useEffect(() => {
+    const fetch_allowances = async () => {
+      const requestedJobs = freelancer_data.jobs.requested;
+      if (requestedJobs.length > 0) {
+        const allowances = {};
+        for (const job of requestedJobs) {
+          const status = await check_freelancer_allowance(job.id);
+          allowances[job.id] = status;
+        }
+        set_job_allowances(allowances);
+      }
+    };
+    if (!loading && activeTab === "requested") {
+      fetch_allowances();
+    }
+  }, [loading, activeTab, freelancer_data.jobs.requested]);
+
+  const handleApproveEthio = async (jobId) => {
+    try {
+      set_approving(true);
+      const addresses = await get_addresses();
+      const status = job_allowances[jobId];
+      if (!status) return;
+      const success = await approve_ethio(addresses.job_manager_address, status.ethio.required);
+      if (success) {
+        const newStatus = await check_freelancer_allowance(jobId);
+        set_job_allowances(prev => ({ ...prev, [jobId]: newStatus }));
+      }
+    } catch (error) {
+      console.error("Error approving EthioCoin:", error);
+    } finally {
+      set_approving(false);
+    }
+  };
+
+  const handleApproveRPT = async (jobId) => {
+    try {
+      set_approving(true);
+      const addresses = await get_addresses();
+      const status = job_allowances[jobId];
+      if (!status) return;
+      const success = await approve_rpt(addresses.job_manager_address, status.rpt.required);
+      if (success) {
+        const newStatus = await check_freelancer_allowance(jobId);
+        set_job_allowances(prev => ({ ...prev, [jobId]: newStatus }));
+      }
+    } catch (error) {
+      console.error("Error approving RPT:", error);
+    } finally {
+      set_approving(false);
+    }
+  };
+
   const freelancer = {
     name: `${profile_data.f_name} ${profile_data.l_name}`,
     publicAddresses: freelancer_data.publicAddresses,
@@ -244,13 +319,35 @@ export default function FreelancerDashboard() {
   };
 
 
+  const handleAcceptWork = async (jobId) => {
+    if (!confirm("Are you sure you want to accept this job?")) return;
+    const success = await accept_work(jobId);
+    if (success) {
+      alert("Job accepted successfully");
+      window.location.reload();
+    } else {
+      alert("Failed to accept job");
+    }
+  };
+
+  const handleCompleteJob = async (jobId) => {
+    if (!confirm("Are you sure you want to mark this job as completed?")) return;
+    const success = await complete_job(jobId);
+    if (success) {
+      alert("Job marked as completed");
+      window.location.reload();
+    } else {
+      alert("Failed to complete job");
+    }
+  };
+
   const jobTabs = [
     { id: "workingOn", label: "Working On", icon: Cpu, count: freelancer.jobs.workingOn.length },
     { id: "bidOn", label: "Bid On", icon: Hourglass, count: freelancer.jobs.bidOn.length },
     { id: "inDispute", label: "In Dispute", icon: AlertCircle, count: freelancer.jobs.inDispute.length, color: "text-red-500" },
     { id: "paymentWaiting", label: "Waiting Payment", icon: Wallet, count: freelancer.jobs.paymentWaiting.length },
     { id: "finished", label: "Finished", icon: CheckCircle2, count: freelancer.jobs.finished.length },
-    { id: "requested", label: "Requested", icon: Plus, count: freelancer.jobs.requested.length, color: "text-indigo-600" },
+    { id: "requested", label: "Requested", icon: UserPlus, count: freelancer.jobs.requested.length, color: "text-indigo-600" },
   ];
 
   const handleProfileChange = (field, value) => {
@@ -288,32 +385,40 @@ export default function FreelancerDashboard() {
   const handleSaveProfile = async () => {
     try {
       setLoading(true);
-      
+
+      const categoryMap = {
+        "Software Development": "development",
+        "Design": "design",
+        "Marketing": "marketing",
+        "Writing": "writing",
+        "Blockchain": "development"
+      };
+
       const updateData = {
         user: {
           f_name: profile_data.f_name,
           l_name: profile_data.l_name,
           title: profile_data.title,
-          category: profile_data.category,
+          category: categoryMap[profile_data.category] || "development",
           description: profile_data.description,
           bio: profile_data.bio,
           location: profile_data.location,
           skills: profile_data.skills,
-          qualifications: profile_data.qualifications.map(q => ({
+          qualifications: (profile_data.qualifications || []).map(q => ({
             title: q.title,
             issuer: q.issuer,
             year: q.year
           })),
-          certifications: profile_data.certifications.map(c => ({
-            title: c.name,
+          certifications: (profile_data.certifications || []).map(c => ({
+            title: c.name || c.title,
             issuer: c.issuer,
             year: c.year
           })),
-          education_levels: profile_data.education.map(e => ({
-            institution: e.school,
-            title: e.degree,
-            start_year: e.startYear,
-            end_year: e.endYear
+          education_levels: (profile_data.education || []).map(e => ({
+            institution: e.school || e.institution,
+            title: e.degree || e.title,
+            start_year: e.startYear || e.start_year,
+            end_year: e.endYear || e.end_year
           })),
           profile_picture: profile_data.profile_picture,
           contacts: {
@@ -775,6 +880,13 @@ export default function FreelancerDashboard() {
         {job.description}
       </p>
 
+      {job.expired && (
+        <div className="mb-4 flex items-center text-red-500 text-xs font-bold">
+            <AlertCircle className="w-4 h-4 mr-1" />
+            JOB EXPIRED
+        </div>
+      )}
+
       {job.note && (
         <div className="bg-indigo-50/50 dark:bg-indigo-900/10 border-l-2 border-indigo-500 p-3 mb-4">
           <p className="text-xs italic text-indigo-700 dark:text-indigo-300">
@@ -784,23 +896,75 @@ export default function FreelancerDashboard() {
         </div>
       )}
 
-      <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-800">
-        <div className="flex -space-x-2">
-           {/* Avatar placeholder for employer */}
-           <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 border-2 border-white dark:border-slate-900 flex items-center justify-center text-[10px] font-bold">
-            {(job.employer && job.employer.trim()) ? job.employer.charAt(0) : "?"}
-           </div>
+      <div className="flex flex-col gap-2 pt-4 border-t border-slate-50 dark:border-slate-800">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <div className={`w-2 h-2 rounded-full mr-2 ${
+              activeTab === 'inDispute' ? 'bg-red-500' : 
+              activeTab === 'finished' ? 'bg-emerald-500' : 
+              activeTab === 'paymentWaiting' ? 'bg-amber-500' : 'bg-indigo-500'
+            }`}></div>
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight">
+                {Object.keys(JOB_STATUS).find(key => JOB_STATUS[key] === Number(job.blockchain?.status)) || 'Unknown'}
+            </span>
+          </div>
+          <div className="flex gap-2">
+            {type === "requested" && (
+              <button 
+                disabled={approving || (job_allowances[job.id] && (!job_allowances[job.id].ethio.sufficient || !job_allowances[job.id].rpt.sufficient))}
+                onClick={() => handleAcceptWork(job.id)}
+                className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+              >
+                Agree to Job
+              </button>
+            )}
+            {type === "workingOn" && !job.blockchain?.freelancer_completed && (
+              <button 
+                onClick={() => handleCompleteJob(job.id)}
+                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors"
+              >
+                Mark Completed
+              </button>
+            )}
+            <a href={job.link} className="px-4 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+              View Details
+            </a>
+          </div>
         </div>
-        <div className="flex gap-2">
-          {type === "requested" && (
-            <button className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors">
-              Agree to Job
-            </button>
-          )}
-          <a href={job.link} className="px-4 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-            View Details
-          </a>
-        </div>
+
+        {type === "requested" && job_allowances[job.id] && (!job_allowances[job.id].ethio.sufficient || !job_allowances[job.id].rpt.sufficient) && (
+          <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-100 dark:border-amber-800/50 space-y-2">
+            <p className="text-[10px] font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wider flex items-center">
+              <Shield className="w-3 h-3 mr-1" /> Approval Required
+            </p>
+            <div className="flex flex-col gap-2">
+              {!job_allowances[job.id].ethio.sufficient && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-amber-700 dark:text-amber-500">Fee: {ethers.formatUnits(job_allowances[job.id].ethio.required, 18)} ETHIO</span>
+                  <button 
+                    disabled={approving}
+                    onClick={() => handleApproveEthio(job.id)}
+                    className="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold rounded shadow-sm transition-colors"
+                  >
+                    {approving ? "..." : "Approve ETHIO"}
+                  </button>
+                </div>
+              )}
+              {!job_allowances[job.id].rpt.sufficient && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-amber-700 dark:text-amber-500">Stake: {ethers.formatUnits(job_allowances[job.id].rpt.required, 18)} RPT</span>
+                  <button 
+                    disabled={approving}
+                    onClick={() => handleApproveRPT(job.id)}
+                    className="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold rounded shadow-sm transition-colors"
+                  >
+                    {approving ? "..." : "Approve RPT"}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

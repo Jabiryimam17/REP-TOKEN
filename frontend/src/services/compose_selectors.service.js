@@ -1,4 +1,4 @@
-import contracts from "./compose_contracts.service.js"
+import {get_contracts} from "./compose_contracts.service.js"
 import job_manager_selectors from "./selectors/job_manager.service.js"
 import rpt_selectors from "./selectors/rpt.service.js"
 import treasury_selectors from "./selectors/treasury.service.js"
@@ -7,6 +7,7 @@ import reward_vault_selectors from "./selectors/reward_vault.service.js"
 import registry_selectors from "./selectors/registry.service.js"
 
 export default async function main() {
+        const contracts=await get_contracts();
     return {
         "job_manager": await job_manager_selectors(contracts.job_manager_contract),
         "rpt": await rpt_selectors(contracts.rpt_contract),

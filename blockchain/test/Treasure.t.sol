@@ -34,10 +34,7 @@ contract TreasureTest is Test {
         vm.stopPrank();
     }
 
-    //PHASE 1: TESTING INITAL SET UP AND INTERACTION WITH OTHER CONTRACTS
-    // function test_owner_setup () public {
-    //     require(treasure.owner()==owner);
-    // }
+
 
     function test_treasure_initial_balance() public {
         assertEq(rpt.balanceOf(address(treasure)),1e30);

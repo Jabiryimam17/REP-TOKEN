@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 
 contract EthioCoin is ERC20, Ownable {
-    constructor() ERC20("EthioCoin", "ETC") Ownable(msg.sender)  {
-        _mint(msg.sender, 1e12 * 10 ** decimals());
-    }
+    constructor() ERC20("EthioCoin", "ETC") Ownable(msg.sender) {
+        _mint(msg.sender, 1_000_000_000 * 10 ** decimals());
+}
 }

@@ -17,19 +17,16 @@ import {
 } from "lucide-react";
 import { ethers } from "ethers";
 import { useApp } from "@/context/AppContext";
-import connect_wallet from "@/services/connect_wallet.service";
-import config from "@/configs/registry_address.json" with { type: "json" };
-import { abi as registryAbi } from "@/abis/Registry.json" with { type: "json" };
-import { abi as rptAbi } from "@/abis/ReputationToken.json" with { type: "json" };
-import { abi as stableAbi } from "@/abis/EthioCoin.json" with { type: "json" };
+import { get_contracts, TOKEN_METADATA } from "@/services/compose_contracts.service";
+import { get_addresses } from "@/services/system_addresses.service";
+import { 
+  get_amounts_out, 
+  swap_exact_tokens_for_tokens, 
+  add_liquidity,
+  ensure_allowance
+} from "@/services/liquidity.service";
+import config from "@/configs/registry_address.json" with {type: "json"}
 
-const erc20Lite = [
-  "function symbol() view returns (string)",
-  "function decimals() view returns (uint8)",
-  "function balanceOf(address) view returns (uint256)",
-  "function allowance(address owner,address spender) view returns (uint256)",
-  "function approve(address spender,uint256 amount) returns (bool)",
-];
 
 const routerAbi = [
   "function getAmountsOut(uint amountIn, address[] calldata path) view returns (uint[] memory amounts)",
@@ -44,20 +41,21 @@ const formatNumber = (value) => {
   return num.toLocaleString(undefined, { maximumFractionDigits: 6 });
 };
 
-export default function StableSwapPage() {
+export default function SwapPage() {
   const { wallet_address, set_wallet_address } = useApp();
 
   const [network, setNetwork] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [contracts, setContracts] = useState({ router: null, rpt: null, stable: null });
+  const [contracts, setContracts] = useState({ router: null, rpt: null, stable: null, lp: null });
   const [tokenMeta, setTokenMeta] = useState({
     rpt: { symbol: "RPT", decimals: 18, address: "" },
     stable: { symbol: "ETC", decimals: 18, address: "" },
+    lp: { symbol: "LP", decimals: 18, address: "" },
     router: "",
   });
-  const [balances, setBalances] = useState({ rpt: "0", stable: "0" });
+  const [balances, setBalances] = useState({ rpt: "0", stable: "0", lp: "0" });
   const [allowances, setAllowances] = useState({ rpt: 0n, stable: 0n });
   const [slippage, setSlippage] = useState(1);
 
@@ -89,42 +87,42 @@ export default function StableSwapPage() {
   }, []);
 
   const bootstrap = async () => {
-        console.log("I am bootstrapping");
     setLoading(true);
     setError("");
     try {
-      const { provider, signer } = await connect_wallet();
-      const address = await signer.getAddress();
+      const { rpt_contract: rpt, eth_contract: stable, router_contract: router } = await get_contracts();
+      const address = await rpt.runner.getAddress();
       set_wallet_address(address);
 
-      const net = await provider.getNetwork();
-      setNetwork(net);
+      const provider = rpt.runner.provider;
+      if (provider) {
+        const net = await provider.getNetwork();
+        setNetwork(net);
+      }
 
-      const registry = new ethers.Contract(config.registry, registryAbi, signer);
-      const [, rptAddr, stableAddr, , , , , , routerAddr] = await registry.get_system_addresses();
+      const routerAddr = await router.getAddress();
+      const rptAddr = await rpt.getAddress();
+      const stableAddr = await stable.getAddress();
 
-      const router = new ethers.Contract(routerAddr, routerAbi, signer);
-      const rpt = new ethers.Contract(rptAddr, rptAbi, signer);
-      const stable = new ethers.Contract(stableAddr, stableAbi, signer);
+      const addresses = await get_addresses();
+      const lpAddr = addresses.lp_token_address;
+      const lp = new ethers.Contract(lpAddr, ["function balanceOf(address) view returns (uint256)", "function allowance(address,address) view returns (uint256)", "function approve(address,uint256) returns (bool)"], rpt.runner);
 
-      const [rptSymbol, stableSymbol, rptDecimals, stableDecimals, rptAllowance, stableAllowance] = await Promise.all([
-        rpt.symbol(),
-        stable.symbol(),
-        rpt.decimals(),
-        stable.decimals(),
+      const [rptAllowance, stableAllowance] = await Promise.all([
         rpt.allowance(address, routerAddr),
         stable.allowance(address, routerAddr),
       ]);
 
-      setContracts({ router, rpt, stable });
+      setContracts({ router, rpt, stable, lp });
       setTokenMeta({
-        rpt: { symbol: rptSymbol, decimals: Number(rptDecimals), address: rptAddr },
-        stable: { symbol: stableSymbol, decimals: Number(stableDecimals), address: stableAddr },
+        rpt: { symbol: TOKEN_METADATA.rpt.symbol, decimals: TOKEN_METADATA.rpt.decimals, address: rptAddr },
+        stable: { symbol: TOKEN_METADATA.ethio.symbol, decimals: TOKEN_METADATA.ethio.decimals, address: stableAddr },
+        lp: { symbol: "LP", decimals: 18, address: lpAddr },
         router: routerAddr,
       });
       setAllowances({ rpt: rptAllowance, stable: stableAllowance });
 
-      await refreshBalances(rpt, stable, address, Number(rptDecimals), Number(stableDecimals));
+      await refreshBalances(rpt, stable, lp, address, TOKEN_METADATA.rpt.decimals, TOKEN_METADATA.ethio.decimals, 18);
     } catch (err) {
       console.error(err);
       setError(err.shortMessage || err.message || "Unable to load swap data.");
@@ -133,13 +131,17 @@ export default function StableSwapPage() {
     }
   };
 
-  const refreshBalances = async (rpt, stable, user, rptDecimals, stableDecimals) => {
-         console.log("I am refreshing balances");
+  const refreshBalances = async (rpt, stable, lp, user, rptDecimals, stableDecimals, lpDecimals) => {
     try {
-      const [rptBal, stableBal] = await Promise.all([rpt.balanceOf(user), stable.balanceOf(user)]);
+      const [rptBal, stableBal, lpBal] = await Promise.all([
+        rpt.balanceOf(user),
+        stable.balanceOf(user),
+        lp.balanceOf(user)
+      ]);
       setBalances({
         rpt: ethers.formatUnits(rptBal, rptDecimals),
         stable: ethers.formatUnits(stableBal, stableDecimals),
+        lp: ethers.formatUnits(lpBal, lpDecimals),
       });
     } catch (err) {
       console.error(err);
@@ -148,7 +150,6 @@ export default function StableSwapPage() {
   };
 
   const handleAmountChange = (key, value) => {
-        console.log("I am handling amount change");
     setForms((prev) => ({
       ...prev,
       [key]: { ...prev[key], amountIn: value },
@@ -157,7 +158,6 @@ export default function StableSwapPage() {
   };
 
   const handleMax = (key) => {
-        console.log("I am handling max");
     const amount =
       key === "stableToRpt"
         ? balances.stable
@@ -170,7 +170,6 @@ export default function StableSwapPage() {
   };
 
   const quote = async (key, value) => {
-        console.log("I am quoting");
     if (!contracts.router || !value || Number(value) <= 0) {
       setForms((prev) => ({ ...prev, [key]: { ...prev[key], expectedOut: "" } }));
       return null;
@@ -186,9 +185,7 @@ export default function StableSwapPage() {
         ? [tokenMeta.stable.address, tokenMeta.rpt.address]
         : [tokenMeta.rpt.address, tokenMeta.stable.address];
       const outDecimals = isStableToRpt ? tokenMeta.rpt.decimals : tokenMeta.stable.decimals;
-      console.log(contracts.router);
-      const amounts = await contracts.router.getAmountsOut(amountIn, path);
-      console.log("amounts", amounts);
+      const amounts = await get_amounts_out(amountIn, path);
       const out = amounts[amounts.length - 1];
       const formatted = ethers.formatUnits(out, outDecimals);
 
@@ -206,19 +203,17 @@ export default function StableSwapPage() {
     return amountOut - (amountOut * BigInt(bps)) / 10_000n;
   };
 
-  const ensureAllowance = async (key, amountNeeded) => {
+  const checkAllowance = async (key, amountNeeded) => {
     const tokenContract = key === "rpt" ? contracts.rpt : contracts.stable;
-    const currentAllowance = allowances[key] || 0n;
+    const currentAllowance = await tokenContract.allowance(wallet_address, tokenMeta.router);
     if (currentAllowance >= amountNeeded) return;
-    console.log("I am ensuring allowance");
 
     setTxState((prev) => ({
       ...prev,
       [key === "rpt" ? "rptToStable" : "stableToRpt"]: { status: "pending", message: "Approving tokens..." },
     }));
 
-    const tx = await tokenContract.approve(tokenMeta.router, amountNeeded);
-    await tx.wait();
+    await ensure_allowance(tokenContract, tokenMeta.router, amountNeeded);
     const updated = await tokenContract.allowance(wallet_address, tokenMeta.router);
     setAllowances((prev) => ({ ...prev, [key]: updated }));
   };
@@ -230,7 +225,6 @@ export default function StableSwapPage() {
     }
     if (!contracts.router) return;
 
-    console.log(contracts.router);
     setTxState((prev) => ({ ...prev, [key]: { status: "pending", message: "Awaiting confirmation..." } }));
     setError("");
 
@@ -241,14 +235,13 @@ export default function StableSwapPage() {
         const amountIn = ethers.parseUnits(forms.stableToRpt.amountIn || "0", tokenMeta.stable.decimals);
         if (amountIn <= 0n) throw new Error("Enter an EthioCoin amount.");
 
-        await ensureAllowance("stable", amountIn);
-        const amounts = await contracts.router.getAmountsOut(amountIn, [
+        const amounts = await get_amounts_out(amountIn, [
           tokenMeta.stable.address,
           tokenMeta.rpt.address,
         ]);
         const minOut = applySlippage(amounts[1]);
 
-        const tx = await contracts.router.swapExactTokensForTokens(
+        const tx = await swap_exact_tokens_for_tokens(
           amountIn,
           minOut,
           [tokenMeta.stable.address, tokenMeta.rpt.address],
@@ -261,14 +254,13 @@ export default function StableSwapPage() {
         const amountIn = ethers.parseUnits(forms.rptToStable.amountIn || "0", tokenMeta.rpt.decimals);
         if (amountIn <= 0n) throw new Error("Enter an RPT amount.");
 
-        await ensureAllowance("rpt", amountIn);
-        const amounts = await contracts.router.getAmountsOut(amountIn, [
+        const amounts = await get_amounts_out(amountIn, [
           tokenMeta.rpt.address,
           tokenMeta.stable.address,
         ]);
         const minOut = applySlippage(amounts[1]);
 
-        const tx = await contracts.router.swapExactTokensForTokens(
+        const tx = await swap_exact_tokens_for_tokens(
           amountIn,
           minOut,
           [tokenMeta.rpt.address, tokenMeta.stable.address],
@@ -279,7 +271,7 @@ export default function StableSwapPage() {
         await tx.wait();
       }
 
-      await refreshBalances(contracts.rpt, contracts.stable, wallet_address, tokenMeta.rpt.decimals, tokenMeta.stable.decimals);
+      await refreshBalances(contracts.rpt, contracts.stable, contracts.lp, wallet_address, tokenMeta.rpt.decimals, tokenMeta.stable.decimals, tokenMeta.lp.decimals);
       setTxState((prev) => ({ ...prev, [key]: { status: "success", message: "Swap completed." } }));
     } catch (err) {
       console.error(err);
@@ -301,22 +293,12 @@ export default function StableSwapPage() {
 
     try {
       const deadline = Math.floor(Date.now() / 1000) + 600;
-      console.log(deadline);
       const stableAmount = ethers.parseUnits(forms.addLiquidity.stable || "0", tokenMeta.stable.decimals);
       const rptAmount = ethers.parseUnits(forms.addLiquidity.rpt || "0", tokenMeta.rpt.decimals);
 
       if (stableAmount <= 0n || rptAmount <= 0n) throw new Error("Enter both ETC and RPT amounts.");
 
-      await ensureAllowance("stable", stableAmount);
-      await ensureAllowance("rpt", rptAmount);
-
-      console.log("I am liquidity")
-      console.log(await contracts.stable.allowance(wallet_address,tokenMeta.router));
-      console.log(await contracts.rpt.allowance(wallet_address,tokenMeta.router));
-      const minStable = applySlippage(stableAmount);
-      const minRpt = applySlippage(rptAmount);
-      console.log(minStable, minRpt);
-      const tx = await contracts.router.addLiquidity(
+      const tx = await add_liquidity(
         tokenMeta.stable.address,
         tokenMeta.rpt.address,
         stableAmount,
@@ -324,8 +306,7 @@ export default function StableSwapPage() {
         0,
         0,
         wallet_address,
-        deadline,
-          { gasLimit: 3_000_000 }
+        deadline
       );
 
       setTxState((prev) => ({ ...prev, addLiquidity: { status: "mining", message: "Supplying liquidity..." } }));
@@ -334,9 +315,11 @@ export default function StableSwapPage() {
       await refreshBalances(
         contracts.rpt,
         contracts.stable,
+        contracts.lp,
         wallet_address,
         tokenMeta.rpt.decimals,
-        tokenMeta.stable.decimals
+        tokenMeta.stable.decimals,
+        tokenMeta.lp.decimals
       );
       setTxState((prev) => ({ ...prev, addLiquidity: { status: "success", message: "Liquidity added." } }));
     } catch (err) {
@@ -428,6 +411,10 @@ export default function StableSwapPage() {
             <div className="flex items-center justify-between text-sm">
               <span className="text-slate-500 dark:text-slate-400">{tokenMeta.rpt.symbol}</span>
               <span className="font-semibold text-slate-900 dark:text-white">{formatNumber(balances.rpt)}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm border-t border-slate-100 dark:border-slate-800 pt-2">
+              <span className="text-slate-500 dark:text-slate-400">LP Tokens</span>
+              <span className="font-semibold text-slate-900 dark:text-white">{formatNumber(balances.lp)}</span>
             </div>
             <button
               onClick={bootstrap}

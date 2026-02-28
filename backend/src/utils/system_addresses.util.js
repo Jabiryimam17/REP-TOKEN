@@ -1,12 +1,12 @@
-import registry from "../abis/Registry.json" with { type: "json" };
-import config from "../configs/registry_address.json" with { type: "json" };
+import registry from "#abis/Registry.json" with { type: "json" };
+import config from "#config/registry_address.json" with { type: "json" };
 import { ethers } from "ethers";
-import connect_wallet from "../services/connect_wallet.service.js";
+import connect_wallet from "#utils/connect_wallet.util.js";
 
 const registry_abi = registry.abi;
 
 async function main() {
-    const { provider } = await connect_wallet();
+    const provider = await connect_wallet();
     const registry_contract = new ethers.Contract(config.registry, registry_abi, provider);
 
     const [
@@ -38,5 +38,5 @@ async function main() {
         registry_address: config.registry
     };
 }
-
+console.log(await main());
 export default await main();

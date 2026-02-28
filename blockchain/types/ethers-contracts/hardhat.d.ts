@@ -21,12 +21,9 @@ getContractFactory(name: 'ReputationToken', signerOrOptions?: ethers.Signer | Fa
 getContractFactory(name: 'RewardVault', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.RewardVault__factory>
 getContractFactory(name: 'RPTAccessManager', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.RPTAccessManager__factory>
 getContractFactory(name: 'Treasury', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.Treasury__factory>
-getContractFactory(name: 'UniswapV2Factory', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.UniswapV2Factory__factory>
-getContractFactory(name: 'UniswapV2Router02', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.UniswapV2Router02__factory>
 getContractFactory(name: 'Itreasury', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.Itreasury__factory>
 getContractFactory(name: 'IVerifierSystem', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IVerifierSystem__factory>
 getContractFactory(name: 'VerifierSystem', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.VerifierSystem__factory>
-getContractFactory(name: 'WETH9', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.WETH9__factory>
 
   getContractAt(name: 'AccessManagerHelper', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.AccessManagerHelper>
 getContractAt(name: 'IAccessManager', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IAccessManager>
@@ -39,12 +36,9 @@ getContractAt(name: 'ReputationToken', address: string | ethers.Addressable, sig
 getContractAt(name: 'RewardVault', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.RewardVault>
 getContractAt(name: 'RPTAccessManager', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.RPTAccessManager>
 getContractAt(name: 'Treasury', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.Treasury>
-getContractAt(name: 'UniswapV2Factory', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.UniswapV2Factory>
-getContractAt(name: 'UniswapV2Router02', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.UniswapV2Router02>
 getContractAt(name: 'Itreasury', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.Itreasury>
 getContractAt(name: 'IVerifierSystem', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IVerifierSystem>
 getContractAt(name: 'VerifierSystem', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.VerifierSystem>
-getContractAt(name: 'WETH9', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.WETH9>
 
   deployContract(name: 'AccessManagerHelper', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.AccessManagerHelper>
 deployContract(name: 'IAccessManager', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IAccessManager>
@@ -57,12 +51,9 @@ deployContract(name: 'ReputationToken', signerOrOptions?: ethers.Signer | Deploy
 deployContract(name: 'RewardVault', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.RewardVault>
 deployContract(name: 'RPTAccessManager', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.RPTAccessManager>
 deployContract(name: 'Treasury', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Treasury>
-deployContract(name: 'UniswapV2Factory', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.UniswapV2Factory>
-deployContract(name: 'UniswapV2Router02', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.UniswapV2Router02>
 deployContract(name: 'Itreasury', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Itreasury>
 deployContract(name: 'IVerifierSystem', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IVerifierSystem>
 deployContract(name: 'VerifierSystem', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.VerifierSystem>
-deployContract(name: 'WETH9', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.WETH9>
 
   deployContract(name: 'AccessManagerHelper', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.AccessManagerHelper>
 deployContract(name: 'IAccessManager', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IAccessManager>
@@ -75,12 +66,9 @@ deployContract(name: 'ReputationToken', args: any[], signerOrOptions?: ethers.Si
 deployContract(name: 'RewardVault', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.RewardVault>
 deployContract(name: 'RPTAccessManager', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.RPTAccessManager>
 deployContract(name: 'Treasury', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Treasury>
-deployContract(name: 'UniswapV2Factory', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.UniswapV2Factory>
-deployContract(name: 'UniswapV2Router02', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.UniswapV2Router02>
 deployContract(name: 'Itreasury', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Itreasury>
 deployContract(name: 'IVerifierSystem', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IVerifierSystem>
 deployContract(name: 'VerifierSystem', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.VerifierSystem>
-deployContract(name: 'WETH9', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.WETH9>
 
     // default types
     getContractFactory(

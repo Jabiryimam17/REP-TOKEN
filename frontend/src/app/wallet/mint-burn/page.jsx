@@ -16,12 +16,9 @@ import {
   LockKeyhole,
 } from "lucide-react";
 import { ethers } from "ethers";
-import connect_wallet from "@/services/connect_wallet.service";
-import config from "@/configs/registry_address.json" with { type: "json" };
-import { abi as registryAbi } from "@/abis/Registry.json" with { type: "json" };
-import { abi as rptAbi } from "@/abis/ReputationToken.json" with { type: "json" };
-import { abi as stableAbi } from "@/abis/EthioCoin.json" with { type: "json" };
+import { get_contracts, TOKEN_METADATA } from "@/services/compose_contracts.service";
 import { useApp } from "@/context/AppContext";
+import config from "@/configs/registry_address.json" with {type:'json'}
 
 export default function MintBurnPage() {
   const { wallet_address, set_wallet_address } = useApp();
@@ -68,30 +65,20 @@ export default function MintBurnPage() {
     setLoading(true);
     setError("");
     try {
-      const { provider, signer } = await connect_wallet();
-      const addr = await signer.getAddress();
+      const { rpt_contract: rpt, eth_contract: stable } = await get_contracts();
+      const addr = await rpt.runner.getAddress();
       set_wallet_address(addr);
-      const net = await provider.getNetwork();
-      setNetwork(net);
-
-      const registry = new ethers.Contract(config.registry, registryAbi, signer);
-      const [, rptAddr, stableAddr] = await registry.get_system_addresses();
-
-      const rpt = new ethers.Contract(rptAddr, rptAbi, signer);
-      const stable = new ethers.Contract(stableAddr, stableAbi, signer);
+      
+      const provider = rpt.runner.provider;
+      if (provider) {
+        const net = await provider.getNetwork();
+        setNetwork(net);
+      }
 
       const [
-        rptSymbol,
-        stableSymbol,
-        rptDecimals,
-        stableDecimals,
         rptBal,
         stableBal,
       ] = await Promise.all([
-        rpt.symbol(),
-        stable.symbol(),
-        rpt.decimals(),
-        stable.decimals(),
         rpt.balanceOf(addr),
         stable.balanceOf(addr),
       ]);
@@ -102,23 +89,23 @@ export default function MintBurnPage() {
       setContracts({ rpt, stable });
       setMeta({
         rpt: {
-          symbol: rptSymbol,
-          name: "Reputation Token",
-          decimals: Number(rptDecimals),
-          address: rptAddr,
+          symbol: TOKEN_METADATA.rpt.symbol,
+          name: TOKEN_METADATA.rpt.name,
+          decimals: TOKEN_METADATA.rpt.decimals,
+          address: await rpt.getAddress(),
           caps: rptCaps,
         },
         stable: {
-          symbol: stableSymbol,
-          name: "EthioCoin",
-          decimals: Number(stableDecimals),
-          address: stableAddr,
+          symbol: TOKEN_METADATA.ethio.symbol,
+          name: TOKEN_METADATA.ethio.name,
+          decimals: TOKEN_METADATA.ethio.decimals,
+          address: await stable.getAddress(),
           caps: stableCaps,
         },
       });
       setBalances({
-        rpt: ethers.formatUnits(rptBal, rptDecimals),
-        stable: ethers.formatUnits(stableBal, stableDecimals),
+        rpt: ethers.formatUnits(rptBal, TOKEN_METADATA.rpt.decimals),
+        stable: ethers.formatUnits(stableBal, TOKEN_METADATA.ethio.decimals),
       });
     } catch (err) {
       console.error(err);
@@ -213,6 +200,7 @@ export default function MintBurnPage() {
                 Chain ID: {network?.chainId ?? "—"}
               </span>
               <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+
                 Registry: {short(config.registry)}
               </span>
             </div>

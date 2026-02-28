@@ -1,6 +1,6 @@
 "use client";
-
-import React, { useState } from "react";
+//TODO:show them their levels and don't allow more than one bid for freelancer for a job and give them button to delete bids
+import React, { useEffect, useState } from "react";
 import { 
   Search, 
   Filter, 
@@ -15,94 +15,69 @@ import {
   SlidersHorizontal,
   X
 } from "lucide-react";
+import { list_jobs, get_job_blockchain } from "@/services/jobs.service";
+import Link from "next/link";
+import {ethers} from "ethers";
+
+const normalizeList = (val) => {
+  if (Array.isArray(val)) return val;
+  if (typeof val === "string") {
+    try {
+      const parsed = JSON.parse(val);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (_) {
+      // fall through
+    }
+    return val.split(",").map((s) => s.trim()).filter(Boolean);
+  }
+  return [];
+};
 
 export default function JobsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [jobList, setJobList] = useState([]);
 
-  // Mock job list data
-  const jobList = [
-    {
-      id: "JOB-101",
-      title: "Senior Solidity Developer for DeFi Lending Protocol",
-      description: "We are looking for an experienced Solidity developer to audit and optimize our core lending contracts. You will be working with a team of elite blockchain engineers to ensure the security and efficiency of our protocol that handles over $50M TVL.",
-      category: "Blockchain Development",
-      topics: ["Solidity", "DeFi", "Smart Contracts", "Security"],
-      paymentType: "Fixed Price",
-      budget: "12,000 - 15,000 USDC",
-      level: "Expert",
-      postedAt: "2 hours ago",
-      employer: {
-        name: "LendWave DAO",
-        rating: 4.9,
-        verified: true
-      }
-    },
-    {
-      id: "JOB-102",
-      title: "Full Stack Next.js & Web3 Integration",
-      description: "Need a developer to build a clean, responsive dashboard for our NFT analytics platform. You'll be using Next.js, Tailwind CSS, and connecting to various subgraphs and RPC endpoints. Design is already finalized in Figma.",
-      category: "Web Development",
-      topics: ["Next.js", "Tailwind CSS", "Ethers.js", "GraphQL"],
-      paymentType: "Hourly",
-      budget: "$60 - $90 / hr",
-      level: "Intermediate",
-      postedAt: "5 hours ago",
-      employer: {
-        name: "MetaView Analytics",
-        rating: 4.7,
-        verified: true
-      }
-    },
-    {
-      id: "JOB-103",
-      title: "Technical Writer for Protocol Documentation",
-      description: "Create comprehensive technical documentation, API references, and user guides for our new Layer 2 scaling solution. Ability to explain complex cryptographic concepts in a clear, concise manner is required.",
-      category: "Writing & Translation",
-      topics: ["Technical Writing", "Cryptography", "Documentation", "L2s"],
-      paymentType: "Fixed Price",
-      budget: "3,500 USDC",
-      level: "Intermediate",
-      postedAt: "1 day ago",
-      employer: {
-        name: "ZKSync Ecosystem",
-        rating: 5.0,
-        verified: true
-      }
-    },
-    {
-      id: "JOB-104",
-      title: "Community Manager & Discord Moderator",
-      description: "Manage our growing community on Discord and Twitter. Host weekly AMAs, manage moderators, and coordinate with the marketing team for announcements. Deep understanding of crypto culture is a must.",
-      category: "Marketing",
-      topics: ["Community Management", "Discord", "Marketing", "Social Media"],
-      paymentType: "Hourly",
-      budget: "$25 - $40 / hr",
-      level: "Entry Level",
-      postedAt: "3 days ago",
-      employer: {
-        name: "Alpha Pulse DAO",
-        rating: 4.5,
-        verified: false
-      }
-    },
-    {
-      id: "JOB-105",
-      title: "UI/UX Designer for Web3 Wallet",
-      description: "Design a mobile-first crypto wallet focusing on simplicity and security. We need high-fidelity prototypes and a complete design system. Experience with wallet-specific UX challenges (seed phrases, gas fees) is preferred.",
-      category: "Design & Creative",
-      topics: ["UI/UX Design", "Figma", "Product Design", "Crypto Wallet"],
-      paymentType: "Fixed Price",
-      budget: "8,000 USDC",
-      level: "Expert",
-      postedAt: "4 days ago",
-      employer: {
-        name: "Nexus Wallet",
-        rating: 4.8,
-        verified: true
+  useEffect(() => {
+    async function loadJobs() {
+      try {
+        const apiJobs = await list_jobs();
+        // Normalize and enrich with blockchain data
+        const enriched = await Promise.all((apiJobs || []).map(async (j) => {
+          const topicsArr = normalizeList(j.topics);
+          const salary = ethers.formatUnits(j.salary || 0, 18);
+          let bc = null;
+          let verified = false;
+          try {
+            bc = await get_job_blockchain(j.id);
+            verified = !!bc;
+          } catch (e) {
+            verified = false;
+          }
+          return {
+            id: j.id,
+            title: j.title,
+            description: j.description,
+            category: j.category,
+            topics: topicsArr,
+            salary: salary,
+            bid_duration: j.bid_duration,
+            postedAt: new Date(j.published_date || Date.now()).toLocaleDateString(),
+            employer: { name: j.employer_name || 'Unknown', rating: 0, verified },
+            verified,
+          };
+        }));
+        setJobList(enriched);
+      } catch (e) {
+        console.error('Failed to load jobs', e);
+      } finally {
+        setLoading(false);
       }
     }
-  ];
+    loadJobs();
+  }, []);
+
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950/50 py-12 px-4 sm:px-6 lg:px-8">
@@ -215,7 +190,7 @@ export default function JobsPage() {
           {/* Job List */}
           <main className="lg:col-span-3 space-y-6">
             <div className="flex justify-between items-center mb-2 px-2">
-              <span className="text-slate-500 dark:text-slate-400 font-medium">{jobList.length} jobs found</span>
+              <span className="text-slate-500 dark:text-slate-400 font-medium">{loading ? 'Loading...' : `${jobList.length} jobs found`}</span>
               <div className="flex items-center text-sm font-medium text-slate-600 dark:text-slate-400">
                 <span className="mr-2">Sort by:</span>
                 <button className="flex items-center text-slate-900 dark:text-white">
@@ -224,7 +199,7 @@ export default function JobsPage() {
               </div>
             </div>
 
-            {jobList.map((job) => (
+            {!loading && jobList.map((job) => (
               <div key={job.id} className="group bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-indigo-100 dark:hover:border-indigo-900/50 transition-all cursor-pointer">
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                   <div className="flex-grow">
@@ -242,9 +217,9 @@ export default function JobsPage() {
                       {job.description}
                     </p>
                     
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      {job.topics.map((topic) => (
-                        <span key={topic} className="flex items-center px-3 py-1 bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 rounded-lg text-sm font-medium border border-slate-100 dark:border-slate-800">
+                  <div className="flex flex-wrap gap-2 mb-6">
+                      {job.topics.map((topic, idx) => (
+                        <span key={`${topic}-${idx}`} className="flex items-center px-3 py-1 bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 rounded-lg text-sm font-medium border border-slate-100 dark:border-slate-800">
                           <Tag className="w-3 h-3 mr-1.5 opacity-60" />
                           {topic}
                         </span>
@@ -255,11 +230,11 @@ export default function JobsPage() {
                   <div className="flex flex-col md:items-end justify-between md:min-w-[200px] h-full">
                     <div className="mb-4 md:text-right">
                       <div className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
-                        {job.budget}
+                        {job.salary ? `${job.salary} USDC` : '—'}
                       </div>
                       <div className="flex items-center md:justify-end text-sm text-slate-500 dark:text-slate-400 font-medium">
                         <Briefcase className="w-4 h-4 mr-1.5" />
-                        {job.paymentType} • {job.level}
+                        {job.verified ? 'Verified on-chain' : 'Unverified'} • Bids: 
                       </div>
                     </div>
 
@@ -267,16 +242,16 @@ export default function JobsPage() {
                       <div className="flex flex-col items-end">
                         <div className="flex items-center text-sm font-bold text-slate-900 dark:text-white">
                           {job.employer.name}
-                          {job.employer.verified && <ShieldCheck className="w-4 h-4 ml-1 text-blue-500" />}
+                          {job.verified && <ShieldCheck className="w-4 h-4 ml-1 text-blue-500" />}
                         </div>
                         <div className="flex items-center text-xs text-amber-500 font-bold">
                           <Star className="w-3 h-3 fill-amber-500 mr-1" />
                           {job.employer.rating}
                         </div>
                       </div>
-                      <button className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                      <Link href={`/jobs/${job.id}`} className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition-all">
                         <ArrowUpRight className="w-5 h-5" />
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 </div>

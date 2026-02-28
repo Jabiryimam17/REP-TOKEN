@@ -9,7 +9,8 @@
     "#models/*": "./src/models/*",
     "#utils/*": "./src/utils/*",
     "#config/*": "./src/configs/*",
-    "#middlewares/*": "./src/middlewares/*"
+    "#middlewares/*": "./src/middlewares/*",
+    "#abis/*": "./src/abis/*"
   },
   "main": "server.js",
   "scripts": {

@@ -67,14 +67,13 @@ export default async (user) => {
             edu.title, // title
             edu.institution, // institution
             Number(edu.start_year), // start_year
-            new Date(),
             Number(edu.end_year)
         ]);
 
         if (u_education_levels.length > 0) {
             await db.query(
                 `INSERT INTO education_levels
-                 (user_id, title, institution, start_year, created_at, end_year)
+                 (user_id, title, institution, start_year, end_year)
                  VALUES ?`,
                 [u_education_levels]
             );

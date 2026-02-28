@@ -33,6 +33,9 @@ contract Treasury is ReentrancyGuard, AccessManaged {
     function _job_manager() internal view returns (address) {
         return registry.get_job_manager();
     }
+    function _verifier() internal view returns (address) {
+        return registry.get_verifier();
+    }
 
     function _router() internal view returns (IUniswapV2Router02) {
         return IUniswapV2Router02(registry.get_router());
@@ -122,12 +125,12 @@ contract Treasury is ReentrancyGuard, AccessManaged {
     }
     
     function pay_back_rpt(address to, uint amount) external nonReentrant() {
-        require(msg.sender==_job_manager() || msg.sender==_reward_vault());
+        require(msg.sender==_job_manager() || msg.sender==_reward_vault() || msg.sender==_verifier());
         _rpt().safeTransfer(to, amount);
     }
 
     function pay_back_stable_coin(address to, uint amount) external nonReentrant() {
-        require(msg.sender==_job_manager() || msg.sender==_reward_vault());
+        require(msg.sender==_job_manager() || msg.sender==_reward_vault() || msg.sender==_verifier());
         _ethiocoin().safeTransfer( to, amount);
     }
 }

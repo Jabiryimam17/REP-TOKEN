@@ -20,16 +20,20 @@ export default async function main() {
 
     const artifacts_dir=path.resolve(process.cwd(), "artifacts/contracts");
 
-    const out_dir=path.resolve(process.cwd(), "../frontend/src/abis");
-    if (!fs.existsSync(out_dir)){
-        fs.mkdirSync(out_dir, { recursive: true });
+    const front_out_dir=path.resolve(process.cwd(), "../frontend/src/abis");
+    const back_out_dir=path.resolve(process.cwd(), "../backend/src/abis");
+    if (!fs.existsSync(front_out_dir)){
+        fs.mkdirSync(front_out_dir, { recursive: true });
+    }
+    if (!fs.existsSync(back_out_dir)){
+        fs.mkdirSync(back_out_dir, { recursive: true });
     }
 
 
     contracts.forEach(contract_name => {
         const artifact_path = path.join(artifacts_dir, `${contract_name}.sol`, `${contract_name}.json`);
-        const output_path = path.join(out_dir, `${contract_name}.json`);
-
+        const front_output_path = path.join(front_out_dir, `${contract_name}.json`);
+        const back_output_path = path.join(back_out_dir, `${contract_name}.json`);
         const artifact = JSON.parse(fs.readFileSync(artifact_path, "utf8"));
         const minimal = {
             abi: artifact.abi,
@@ -38,9 +42,14 @@ export default async function main() {
         };
 
         fs.writeFileSync(
-            output_path,
+            front_output_path,
             JSON.stringify(minimal, null, 2),
             "utf8"
         );
+        fs.writeFileSync(
+            back_output_path,
+            JSON.stringify(minimal, null, 2),
+            "utf8"
+        )
     });
 }

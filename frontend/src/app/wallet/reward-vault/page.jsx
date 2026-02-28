@@ -16,11 +16,10 @@ import {
   Sparkles,
 } from "lucide-react";
 import { ethers } from "ethers";
-import connect_wallet from "@/services/connect_wallet.service";
-import config from "@/configs/registry_address.json" with { type: "json" };
-import { abi as registryAbi } from "@/abis/Registry.json" with { type: "json" };
-import { abi as rewardVaultAbi } from "@/abis/RewardVault.json" with { type: "json" };
 import { useApp } from "@/context/AppContext";
+import { get_contracts, TOKEN_METADATA } from "@/services/compose_contracts.service";
+import { get_addresses } from "@/services/system_addresses.service";
+import { get_vault_stats, stake_lp, withdraw_lp } from "@/services/reward_vault.service";
 
 const erc20Abi = [
   "function symbol() view returns (string)",
@@ -75,36 +74,30 @@ export default function RewardVaultPage() {
     setLoading(true);
     setError("");
     try {
-      const { provider, signer } = await connect_wallet();
-      const addr = await signer.getAddress();
+      const { rpt_contract: rpt, reward_vault_contract: vault } = await get_contracts();
+      const addr = await rpt.runner.getAddress();
       set_wallet_address(addr);
-      const net = await provider.getNetwork();
-      setNetwork(net);
+      
+      const provider = rpt.runner.provider;
+      if (provider) {
+        const net = await provider.getNetwork();
+        setNetwork(net);
+      }
 
-      const registry = new ethers.Contract(config.registry, registryAbi, signer);
-      const [, rptAddr, , , rewardVaultAddr, , , lpAddr] = await registry.get_system_addresses();
-
-      const lp = new ethers.Contract(lpAddr, erc20Abi, signer);
-      const rpt = new ethers.Contract(rptAddr, erc20Abi, signer);
-      const vault = new ethers.Contract(rewardVaultAddr, rewardVaultAbi, signer);
-
-      const [lpSymbol, rptSymbol, lpDec, rptDec] = await Promise.all([
-        lp.symbol(),
-        rpt.symbol(),
-        lp.decimals(),
-        rpt.decimals(),
-      ]);
+      const addresses = await get_addresses();
+      const lpAddr = addresses.lp_token_address;
+      const lp = new ethers.Contract(lpAddr, erc20Abi, rpt.runner);
 
       setVaultContract(vault);
       setLpContract(lp);
       setRptContract(rpt);
       setTokenMeta({
-        lp: { symbol: lpSymbol, decimals: Number(lpDec), address: lpAddr },
-        rpt: { symbol: rptSymbol, decimals: Number(rptDec), address: rptAddr },
-        vault: rewardVaultAddr,
+        lp: { symbol: "LP", decimals: 18, address: lpAddr },
+        rpt: { symbol: TOKEN_METADATA.rpt.symbol, decimals: TOKEN_METADATA.rpt.decimals, address: await rpt.getAddress() },
+        vault: await vault.getAddress(),
       });
 
-      await refresh(vault, lp, rpt, addr, Number(lpDec), Number(rptDec));
+      await refresh(vault, lp, rpt, addr, 18, TOKEN_METADATA.rpt.decimals);
     } catch (err) {
       console.error(err);
       setError(err.shortMessage || err.message || "Failed to load vault data.");
@@ -127,16 +120,16 @@ export default function RewardVaultPage() {
   const refresh = async (vault = vaultContract, lp = lpContract, rpt = rptContract, addr = wallet_address, lpDec = tokenMeta.lp.decimals, rptDec = tokenMeta.rpt.decimals) => {
     if (!vault || !lp || !rpt || !addr) return;
     try {
-      const [lpBal, rptBal, allowance, user, totalStaked, rewardRate, accRewardPerShare, lastReward] = await Promise.all([
-        lp.balanceOf(addr),
-        rpt.balanceOf(addr),
-        lp.allowance(addr, await vault.getAddress()),
-        vault.liqudators(addr),
-        vault.total_staked(),
-        vault.reward_rate(),
-        vault.acc_reward_per_share(),
-        vault.last_reward_time(),
-      ]);
+      const {
+        lpBal,
+        rptBal,
+        allowance,
+        user,
+        totalStaked,
+        rewardRate,
+        accRewardPerShare,
+        lastReward
+      } = await get_vault_stats(addr);
 
       const now = Math.floor(Date.now() / 1000);
       const { pending, acc } = computePending({
@@ -174,14 +167,8 @@ export default function RewardVaultPage() {
     }
     try {
       const parsed = ethers.parseUnits(amount, tokenMeta.lp.decimals);
-      const allowance = await lpContract.allowance(wallet_address, tokenMeta.vault);
-      if (allowance < parsed) {
-        setMessage("pending", "Approving LP tokens...");
-        const approveTx = await lpContract.approve(tokenMeta.vault, ethers.MaxUint256);
-        await approveTx.wait();
-      }
       setMessage("pending", "Confirm staking in wallet...");
-      const tx = await vaultContract.stake(parsed);
+      const tx = await stake_lp(parsed);
       setMessage("mining", "Staking...");
       await tx.wait();
       setMessage("success", "Staked successfully.");
@@ -205,7 +192,7 @@ export default function RewardVaultPage() {
     try {
       const parsed = ethers.parseUnits(amount, tokenMeta.lp.decimals);
       setMessage("pending", "Confirm withdrawal in wallet...");
-      const tx = await vaultContract.withdraw(parsed);
+      const tx = await withdraw_lp(parsed);
       setMessage("mining", "Withdrawing...");
       await tx.wait();
       setMessage("success", "Withdrawn successfully.");

@@ -22,9 +22,9 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import sign_message from "../../services/sign_message.service"
-import connect_wallet from "../../services/connect_wallet.service"
-import send_profile from "../../features/signup/send_profile"
+import sign_message from "@/services/sign_message.service"
+import connect_wallet from "@/services/connect_wallet.service"
+import send_profile from "@/features/signup/send_profile"
 import { useApp } from "@/context/AppContext";
 
 export default function RegisterPage() {
@@ -41,7 +41,8 @@ export default function RegisterPage() {
     hash: "",
     signature: "",
     role: "freelancer",
-    profile_picture: null
+    profile_picture: null,
+    description:""
   });
   
   const [profile_preview, set_profile_preview] = useState(null);
@@ -385,7 +386,7 @@ export default function RegisterPage() {
                         <textarea
                             rows={3}
                             placeholder="Brief Bio (Professional headline, experience...)"
-                            onChange={(e) => set_user({...user, bio: e.target.value})}
+                            onChange={(e) => set_user({...user, description: e.target.value})}
                             className="w-full px-4 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-medium"
                         ></textarea>
                       </div>

@@ -6,7 +6,6 @@ export default async function main(registry) {
         "set_job_manager(address)",
         "set_verifier(address)",
         "set_reward_vault(address)",
-        "set_lp_token(address)",
         "set_ethiocoin(address)"
     ]
     return registry_selectors.map((signature, index) => ({

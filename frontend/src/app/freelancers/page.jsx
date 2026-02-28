@@ -20,6 +20,7 @@ import {
   CheckCircle2,
   AlertCircle
 } from "lucide-react";
+import { ethers } from "ethers";
 
 export default function FreelancersListPage() {
   const router = useRouter();
@@ -282,7 +283,7 @@ export default function FreelancersListPage() {
                   <div className="space-y-4 mb-6">
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Min. Rate</span>
-                      <span className="text-lg font-black text-slate-900 dark:text-white">{freelancer.min_wage} USDC/hr</span>
+                      <span className="text-lg font-black text-slate-900 dark:text-white">{ethers.formatUnits(freelancer.min_wage || 0, 18)} USDC/hr</span>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-3">

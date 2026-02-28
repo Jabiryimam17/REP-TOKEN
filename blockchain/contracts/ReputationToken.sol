@@ -6,7 +6,8 @@ import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManage
 import {IRegistry} from "./Registry.sol";
 
 contract ReputationToken is ERC20,AccessManaged {
-    constructor(address registry, address _access_manager) ERC20("ReputationToken", "RPT")  AccessManaged(_access_manager) {
+    constructor(address _access_manager) ERC20("ReputationToken", "RPT")  AccessManaged(_access_manager) {
+         _mint(msg.sender, 1000000 * 10 ** decimals()); // Mint initial supply to the deployer
     }
 
     function mint(address to, uint256 amount) public restricted {

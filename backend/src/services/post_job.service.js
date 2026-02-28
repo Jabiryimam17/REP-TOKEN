@@ -8,10 +8,12 @@ import * as buffer from "node:buffer";
 export default async (job, user_id)=> {
     if (!await check_job(job, user_id)) return false;
     const id = Buffer.from(job.bytes_id.slice(2), 'hex');
-    const {title, description, category, amount, bid_duration, topics}=job;
+    let {title, description, category, amount, bid_duration, topics, skills, company}=job;
     const salary=BigInt(amount);
+    topics = JSON.stringify(topics);
+    skills = JSON.stringify(skills);
     const employer_id=user_id;
-    const db_job = {id, employer_id, title, description, category, topics, salary, bid_duration, published_date:new Date().toISOString().slice(0, 19).replace("T", " ")}
+    const db_job = {id, employer_id, title, description, category, topics,company, skills, salary, bid_duration, published_date:new Date().toISOString().slice(0, 19).replace("T", " ")}
 
     await db.query("INSERT INTO jobs SET ?", db_job);
     return true;

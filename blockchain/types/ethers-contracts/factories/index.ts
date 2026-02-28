@@ -9,7 +9,4 @@ export * as registrySol from './Registry.sol/index.js';
 export * as reputationTokenSol from './ReputationToken.sol/index.js';
 export * as rewardVaultSol from './RewardVault.sol/index.js';
 export * as treasurySol from './Treasury.sol/index.js';
-export * as uniswapV2FactorySol from './UniswapV2Factory.sol/index.js';
-export * as uniswapV2Router02Sol from './UniswapV2Router02.sol/index.js';
 export * as verifierSystemSol from './VerifierSystem.sol/index.js';
-export * as weth9Sol from './WETH9.sol/index.js';

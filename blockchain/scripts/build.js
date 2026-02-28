@@ -1,7 +1,7 @@
 
 import ethers from './connect.js';
 import dotenv from 'dotenv';
-dotenv.config();
+dotenv.config({path:'../.env'});
 import deploy_ethiocoin from './deploy_ethiocoin.js';
 import deploy_job_system from "./deploy_job_system.js";
 import deploy_reward_vault from "./deploy_reward_vault.js";
@@ -30,7 +30,7 @@ async function main() {
 
 
     const {ethiocoin,ethiocoin_address} = await deploy_ethiocoin();
-
+    const {rpt_address, rpt} = await deploy_rpt(access_manager_address);
     const job_system_address = await deploy_job_system(registry_address, access_manager_address);
 
     const verifier_address = await deploy_verifier(registry_address, access_manager_address);
@@ -39,9 +39,9 @@ async function main() {
 
     const treasury_address = await deploy_treasury(registry_address, access_manager_address);
 
-    const {rpt_address, rpt} = await deploy_rpt(registry_address, access_manager_address);
 
-    const {factory_address, pool_address, router_address, weth_address}=await deploy_pool(ethiocoin_address, rpt_address, ethiocoin, rpt);
+
+    const {factory_address, pool_address, router_address}=await deploy_pool(ethiocoin_address, rpt_address);
     console.log("Wiring registry...");
 
     const tx_e=await registry.set_ethiocoin(ethiocoin_address);
@@ -56,7 +56,7 @@ async function main() {
     await tx_t.wait();
     const tx_rpt=await registry.set_rpt(rpt_address);
     await tx_rpt.wait();
-    const tx_factory=await registry.set_factory(factory_address);
+    const tx_factory= await registry.set_factory(factory_address);
     await tx_factory.wait();
     const tx_pool=await registry.set_pool(pool_address);
     await tx_pool.wait();
