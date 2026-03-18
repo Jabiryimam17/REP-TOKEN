@@ -11,7 +11,6 @@ import {ReputationToken} from "../contracts/ReputationToken.sol";
 import {Registry} from "../contracts/Registry.sol";
 import {Treasury} from "../contracts/Treasury.sol";
 import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
-import {VRFConsumerBaseV2Plus} from "@chainlink/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
 contract VerifierTest is Test {
 
     VerifierSystem public verifier_system;
@@ -79,5 +78,28 @@ contract VerifierTest is Test {
  
     }
 
+    function test_RequestAndFulfillRandomWords() public {
 
+    // ----------- 1. Request randomness -----------
+        uint256 requestId = verifier_system.requestRandom(7); 
+    // replace requestRandom() with whatever function
+    // in your contract triggers requestRandomWords()
+
+        console.log("Request ID:", requestId);
+
+    // ----------- 2. Fulfill randomness -----------
+        vrf_coordinator.fulfillRandomWords(
+            requestId,
+            address(verifier_system)
+        );
+
+    // ----------- 3. Read random words -----------
+        uint256[] memory words = verifier_system.get_sample_random();
+
+        console.log("Random Words Length:", words.length);
+
+        for (uint i = 0; i < words.length; i++) {
+            console.log("Random Word:", words[i]);
+        }
+}
 }

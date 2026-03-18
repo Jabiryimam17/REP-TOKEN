@@ -6,7 +6,7 @@ import type { TypedContractEvent, TypedDeferredTopicFilter, TypedEventLog, Typed
   
 
   export interface VerifierSystemInterface extends Interface {
-    getFunction(nameOrSignature: "WEIGHT_MAX" | "_unstake" | "acceptOwnership" | "add_category" | "add_stack_level" | "add_stack_levels" | "add_verifier" | "authority" | "callback_gas_limit" | "categories" | "category_open" | "claim_rewards" | "disputed_jobs" | "finalize_verification" | "get_cat_level_verifiers" | "get_categories" | "get_dispute_status" | "get_stack_levels" | "isConsumingScheduledOp" | "key_hash" | "leveled_verifiers" | "owner" | "pending_rewards" | "post_job" | "rawFulfillRandomWords" | "registry" | "reputation_token" | "request_confirmations" | "request_random_nums" | "reveal_decision" | "s_vrfCoordinator" | "setAuthority" | "setCoordinator" | "set_slash_bps" | "set_up_vrf" | "slash_bps" | "stack_levels" | "stake" | "submit_hashed_decision" | "subscription_id" | "transferOwnership" | "transfer_address" | "treasury_pending" | "unstake" | "verifier_requests" | "verifiers"): FunctionFragment;
+    getFunction(nameOrSignature: "WEIGHT_MAX" | "_unstake" | "acceptOwnership" | "add_category" | "add_stack_level" | "add_stack_levels" | "add_verifier" | "authority" | "callback_gas_limit" | "categories" | "category_open" | "claim_rewards" | "disputed_jobs" | "finalize_verification" | "get_cat_level_verifiers" | "get_categories" | "get_chosen_verifiers" | "get_dispute_status" | "get_job" | "get_job_level" | "get_sample_random" | "get_stack_levels" | "get_verifier_level" | "isConsumingScheduledOp" | "key_hash" | "leveled_verifiers" | "mock_fulfill_random_words" | "owner" | "pending_rewards" | "post_job" | "rawFulfillRandomWords" | "registry" | "reputation_token" | "requestRandom" | "request_confirmations" | "request_random_nums" | "reveal_decision" | "s_vrfCoordinator" | "sample_random" | "setAuthority" | "setCoordinator" | "set_slash_bps" | "set_up_verifiers" | "set_up_vrf" | "slash_bps" | "stack_levels" | "stake" | "submit_hashed_decision" | "subscription_id" | "transferOwnership" | "transfer_address" | "treasury_pending" | "unstake" | "verifier_requests" | "verifiers"): FunctionFragment;
 
     getEvent(nameOrSignatureOrTopic: "AuthorityUpdated" | "CoordinatorSet" | "OwnershipTransferRequested" | "OwnershipTransferred" | "address_transferred" | "decision_revealed" | "hashed_decision_submitted" | "job_finalized" | "job_initialized" | "request_fulfilled(uint256,uint256[],bytes32)" | "request_fulfilled(uint256,uint256[])" | "request_sent" | "reward_credited" | "rewards_claimed" | "verifier_added" | "verifier_slashed" | "verifier_staked" | "verifier_unstaked"): EventFragment;
 
@@ -26,24 +26,33 @@ encodeFunctionData(functionFragment: 'disputed_jobs', values: [BytesLike]): stri
 encodeFunctionData(functionFragment: 'finalize_verification', values: [BytesLike]): string;
 encodeFunctionData(functionFragment: 'get_cat_level_verifiers', values: [BigNumberish, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'get_categories', values?: undefined): string;
+encodeFunctionData(functionFragment: 'get_chosen_verifiers', values: [BytesLike]): string;
 encodeFunctionData(functionFragment: 'get_dispute_status', values: [BytesLike]): string;
+encodeFunctionData(functionFragment: 'get_job', values: [BytesLike]): string;
+encodeFunctionData(functionFragment: 'get_job_level', values: [BytesLike]): string;
+encodeFunctionData(functionFragment: 'get_sample_random', values?: undefined): string;
 encodeFunctionData(functionFragment: 'get_stack_levels', values?: undefined): string;
+encodeFunctionData(functionFragment: 'get_verifier_level', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'isConsumingScheduledOp', values?: undefined): string;
 encodeFunctionData(functionFragment: 'key_hash', values?: undefined): string;
 encodeFunctionData(functionFragment: 'leveled_verifiers', values: [BigNumberish, BigNumberish, BigNumberish]): string;
+encodeFunctionData(functionFragment: 'mock_fulfill_random_words', values: [BigNumberish, BigNumberish[]]): string;
 encodeFunctionData(functionFragment: 'owner', values?: undefined): string;
 encodeFunctionData(functionFragment: 'pending_rewards', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'post_job', values: [BytesLike, BigNumberish, BigNumberish, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'rawFulfillRandomWords', values: [BigNumberish, BigNumberish[]]): string;
 encodeFunctionData(functionFragment: 'registry', values?: undefined): string;
 encodeFunctionData(functionFragment: 'reputation_token', values?: undefined): string;
+encodeFunctionData(functionFragment: 'requestRandom', values: [BigNumberish]): string;
 encodeFunctionData(functionFragment: 'request_confirmations', values?: undefined): string;
 encodeFunctionData(functionFragment: 'request_random_nums', values: [boolean, BytesLike, BigNumberish, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'reveal_decision', values: [BytesLike, BytesLike, BigNumberish]): string;
 encodeFunctionData(functionFragment: 's_vrfCoordinator', values?: undefined): string;
+encodeFunctionData(functionFragment: 'sample_random', values: [BigNumberish]): string;
 encodeFunctionData(functionFragment: 'setAuthority', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'setCoordinator', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'set_slash_bps', values: [BigNumberish]): string;
+encodeFunctionData(functionFragment: 'set_up_verifiers', values: [BytesLike, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'set_up_vrf', values: [BigNumberish, BigNumberish, BytesLike, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'slash_bps', values?: undefined): string;
 encodeFunctionData(functionFragment: 'stack_levels', values: [BigNumberish]): string;
@@ -73,24 +82,33 @@ decodeFunctionResult(functionFragment: 'disputed_jobs', data: BytesLike): Result
 decodeFunctionResult(functionFragment: 'finalize_verification', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'get_cat_level_verifiers', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'get_categories', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'get_chosen_verifiers', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'get_dispute_status', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'get_job', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'get_job_level', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'get_sample_random', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'get_stack_levels', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'get_verifier_level', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'isConsumingScheduledOp', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'key_hash', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'leveled_verifiers', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'mock_fulfill_random_words', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'owner', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'pending_rewards', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'post_job', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'rawFulfillRandomWords', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'registry', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'reputation_token', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'requestRandom', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'request_confirmations', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'request_random_nums', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'reveal_decision', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 's_vrfCoordinator', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'sample_random', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'setAuthority', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'setCoordinator', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'set_slash_bps', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'set_up_verifiers', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'set_up_vrf', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'slash_bps', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'stack_levels', data: BytesLike): Result;
@@ -484,9 +502,41 @@ decodeFunctionResult(functionFragment: 'verifiers', data: BytesLike): Result;
     
 
     
+    get_chosen_verifiers: TypedContractMethod<
+      [job_id: BytesLike, ],
+      [string[]],
+      'view'
+    >
+    
+
+    
     get_dispute_status: TypedContractMethod<
       [job_id: BytesLike, ],
       [bigint],
+      'view'
+    >
+    
+
+    
+    get_job: TypedContractMethod<
+      [job_id: BytesLike, ],
+      [[boolean, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint] & {open_for_dispute: boolean, submission_deadline: bigint, release_deadline: bigint, category: bigint, stakes: bigint, client_stake: bigint, freelancer_stake: bigint, level: bigint, lock_amount: bigint, dispute_status: bigint }],
+      'view'
+    >
+    
+
+    
+    get_job_level: TypedContractMethod<
+      [job_id: BytesLike, ],
+      [bigint],
+      'nonpayable'
+    >
+    
+
+    
+    get_sample_random: TypedContractMethod<
+      [],
+      [bigint[]],
       'view'
     >
     
@@ -496,6 +546,14 @@ decodeFunctionResult(functionFragment: 'verifiers', data: BytesLike): Result;
       [],
       [bigint[]],
       'view'
+    >
+    
+
+    
+    get_verifier_level: TypedContractMethod<
+      [v: AddressLike, ],
+      [bigint],
+      'nonpayable'
     >
     
 
@@ -520,6 +578,14 @@ decodeFunctionResult(functionFragment: 'verifiers', data: BytesLike): Result;
       [arg0: BigNumberish, arg1: BigNumberish, arg2: BigNumberish, ],
       [string],
       'view'
+    >
+    
+
+    
+    mock_fulfill_random_words: TypedContractMethod<
+      [request_id: BigNumberish, random_values: BigNumberish[], ],
+      [void],
+      'nonpayable'
     >
     
 
@@ -572,6 +638,14 @@ decodeFunctionResult(functionFragment: 'verifiers', data: BytesLike): Result;
     
 
     
+    requestRandom: TypedContractMethod<
+      [num_words: BigNumberish, ],
+      [bigint],
+      'nonpayable'
+    >
+    
+
+    
     request_confirmations: TypedContractMethod<
       [],
       [bigint],
@@ -582,7 +656,7 @@ decodeFunctionResult(functionFragment: 'verifiers', data: BytesLike): Result;
     
     request_random_nums: TypedContractMethod<
       [enable_native_payment: boolean, job_id: BytesLike, stake_amount: BigNumberish, verifiers_cnt: BigNumberish, ],
-      [void],
+      [bigint],
       'nonpayable'
     >
     
@@ -599,6 +673,14 @@ decodeFunctionResult(functionFragment: 'verifiers', data: BytesLike): Result;
     s_vrfCoordinator: TypedContractMethod<
       [],
       [string],
+      'view'
+    >
+    
+
+    
+    sample_random: TypedContractMethod<
+      [arg0: BigNumberish, ],
+      [bigint],
       'view'
     >
     
@@ -622,6 +704,14 @@ decodeFunctionResult(functionFragment: 'verifiers', data: BytesLike): Result;
     
     set_slash_bps: TypedContractMethod<
       [_bps: BigNumberish, ],
+      [void],
+      'nonpayable'
+    >
+    
+
+    
+    set_up_verifiers: TypedContractMethod<
+      [job_id: BytesLike, ver_cnt: BigNumberish, ],
       [void],
       'nonpayable'
     >
@@ -806,15 +896,40 @@ getFunction(nameOrSignature: 'get_categories'): TypedContractMethod<
       [string[]],
       'view'
     >;
+getFunction(nameOrSignature: 'get_chosen_verifiers'): TypedContractMethod<
+      [job_id: BytesLike, ],
+      [string[]],
+      'view'
+    >;
 getFunction(nameOrSignature: 'get_dispute_status'): TypedContractMethod<
       [job_id: BytesLike, ],
       [bigint],
+      'view'
+    >;
+getFunction(nameOrSignature: 'get_job'): TypedContractMethod<
+      [job_id: BytesLike, ],
+      [[boolean, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint] & {open_for_dispute: boolean, submission_deadline: bigint, release_deadline: bigint, category: bigint, stakes: bigint, client_stake: bigint, freelancer_stake: bigint, level: bigint, lock_amount: bigint, dispute_status: bigint }],
+      'view'
+    >;
+getFunction(nameOrSignature: 'get_job_level'): TypedContractMethod<
+      [job_id: BytesLike, ],
+      [bigint],
+      'nonpayable'
+    >;
+getFunction(nameOrSignature: 'get_sample_random'): TypedContractMethod<
+      [],
+      [bigint[]],
       'view'
     >;
 getFunction(nameOrSignature: 'get_stack_levels'): TypedContractMethod<
       [],
       [bigint[]],
       'view'
+    >;
+getFunction(nameOrSignature: 'get_verifier_level'): TypedContractMethod<
+      [v: AddressLike, ],
+      [bigint],
+      'nonpayable'
     >;
 getFunction(nameOrSignature: 'isConsumingScheduledOp'): TypedContractMethod<
       [],
@@ -830,6 +945,11 @@ getFunction(nameOrSignature: 'leveled_verifiers'): TypedContractMethod<
       [arg0: BigNumberish, arg1: BigNumberish, arg2: BigNumberish, ],
       [string],
       'view'
+    >;
+getFunction(nameOrSignature: 'mock_fulfill_random_words'): TypedContractMethod<
+      [request_id: BigNumberish, random_values: BigNumberish[], ],
+      [void],
+      'nonpayable'
     >;
 getFunction(nameOrSignature: 'owner'): TypedContractMethod<
       [],
@@ -861,6 +981,11 @@ getFunction(nameOrSignature: 'reputation_token'): TypedContractMethod<
       [string],
       'view'
     >;
+getFunction(nameOrSignature: 'requestRandom'): TypedContractMethod<
+      [num_words: BigNumberish, ],
+      [bigint],
+      'nonpayable'
+    >;
 getFunction(nameOrSignature: 'request_confirmations'): TypedContractMethod<
       [],
       [bigint],
@@ -868,7 +993,7 @@ getFunction(nameOrSignature: 'request_confirmations'): TypedContractMethod<
     >;
 getFunction(nameOrSignature: 'request_random_nums'): TypedContractMethod<
       [enable_native_payment: boolean, job_id: BytesLike, stake_amount: BigNumberish, verifiers_cnt: BigNumberish, ],
-      [void],
+      [bigint],
       'nonpayable'
     >;
 getFunction(nameOrSignature: 'reveal_decision'): TypedContractMethod<
@@ -879,6 +1004,11 @@ getFunction(nameOrSignature: 'reveal_decision'): TypedContractMethod<
 getFunction(nameOrSignature: 's_vrfCoordinator'): TypedContractMethod<
       [],
       [string],
+      'view'
+    >;
+getFunction(nameOrSignature: 'sample_random'): TypedContractMethod<
+      [arg0: BigNumberish, ],
+      [bigint],
       'view'
     >;
 getFunction(nameOrSignature: 'setAuthority'): TypedContractMethod<
@@ -893,6 +1023,11 @@ getFunction(nameOrSignature: 'setCoordinator'): TypedContractMethod<
     >;
 getFunction(nameOrSignature: 'set_slash_bps'): TypedContractMethod<
       [_bps: BigNumberish, ],
+      [void],
+      'nonpayable'
+    >;
+getFunction(nameOrSignature: 'set_up_verifiers'): TypedContractMethod<
+      [job_id: BytesLike, ver_cnt: BigNumberish, ],
       [void],
       'nonpayable'
     >;

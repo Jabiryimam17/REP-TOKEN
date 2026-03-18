@@ -248,6 +248,33 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
         dj.client_stake=client_stake;
         dj.freelancer_stake= freelancer_stake;
     }
+    function get_job(bytes32 job_id) public view returns (
+    bool open_for_dispute,
+    uint256 submission_deadline,
+    uint256 release_deadline,
+    uint16 category,
+    uint stakes,  
+    uint client_stake,
+    uint freelancer_stake,
+    uint8 level,
+    uint256 lock_amount,
+    DISPUTE_STATUS dispute_status
+) { 
+    DisputedJob storage job = disputed_jobs[job_id];
+    
+    return (
+        job.open_for_dispute,
+        job.submission_deadline,
+        job.release_deadline,
+        job.category,
+        job.stakes,
+        job.client_stake,
+        job.freelancer_stake, // Fixed typo
+        job.level,
+        job.lock_amount,
+        job.dispute_status    // Fixed typo
+    );
+}
     function get_dispute_status(bytes32 job_id) external view returns(DISPUTE_STATUS) {
         return disputed_jobs[job_id].dispute_status;
     }
@@ -259,26 +286,27 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
         bytes32 job_id,
         uint stake_amount,
         uint verifiers_cnt
-    ) public   {
+    )  external returns (uint256) {
         DisputedJob storage existing_job = disputed_jobs[job_id];
-        uint8 level=find_lower_bound(stake_amount);
+        require(stack_levels[stack_levels.length-1] >= stake_amount, "Excess Request");
+        uint8 level=find_lower_bound(stake_amount)+1;
         uint16 cat = existing_job.category;
-        require(category_open[cat][level],"catagory for this level is in selection");
+        require(!category_open[cat][level],"category for this level is in selection");
         require(leveled_verifiers[cat][level].length > 2*verifiers_cnt, "not enough verifiers available at the moment");
 
-        category_open[cat][level] = false;
-        uint256 request_id = s_vrfCoordinator.requestRandomWords(
-            VRFV2PlusClient.RandomWordsRequest({
-                keyHash: key_hash,
-                subId: subscription_id,
-                requestConfirmations: request_confirmations,
-                callbackGasLimit: callback_gas_limit,
-                numWords: uint32(verifiers_cnt),
-                extraArgs: VRFV2PlusClient._argsToBytes(
-                    VRFV2PlusClient.ExtraArgsV1({nativePayment: enable_native_payment})
-                )
-            })
-        );
+        category_open[cat][level] = true;
+        uint256 request_id =0;// s_vrfCoordinator.requestRandomWords(
+        // VRFV2PlusClient.RandomWordsRequest({
+        //     keyHash: key_hash,
+        //     subId: subscription_id,
+        //     requestConfirmations: request_confirmations,
+        //     callbackGasLimit: callback_gas_limit,
+        //     numWords: uint32(verifiers_cnt),
+        //     extraArgs: VRFV2PlusClient._argsToBytes(
+                // VRFV2PlusClient.ExtraArgsV1({nativePayment: false})
+        //     )
+        // })
+    // );
 
         DisputedJob storage job = disputed_jobs[job_id];
         job.open_for_dispute = true;
@@ -292,9 +320,25 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
 
         emit request_sent(request_id, verifiers_cnt, job_id);
         emit job_initialized(job_id, job.category, job.lock_amount, verifiers_cnt);
-        
+        return request_id;
     }
-    
+    function requestRandom(uint32 num_words) external returns (uint256) {
+
+    uint256 request_id = s_vrfCoordinator.requestRandomWords(
+        VRFV2PlusClient.RandomWordsRequest({
+            keyHash: key_hash,
+            subId: subscription_id,
+            requestConfirmations: 3,
+            callbackGasLimit: 200000,
+            numWords: num_words,
+            extraArgs: VRFV2PlusClient._argsToBytes(
+                VRFV2PlusClient.ExtraArgsV1({nativePayment: false})
+            )
+        })
+    );
+
+    return request_id;
+}
 
     function find_lower_bound(uint stake_amount) internal view returns(uint8) {
         uint8 n=uint8(stack_levels.length);
@@ -304,11 +348,24 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
         while (low < high) {
             uint8 mid = (low+high) >> 1;
             if (stack_levels[mid] >= stake_amount) high=mid;
-            else low = mid+1;
+            else low=mid+1;
         }
         return high;
     }
-   
+    uint256[] public sample_random;
+
+    // function fulfillRandomWords(
+    //     uint256 requestId,
+    //     uint256[] calldata randomValues
+    // ) internal override {
+    //     sample_random = randomValues;
+    // }
+    function get_sample_random() external view returns(uint256[] memory) {
+        return sample_random;
+    }
+    function mock_fulfill_random_words(uint256 request_id, uint256[] calldata random_values) external restricted {
+        fulfillRandomWords(request_id, random_values);
+    }
    function fulfillRandomWords(uint256 request_id, uint256[] calldata random_values) internal override {
        bytes32 job_key = verifier_requests[request_id];
        DisputedJob storage job = disputed_jobs[job_key];
@@ -331,11 +388,28 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
         v.idx_l=uint8(len);
         update_verifier_place(v,chosen);
        }
-       category_open[job.category][job.level]=true;
     
        emit request_fulfilled(request_id, random_values, job_key);
    }
+   
 
+   function set_up_verifiers(bytes32 job_id, uint ver_cnt) public {
+        DisputedJob storage job=disputed_jobs[job_id];
+        address[] storage eligible = leveled_verifiers[job.category][job.level];
+        for (uint i=0; i < ver_cnt; i++) {
+            address chosen=eligible[i];
+            job.verifiers_allowed[chosen]=true;
+            job.chosen_verifiers.push(chosen);
+            Verifier storage v=verifiers[chosen];
+            v.staked -= job.stakes;
+            v.locked += job.stakes;
+            update_verifier_place(v,chosen);
+        }
+       category_open[job.category][job.level]=false;
+   }
+
+   function get_job_level(bytes32 job_id) public returns(uint8) {return disputed_jobs[job_id].level;}
+   function get_verifier_level(address v) public returns(uint8) {return verifiers[v].level;}
    function update_verifier_place(Verifier storage v, address v_a) internal {
     uint8 new_level=find_lower_bound(v.staked);
     uint16 cat=v.category;
@@ -351,6 +425,13 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
         leveled_verifiers[cat][new_level].push(v_a);
     }
    }
+   function get_chosen_verifiers(bytes32 job_id) external view returns(address[] memory) {
+       DisputedJob storage job = disputed_jobs[job_id];
+       return job.chosen_verifiers;
+   }
+
+   
+
     function submit_hashed_decision(bytes32 job_id, bytes32 hashed_decision) external {
         DisputedJob storage job = disputed_jobs[job_id];
         require(job.open_for_dispute, "job not open");
@@ -360,6 +441,7 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
         job.verifiers_allowed[msg.sender] = false; 
         emit hashed_decision_submitted(job_id, msg.sender);
     }
+
 
     function reveal_decision(bytes32 job_id, bytes32 salt, uint8 decision) external {
         require(decision > 0 && decision < 100, "decision out of range");
@@ -448,7 +530,10 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
                     ver.staked -= slash_amount;
                     treasury_pending += slash_amount;
                 }
+            
             }
+            update_verifier_place(ver, v);
+
 
             ver.in_dispute--;
         }
