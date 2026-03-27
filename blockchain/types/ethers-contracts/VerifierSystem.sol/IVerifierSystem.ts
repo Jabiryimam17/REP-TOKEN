@@ -6,15 +6,17 @@ import type { TypedContractEvent, TypedDeferredTopicFilter, TypedEventLog, Typed
   
 
   export interface IVerifierSystemInterface extends Interface {
-    getFunction(nameOrSignature: "get_dispute_status" | "post_job" | "request_random_nums"): FunctionFragment;
+    getFunction(nameOrSignature: "get_dispute_status" | "get_request_config" | "post_job" | "request_random_nums"): FunctionFragment;
 
     
 
     encodeFunctionData(functionFragment: 'get_dispute_status', values: [BytesLike]): string;
+encodeFunctionData(functionFragment: 'get_request_config', values?: undefined): string;
 encodeFunctionData(functionFragment: 'post_job', values: [BytesLike, BigNumberish, BigNumberish, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'request_random_nums', values: [boolean, BytesLike, BigNumberish, BigNumberish]): string;
 
     decodeFunctionResult(functionFragment: 'get_dispute_status', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'get_request_config', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'post_job', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'request_random_nums', data: BytesLike): Result;
   }
@@ -63,6 +65,14 @@ decodeFunctionResult(functionFragment: 'request_random_nums', data: BytesLike): 
     
 
     
+    get_request_config: TypedContractMethod<
+      [],
+      [[bigint, string, string]],
+      'view'
+    >
+    
+
+    
     post_job: TypedContractMethod<
       [job_id: BytesLike, cat: BigNumberish, client_stake: BigNumberish, freelancer_stake: BigNumberish, ],
       [void],
@@ -84,6 +94,11 @@ decodeFunctionResult(functionFragment: 'request_random_nums', data: BytesLike): 
     getFunction(nameOrSignature: 'get_dispute_status'): TypedContractMethod<
       [job_id: BytesLike, ],
       [bigint],
+      'view'
+    >;
+getFunction(nameOrSignature: 'get_request_config'): TypedContractMethod<
+      [],
+      [[bigint, string, string]],
       'view'
     >;
 getFunction(nameOrSignature: 'post_job'): TypedContractMethod<

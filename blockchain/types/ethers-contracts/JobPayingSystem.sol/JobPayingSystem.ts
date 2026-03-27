@@ -6,28 +6,28 @@ import type { TypedContractEvent, TypedDeferredTopicFilter, TypedEventLog, Typed
   
 export declare namespace JobPayingSystem {
       
-    export type WLevelStruct = {min_verifiers_portion: BigNumberish, freelancer_stake: BigNumberish, client_stake: BigNumberish, max_amount: BigNumberish, payment_duration: BigNumberish}
+    export type W_levelStruct = {min_verifiers_portion: BigNumberish, freelancer_stake: BigNumberish, client_stake: BigNumberish, max_amount: BigNumberish, payment_duration: BigNumberish}
 
-    export type WLevelStructOutput = [min_verifiers_portion: bigint, freelancer_stake: bigint, client_stake: bigint, max_amount: bigint, payment_duration: bigint] & {min_verifiers_portion: bigint, freelancer_stake: bigint, client_stake: bigint, max_amount: bigint, payment_duration: bigint }
+    export type W_levelStructOutput = [min_verifiers_portion: bigint, freelancer_stake: bigint, client_stake: bigint, max_amount: bigint, payment_duration: bigint] & {min_verifiers_portion: bigint, freelancer_stake: bigint, client_stake: bigint, max_amount: bigint, payment_duration: bigint }
   
 
-    export type JobStruct = {client: AddressLike, freelancer: AddressLike, freelancer_approved: boolean, freelancer_completed: boolean, appeal_time: BigNumberish, status: BigNumberish, amount: BigNumberish, max_duration: BigNumberish, expiry_timestamp: BigNumberish, level: BigNumberish}
+    export type JobStruct = {client: AddressLike, freelancer: AddressLike, freelancer_approved: boolean, freelancer_completed: boolean, appeal_time: BigNumberish, status: BigNumberish, amount: BigNumberish, max_duration: BigNumberish, expiry_timestamp: BigNumberish, level: BigNumberish, cat: BigNumberish}
 
-    export type JobStructOutput = [client: string, freelancer: string, freelancer_approved: boolean, freelancer_completed: boolean, appeal_time: bigint, status: bigint, amount: bigint, max_duration: bigint, expiry_timestamp: bigint, level: bigint] & {client: string, freelancer: string, freelancer_approved: boolean, freelancer_completed: boolean, appeal_time: bigint, status: bigint, amount: bigint, max_duration: bigint, expiry_timestamp: bigint, level: bigint }
+    export type JobStructOutput = [client: string, freelancer: string, freelancer_approved: boolean, freelancer_completed: boolean, appeal_time: bigint, status: bigint, amount: bigint, max_duration: bigint, expiry_timestamp: bigint, level: bigint, cat: bigint] & {client: string, freelancer: string, freelancer_approved: boolean, freelancer_completed: boolean, appeal_time: bigint, status: bigint, amount: bigint, max_duration: bigint, expiry_timestamp: bigint, level: bigint, cat: bigint }
   
     }
 
   export interface JobPayingSystemInterface extends Interface {
-    getFunction(nameOrSignature: "MIN_MAX_DURATION" | "STAKE_DECIMAL" | "VERIFIERS_RECYCLING_PER_JOB" | "VERIFIER_DECIMAL" | "accept_job" | "append_level" | "authority" | "cancel_hire" | "cancel_job" | "cancel_pending_hire" | "claim_after_dispute" | "client_fee_portion_bps" | "complete_job" | "freelancer_fee_portion_bps" | "freelancers" | "get_job" | "get_job_lists_len" | "get_level" | "get_levels" | "hire" | "isConsumingScheduledOp" | "job_lists" | "jobs" | "levels_size" | "pay_freelancer" | "post_job" | "raise_dispute" | "refund_after_dispute" | "register_freelancer" | "registry" | "reset_levels" | "setAuthority" | "set_client_fee_portion" | "transfer_freelancer" | "update_level" | "update_level_freelancer" | "work_levels"): FunctionFragment;
+    getFunction(nameOrSignature: "MIN_MAX_DURATION" | "STAKE_DECIMAL" | "VERIFIERS_RECYCLING_PER_JOB" | "VERIFIER_DECIMAL" | "accept_job" | "append_level" | "authority" | "cancel_hire" | "cancel_job" | "cancel_pending_hire" | "claim_after_dispute" | "client_fee_portion_bps" | "complete_job" | "freelancer_fee_portion_bps" | "freelancers" | "get_job" | "get_job_lists_len" | "get_level" | "get_levels" | "handle_request_payment" | "hire" | "isConsumingScheduledOp" | "job_lists" | "jobs" | "levels_size" | "pay_freelancer" | "post_job" | "raise_dispute" | "refund_after_dispute" | "register_freelancer" | "registry" | "reset_levels" | "setAuthority" | "set_client_fee_portion" | "transfer_freelancer" | "update_level" | "work_levels"): FunctionFragment;
 
-    getEvent(nameOrSignatureOrTopic: "AuthorityUpdated" | "job_accepted" | "job_completed" | "job_disputed" | "job_hired" | "job_posted" | "transfer_address"): EventFragment;
+    getEvent(nameOrSignatureOrTopic: "AuthorityUpdated" | "job_accepted" | "job_closed" | "job_completed" | "job_disputed" | "job_hired" | "job_posted" | "transfer_address"): EventFragment;
 
     encodeFunctionData(functionFragment: 'MIN_MAX_DURATION', values?: undefined): string;
 encodeFunctionData(functionFragment: 'STAKE_DECIMAL', values?: undefined): string;
 encodeFunctionData(functionFragment: 'VERIFIERS_RECYCLING_PER_JOB', values?: undefined): string;
 encodeFunctionData(functionFragment: 'VERIFIER_DECIMAL', values?: undefined): string;
 encodeFunctionData(functionFragment: 'accept_job', values: [BytesLike]): string;
-encodeFunctionData(functionFragment: 'append_level', values: [JobPayingSystem.WLevelStruct]): string;
+encodeFunctionData(functionFragment: 'append_level', values: [JobPayingSystem.W_levelStruct]): string;
 encodeFunctionData(functionFragment: 'authority', values?: undefined): string;
 encodeFunctionData(functionFragment: 'cancel_hire', values: [BytesLike]): string;
 encodeFunctionData(functionFragment: 'cancel_job', values: [BytesLike]): string;
@@ -41,6 +41,7 @@ encodeFunctionData(functionFragment: 'get_job', values: [BytesLike]): string;
 encodeFunctionData(functionFragment: 'get_job_lists_len', values?: undefined): string;
 encodeFunctionData(functionFragment: 'get_level', values: [BigNumberish]): string;
 encodeFunctionData(functionFragment: 'get_levels', values?: undefined): string;
+encodeFunctionData(functionFragment: 'handle_request_payment', values: [boolean, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'hire', values: [BytesLike, AddressLike]): string;
 encodeFunctionData(functionFragment: 'isConsumingScheduledOp', values?: undefined): string;
 encodeFunctionData(functionFragment: 'job_lists', values: [BigNumberish]): string;
@@ -48,16 +49,15 @@ encodeFunctionData(functionFragment: 'jobs', values: [BytesLike]): string;
 encodeFunctionData(functionFragment: 'levels_size', values?: undefined): string;
 encodeFunctionData(functionFragment: 'pay_freelancer', values: [BytesLike]): string;
 encodeFunctionData(functionFragment: 'post_job', values: [BytesLike, BigNumberish, BigNumberish, BigNumberish]): string;
-encodeFunctionData(functionFragment: 'raise_dispute', values: [BytesLike]): string;
+encodeFunctionData(functionFragment: 'raise_dispute', values: [BytesLike, boolean]): string;
 encodeFunctionData(functionFragment: 'refund_after_dispute', values: [BytesLike]): string;
-encodeFunctionData(functionFragment: 'register_freelancer', values: [AddressLike, BigNumberish]): string;
+encodeFunctionData(functionFragment: 'register_freelancer', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'registry', values?: undefined): string;
-encodeFunctionData(functionFragment: 'reset_levels', values: [JobPayingSystem.WLevelStruct[]]): string;
+encodeFunctionData(functionFragment: 'reset_levels', values: [JobPayingSystem.W_levelStruct[]]): string;
 encodeFunctionData(functionFragment: 'setAuthority', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'set_client_fee_portion', values: [BigNumberish]): string;
 encodeFunctionData(functionFragment: 'transfer_freelancer', values: [AddressLike]): string;
-encodeFunctionData(functionFragment: 'update_level', values: [JobPayingSystem.WLevelStruct, BigNumberish]): string;
-encodeFunctionData(functionFragment: 'update_level_freelancer', values: [AddressLike, BigNumberish]): string;
+encodeFunctionData(functionFragment: 'update_level', values: [JobPayingSystem.W_levelStruct, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'work_levels', values: [BigNumberish]): string;
 
     decodeFunctionResult(functionFragment: 'MIN_MAX_DURATION', data: BytesLike): Result;
@@ -79,6 +79,7 @@ decodeFunctionResult(functionFragment: 'get_job', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'get_job_lists_len', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'get_level', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'get_levels', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'handle_request_payment', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'hire', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'isConsumingScheduledOp', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'job_lists', data: BytesLike): Result;
@@ -95,7 +96,6 @@ decodeFunctionResult(functionFragment: 'setAuthority', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'set_client_fee_portion', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'transfer_freelancer', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'update_level', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'update_level_freelancer', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'work_levels', data: BytesLike): Result;
   }
 
@@ -116,6 +116,18 @@ decodeFunctionResult(functionFragment: 'work_levels', data: BytesLike): Result;
       export type InputTuple = [job_id: BytesLike, freelancer: AddressLike];
       export type OutputTuple = [job_id: string, freelancer: string];
       export interface OutputObject {job_id: string, freelancer: string };
+      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
+      export type Filter = TypedDeferredTopicFilter<Event>
+      export type Log = TypedEventLog<Event>
+      export type LogDescription = TypedLogDescription<Event>
+    }
+
+  
+
+    export namespace job_closedEvent {
+      export type InputTuple = [job_id: BytesLike];
+      export type OutputTuple = [job_id: string];
+      export interface OutputObject {job_id: string };
       export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
       export type Filter = TypedDeferredTopicFilter<Event>
       export type Log = TypedEventLog<Event>
@@ -161,9 +173,9 @@ decodeFunctionResult(functionFragment: 'work_levels', data: BytesLike): Result;
   
 
     export namespace job_postedEvent {
-      export type InputTuple = [job_id: BytesLike, client: AddressLike, amount: BigNumberish, category: BigNumberish, level: BigNumberish];
-      export type OutputTuple = [job_id: string, client: string, amount: bigint, category: bigint, level: bigint];
-      export interface OutputObject {job_id: string, client: string, amount: bigint, category: bigint, level: bigint };
+      export type InputTuple = [job_id: BytesLike];
+      export type OutputTuple = [job_id: string];
+      export interface OutputObject {job_id: string };
       export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
       export type Filter = TypedDeferredTopicFilter<Event>
       export type Log = TypedEventLog<Event>
@@ -259,7 +271,7 @@ decodeFunctionResult(functionFragment: 'work_levels', data: BytesLike): Result;
 
     
     append_level: TypedContractMethod<
-      [_level: JobPayingSystem.WLevelStruct, ],
+      [_level: JobPayingSystem.W_levelStruct, ],
       [void],
       'nonpayable'
     >
@@ -332,7 +344,7 @@ decodeFunctionResult(functionFragment: 'work_levels', data: BytesLike): Result;
     
     freelancers: TypedContractMethod<
       [arg0: AddressLike, ],
-      [[bigint, bigint, bigint, bigint, boolean] & {allowed_levels: bigint, successful_jobs: bigint, total_jobs: bigint, ongoing: bigint, verified: boolean }],
+      [[bigint, bigint, bigint, boolean] & {successful_jobs: bigint, total_jobs: bigint, ongoing: bigint, verified: boolean }],
       'view'
     >
     
@@ -356,7 +368,7 @@ decodeFunctionResult(functionFragment: 'work_levels', data: BytesLike): Result;
     
     get_level: TypedContractMethod<
       [index: BigNumberish, ],
-      [JobPayingSystem.WLevelStructOutput],
+      [JobPayingSystem.W_levelStructOutput],
       'view'
     >
     
@@ -364,8 +376,16 @@ decodeFunctionResult(functionFragment: 'work_levels', data: BytesLike): Result;
     
     get_levels: TypedContractMethod<
       [],
-      [JobPayingSystem.WLevelStructOutput[]],
+      [JobPayingSystem.W_levelStructOutput[]],
       'view'
+    >
+    
+
+    
+    handle_request_payment: TypedContractMethod<
+      [pay_link: boolean, words: BigNumberish, ],
+      [void],
+      'payable'
     >
     
 
@@ -396,7 +416,7 @@ decodeFunctionResult(functionFragment: 'work_levels', data: BytesLike): Result;
     
     jobs: TypedContractMethod<
       [arg0: BytesLike, ],
-      [[string, string, boolean, boolean, bigint, bigint, bigint, bigint, bigint, bigint] & {client: string, freelancer: string, freelancer_approved: boolean, freelancer_completed: boolean, appeal_time: bigint, status: bigint, amount: bigint, max_duration: bigint, expiry_timestamp: bigint, level: bigint }],
+      [[string, string, boolean, boolean, bigint, bigint, bigint, bigint, bigint, bigint, bigint] & {client: string, freelancer: string, freelancer_approved: boolean, freelancer_completed: boolean, appeal_time: bigint, status: bigint, amount: bigint, max_duration: bigint, expiry_timestamp: bigint, level: bigint, cat: bigint }],
       'view'
     >
     
@@ -427,7 +447,7 @@ decodeFunctionResult(functionFragment: 'work_levels', data: BytesLike): Result;
 
     
     raise_dispute: TypedContractMethod<
-      [job_id: BytesLike, ],
+      [job_id: BytesLike, pay_link: boolean, ],
       [void],
       'nonpayable'
     >
@@ -443,7 +463,7 @@ decodeFunctionResult(functionFragment: 'work_levels', data: BytesLike): Result;
 
     
     register_freelancer: TypedContractMethod<
-      [freelancer: AddressLike, allowed_levels: BigNumberish, ],
+      [freelancer: AddressLike, ],
       [void],
       'nonpayable'
     >
@@ -459,7 +479,7 @@ decodeFunctionResult(functionFragment: 'work_levels', data: BytesLike): Result;
 
     
     reset_levels: TypedContractMethod<
-      [_levels: JobPayingSystem.WLevelStruct[], ],
+      [_levels: JobPayingSystem.W_levelStruct[], ],
       [void],
       'nonpayable'
     >
@@ -491,15 +511,7 @@ decodeFunctionResult(functionFragment: 'work_levels', data: BytesLike): Result;
 
     
     update_level: TypedContractMethod<
-      [_level: JobPayingSystem.WLevelStruct, index: BigNumberish, ],
-      [void],
-      'nonpayable'
-    >
-    
-
-    
-    update_level_freelancer: TypedContractMethod<
-      [freelancer: AddressLike, new_level: BigNumberish, ],
+      [_level: JobPayingSystem.W_levelStruct, index: BigNumberish, ],
       [void],
       'nonpayable'
     >
@@ -542,7 +554,7 @@ getFunction(nameOrSignature: 'accept_job'): TypedContractMethod<
       'nonpayable'
     >;
 getFunction(nameOrSignature: 'append_level'): TypedContractMethod<
-      [_level: JobPayingSystem.WLevelStruct, ],
+      [_level: JobPayingSystem.W_levelStruct, ],
       [void],
       'nonpayable'
     >;
@@ -588,7 +600,7 @@ getFunction(nameOrSignature: 'freelancer_fee_portion_bps'): TypedContractMethod<
     >;
 getFunction(nameOrSignature: 'freelancers'): TypedContractMethod<
       [arg0: AddressLike, ],
-      [[bigint, bigint, bigint, bigint, boolean] & {allowed_levels: bigint, successful_jobs: bigint, total_jobs: bigint, ongoing: bigint, verified: boolean }],
+      [[bigint, bigint, bigint, boolean] & {successful_jobs: bigint, total_jobs: bigint, ongoing: bigint, verified: boolean }],
       'view'
     >;
 getFunction(nameOrSignature: 'get_job'): TypedContractMethod<
@@ -603,13 +615,18 @@ getFunction(nameOrSignature: 'get_job_lists_len'): TypedContractMethod<
     >;
 getFunction(nameOrSignature: 'get_level'): TypedContractMethod<
       [index: BigNumberish, ],
-      [JobPayingSystem.WLevelStructOutput],
+      [JobPayingSystem.W_levelStructOutput],
       'view'
     >;
 getFunction(nameOrSignature: 'get_levels'): TypedContractMethod<
       [],
-      [JobPayingSystem.WLevelStructOutput[]],
+      [JobPayingSystem.W_levelStructOutput[]],
       'view'
+    >;
+getFunction(nameOrSignature: 'handle_request_payment'): TypedContractMethod<
+      [pay_link: boolean, words: BigNumberish, ],
+      [void],
+      'payable'
     >;
 getFunction(nameOrSignature: 'hire'): TypedContractMethod<
       [job_id: BytesLike, freelancer: AddressLike, ],
@@ -628,7 +645,7 @@ getFunction(nameOrSignature: 'job_lists'): TypedContractMethod<
     >;
 getFunction(nameOrSignature: 'jobs'): TypedContractMethod<
       [arg0: BytesLike, ],
-      [[string, string, boolean, boolean, bigint, bigint, bigint, bigint, bigint, bigint] & {client: string, freelancer: string, freelancer_approved: boolean, freelancer_completed: boolean, appeal_time: bigint, status: bigint, amount: bigint, max_duration: bigint, expiry_timestamp: bigint, level: bigint }],
+      [[string, string, boolean, boolean, bigint, bigint, bigint, bigint, bigint, bigint, bigint] & {client: string, freelancer: string, freelancer_approved: boolean, freelancer_completed: boolean, appeal_time: bigint, status: bigint, amount: bigint, max_duration: bigint, expiry_timestamp: bigint, level: bigint, cat: bigint }],
       'view'
     >;
 getFunction(nameOrSignature: 'levels_size'): TypedContractMethod<
@@ -647,7 +664,7 @@ getFunction(nameOrSignature: 'post_job'): TypedContractMethod<
       'nonpayable'
     >;
 getFunction(nameOrSignature: 'raise_dispute'): TypedContractMethod<
-      [job_id: BytesLike, ],
+      [job_id: BytesLike, pay_link: boolean, ],
       [void],
       'nonpayable'
     >;
@@ -657,7 +674,7 @@ getFunction(nameOrSignature: 'refund_after_dispute'): TypedContractMethod<
       'nonpayable'
     >;
 getFunction(nameOrSignature: 'register_freelancer'): TypedContractMethod<
-      [freelancer: AddressLike, allowed_levels: BigNumberish, ],
+      [freelancer: AddressLike, ],
       [void],
       'nonpayable'
     >;
@@ -667,7 +684,7 @@ getFunction(nameOrSignature: 'registry'): TypedContractMethod<
       'view'
     >;
 getFunction(nameOrSignature: 'reset_levels'): TypedContractMethod<
-      [_levels: JobPayingSystem.WLevelStruct[], ],
+      [_levels: JobPayingSystem.W_levelStruct[], ],
       [void],
       'nonpayable'
     >;
@@ -687,12 +704,7 @@ getFunction(nameOrSignature: 'transfer_freelancer'): TypedContractMethod<
       'nonpayable'
     >;
 getFunction(nameOrSignature: 'update_level'): TypedContractMethod<
-      [_level: JobPayingSystem.WLevelStruct, index: BigNumberish, ],
-      [void],
-      'nonpayable'
-    >;
-getFunction(nameOrSignature: 'update_level_freelancer'): TypedContractMethod<
-      [freelancer: AddressLike, new_level: BigNumberish, ],
+      [_level: JobPayingSystem.W_levelStruct, index: BigNumberish, ],
       [void],
       'nonpayable'
     >;
@@ -704,6 +716,7 @@ getFunction(nameOrSignature: 'work_levels'): TypedContractMethod<
 
     getEvent(key: 'AuthorityUpdated'): TypedContractEvent<AuthorityUpdatedEvent.InputTuple, AuthorityUpdatedEvent.OutputTuple, AuthorityUpdatedEvent.OutputObject>;
 getEvent(key: 'job_accepted'): TypedContractEvent<job_acceptedEvent.InputTuple, job_acceptedEvent.OutputTuple, job_acceptedEvent.OutputObject>;
+getEvent(key: 'job_closed'): TypedContractEvent<job_closedEvent.InputTuple, job_closedEvent.OutputTuple, job_closedEvent.OutputObject>;
 getEvent(key: 'job_completed'): TypedContractEvent<job_completedEvent.InputTuple, job_completedEvent.OutputTuple, job_completedEvent.OutputObject>;
 getEvent(key: 'job_disputed'): TypedContractEvent<job_disputedEvent.InputTuple, job_disputedEvent.OutputTuple, job_disputedEvent.OutputObject>;
 getEvent(key: 'job_hired'): TypedContractEvent<job_hiredEvent.InputTuple, job_hiredEvent.OutputTuple, job_hiredEvent.OutputObject>;
@@ -720,6 +733,10 @@ getEvent(key: 'transfer_address'): TypedContractEvent<transfer_addressEvent.Inpu
       job_accepted: TypedContractEvent<job_acceptedEvent.InputTuple, job_acceptedEvent.OutputTuple, job_acceptedEvent.OutputObject>;
     
 
+      'job_closed(bytes32)': TypedContractEvent<job_closedEvent.InputTuple, job_closedEvent.OutputTuple, job_closedEvent.OutputObject>;
+      job_closed: TypedContractEvent<job_closedEvent.InputTuple, job_closedEvent.OutputTuple, job_closedEvent.OutputObject>;
+    
+
       'job_completed(bytes32,address)': TypedContractEvent<job_completedEvent.InputTuple, job_completedEvent.OutputTuple, job_completedEvent.OutputObject>;
       job_completed: TypedContractEvent<job_completedEvent.InputTuple, job_completedEvent.OutputTuple, job_completedEvent.OutputObject>;
     
@@ -732,7 +749,7 @@ getEvent(key: 'transfer_address'): TypedContractEvent<transfer_addressEvent.Inpu
       job_hired: TypedContractEvent<job_hiredEvent.InputTuple, job_hiredEvent.OutputTuple, job_hiredEvent.OutputObject>;
     
 
-      'job_posted(bytes32,address,uint256,uint256,uint256)': TypedContractEvent<job_postedEvent.InputTuple, job_postedEvent.OutputTuple, job_postedEvent.OutputObject>;
+      'job_posted(bytes32)': TypedContractEvent<job_postedEvent.InputTuple, job_postedEvent.OutputTuple, job_postedEvent.OutputObject>;
       job_posted: TypedContractEvent<job_postedEvent.InputTuple, job_postedEvent.OutputTuple, job_postedEvent.OutputObject>;
     
 

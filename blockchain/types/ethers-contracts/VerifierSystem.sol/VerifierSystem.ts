@@ -6,12 +6,11 @@ import type { TypedContractEvent, TypedDeferredTopicFilter, TypedEventLog, Typed
   
 
   export interface VerifierSystemInterface extends Interface {
-    getFunction(nameOrSignature: "WEIGHT_MAX" | "_unstake" | "acceptOwnership" | "add_category" | "add_stack_level" | "add_stack_levels" | "add_verifier" | "authority" | "callback_gas_limit" | "categories" | "category_open" | "claim_rewards" | "disputed_jobs" | "finalize_verification" | "get_cat_level_verifiers" | "get_categories" | "get_chosen_verifiers" | "get_dispute_status" | "get_job" | "get_job_level" | "get_sample_random" | "get_stack_levels" | "get_verifier_level" | "isConsumingScheduledOp" | "key_hash" | "leveled_verifiers" | "mock_fulfill_random_words" | "owner" | "pending_rewards" | "post_job" | "rawFulfillRandomWords" | "registry" | "reputation_token" | "requestRandom" | "request_confirmations" | "request_random_nums" | "reveal_decision" | "s_vrfCoordinator" | "sample_random" | "setAuthority" | "setCoordinator" | "set_slash_bps" | "set_up_verifiers" | "set_up_vrf" | "slash_bps" | "stack_levels" | "stake" | "submit_hashed_decision" | "subscription_id" | "transferOwnership" | "transfer_address" | "treasury_pending" | "unstake" | "verifier_requests" | "verifiers"): FunctionFragment;
+    getFunction(nameOrSignature: "WEIGHT_MAX" | "acceptOwnership" | "add_category" | "add_stack_level" | "add_stack_levels" | "add_verifier" | "authority" | "callback_gas_limit" | "categories" | "category_open" | "claim_rewards" | "disputed_jobs" | "finalize_verification" | "get_categories" | "get_chosen_verifiers" | "get_job" | "get_job_level" | "get_request_config" | "get_scores" | "get_stack_levels" | "isConsumingScheduledOp" | "key_hash" | "leveled_verifiers" | "link_token" | "owner" | "pending_rewards" | "post_job" | "rawFulfillRandomWords" | "registry" | "reputation_token" | "request_confirmations" | "request_random_nums" | "reveal_decision" | "reveal_dur" | "s_vrfCoordinator" | "setAuthority" | "setCoordinator" | "set_deadlines" | "set_slash_bps" | "set_up_vrf" | "slash_bps" | "stack_levels" | "stake" | "submission_dur" | "submit_hashed_decision" | "subscription_id" | "transferOwnership" | "transfer_address" | "treasury_pending" | "unstake" | "verifier_requests" | "verifiers" | "vrf_wrapper"): FunctionFragment;
 
-    getEvent(nameOrSignatureOrTopic: "AuthorityUpdated" | "CoordinatorSet" | "OwnershipTransferRequested" | "OwnershipTransferred" | "address_transferred" | "decision_revealed" | "hashed_decision_submitted" | "job_finalized" | "job_initialized" | "request_fulfilled(uint256,uint256[],bytes32)" | "request_fulfilled(uint256,uint256[])" | "request_sent" | "reward_credited" | "rewards_claimed" | "verifier_added" | "verifier_slashed" | "verifier_staked" | "verifier_unstaked"): EventFragment;
+    getEvent(nameOrSignatureOrTopic: "AuthorityUpdated" | "CoordinatorSet" | "OwnershipTransferRequested" | "OwnershipTransferred" | "address_transferred" | "decision_revealed" | "hashed_decision_submitted" | "job_finalized" | "job_initialized" | "request_fulfilled" | "request_sent" | "reward_credited" | "rewards_claimed" | "verifier_added" | "verifier_selected" | "verifier_slashed" | "verifier_staked" | "verifier_unstaked"): EventFragment;
 
     encodeFunctionData(functionFragment: 'WEIGHT_MAX', values?: undefined): string;
-encodeFunctionData(functionFragment: '_unstake', values?: undefined): string;
 encodeFunctionData(functionFragment: 'acceptOwnership', values?: undefined): string;
 encodeFunctionData(functionFragment: 'add_category', values: [string]): string;
 encodeFunctionData(functionFragment: 'add_stack_level', values: [BigNumberish]): string;
@@ -24,39 +23,37 @@ encodeFunctionData(functionFragment: 'category_open', values: [BigNumberish, Big
 encodeFunctionData(functionFragment: 'claim_rewards', values?: undefined): string;
 encodeFunctionData(functionFragment: 'disputed_jobs', values: [BytesLike]): string;
 encodeFunctionData(functionFragment: 'finalize_verification', values: [BytesLike]): string;
-encodeFunctionData(functionFragment: 'get_cat_level_verifiers', values: [BigNumberish, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'get_categories', values?: undefined): string;
 encodeFunctionData(functionFragment: 'get_chosen_verifiers', values: [BytesLike]): string;
-encodeFunctionData(functionFragment: 'get_dispute_status', values: [BytesLike]): string;
 encodeFunctionData(functionFragment: 'get_job', values: [BytesLike]): string;
 encodeFunctionData(functionFragment: 'get_job_level', values: [BytesLike]): string;
-encodeFunctionData(functionFragment: 'get_sample_random', values?: undefined): string;
+encodeFunctionData(functionFragment: 'get_request_config', values?: undefined): string;
+encodeFunctionData(functionFragment: 'get_scores', values: [BytesLike]): string;
 encodeFunctionData(functionFragment: 'get_stack_levels', values?: undefined): string;
-encodeFunctionData(functionFragment: 'get_verifier_level', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'isConsumingScheduledOp', values?: undefined): string;
 encodeFunctionData(functionFragment: 'key_hash', values?: undefined): string;
 encodeFunctionData(functionFragment: 'leveled_verifiers', values: [BigNumberish, BigNumberish, BigNumberish]): string;
-encodeFunctionData(functionFragment: 'mock_fulfill_random_words', values: [BigNumberish, BigNumberish[]]): string;
+encodeFunctionData(functionFragment: 'link_token', values?: undefined): string;
 encodeFunctionData(functionFragment: 'owner', values?: undefined): string;
 encodeFunctionData(functionFragment: 'pending_rewards', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'post_job', values: [BytesLike, BigNumberish, BigNumberish, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'rawFulfillRandomWords', values: [BigNumberish, BigNumberish[]]): string;
 encodeFunctionData(functionFragment: 'registry', values?: undefined): string;
 encodeFunctionData(functionFragment: 'reputation_token', values?: undefined): string;
-encodeFunctionData(functionFragment: 'requestRandom', values: [BigNumberish]): string;
 encodeFunctionData(functionFragment: 'request_confirmations', values?: undefined): string;
 encodeFunctionData(functionFragment: 'request_random_nums', values: [boolean, BytesLike, BigNumberish, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'reveal_decision', values: [BytesLike, BytesLike, BigNumberish]): string;
+encodeFunctionData(functionFragment: 'reveal_dur', values?: undefined): string;
 encodeFunctionData(functionFragment: 's_vrfCoordinator', values?: undefined): string;
-encodeFunctionData(functionFragment: 'sample_random', values: [BigNumberish]): string;
 encodeFunctionData(functionFragment: 'setAuthority', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'setCoordinator', values: [AddressLike]): string;
+encodeFunctionData(functionFragment: 'set_deadlines', values: [BigNumberish, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'set_slash_bps', values: [BigNumberish]): string;
-encodeFunctionData(functionFragment: 'set_up_verifiers', values: [BytesLike, BigNumberish]): string;
-encodeFunctionData(functionFragment: 'set_up_vrf', values: [BigNumberish, BigNumberish, BytesLike, BigNumberish]): string;
+encodeFunctionData(functionFragment: 'set_up_vrf', values: [BigNumberish, BigNumberish, BytesLike, BigNumberish, AddressLike, AddressLike]): string;
 encodeFunctionData(functionFragment: 'slash_bps', values?: undefined): string;
 encodeFunctionData(functionFragment: 'stack_levels', values: [BigNumberish]): string;
 encodeFunctionData(functionFragment: 'stake', values: [BigNumberish]): string;
+encodeFunctionData(functionFragment: 'submission_dur', values?: undefined): string;
 encodeFunctionData(functionFragment: 'submit_hashed_decision', values: [BytesLike, BytesLike]): string;
 encodeFunctionData(functionFragment: 'subscription_id', values?: undefined): string;
 encodeFunctionData(functionFragment: 'transferOwnership', values: [AddressLike]): string;
@@ -65,9 +62,9 @@ encodeFunctionData(functionFragment: 'treasury_pending', values?: undefined): st
 encodeFunctionData(functionFragment: 'unstake', values?: undefined): string;
 encodeFunctionData(functionFragment: 'verifier_requests', values: [BigNumberish]): string;
 encodeFunctionData(functionFragment: 'verifiers', values: [AddressLike]): string;
+encodeFunctionData(functionFragment: 'vrf_wrapper', values?: undefined): string;
 
     decodeFunctionResult(functionFragment: 'WEIGHT_MAX', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: '_unstake', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'acceptOwnership', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'add_category', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'add_stack_level', data: BytesLike): Result;
@@ -80,39 +77,37 @@ decodeFunctionResult(functionFragment: 'category_open', data: BytesLike): Result
 decodeFunctionResult(functionFragment: 'claim_rewards', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'disputed_jobs', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'finalize_verification', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'get_cat_level_verifiers', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'get_categories', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'get_chosen_verifiers', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'get_dispute_status', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'get_job', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'get_job_level', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'get_sample_random', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'get_request_config', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'get_scores', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'get_stack_levels', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'get_verifier_level', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'isConsumingScheduledOp', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'key_hash', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'leveled_verifiers', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'mock_fulfill_random_words', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'link_token', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'owner', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'pending_rewards', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'post_job', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'rawFulfillRandomWords', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'registry', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'reputation_token', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'requestRandom', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'request_confirmations', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'request_random_nums', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'reveal_decision', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'reveal_dur', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 's_vrfCoordinator', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'sample_random', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'setAuthority', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'setCoordinator', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'set_deadlines', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'set_slash_bps', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'set_up_verifiers', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'set_up_vrf', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'slash_bps', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'stack_levels', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'stake', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'submission_dur', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'submit_hashed_decision', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'subscription_id', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'transferOwnership', data: BytesLike): Result;
@@ -121,6 +116,7 @@ decodeFunctionResult(functionFragment: 'treasury_pending', data: BytesLike): Res
 decodeFunctionResult(functionFragment: 'unstake', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'verifier_requests', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'verifiers', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'vrf_wrapper', data: BytesLike): Result;
   }
 
   
@@ -209,9 +205,9 @@ decodeFunctionResult(functionFragment: 'verifiers', data: BytesLike): Result;
   
 
     export namespace job_finalizedEvent {
-      export type InputTuple = [job_id: BytesLike, dispute_status: BigNumberish];
-      export type OutputTuple = [job_id: string, dispute_status: bigint];
-      export interface OutputObject {job_id: string, dispute_status: bigint };
+      export type InputTuple = [job_id: BytesLike, average_score: BigNumberish, resolve_time: BigNumberish, slash_cnt: BigNumberish, total_reward: BigNumberish];
+      export type OutputTuple = [job_id: string, average_score: bigint, resolve_time: bigint, slash_cnt: bigint, total_reward: bigint];
+      export interface OutputObject {job_id: string, average_score: bigint, resolve_time: bigint, slash_cnt: bigint, total_reward: bigint };
       export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
       export type Filter = TypedDeferredTopicFilter<Event>
       export type Log = TypedEventLog<Event>
@@ -232,22 +228,10 @@ decodeFunctionResult(functionFragment: 'verifiers', data: BytesLike): Result;
 
   
 
-    export namespace request_fulfilled_uint256_uint256_array_bytes32_Event {
-      export type InputTuple = [request_id: BigNumberish, random_values: BigNumberish[], job_id: BytesLike];
-      export type OutputTuple = [request_id: bigint, random_values: bigint[], job_id: string];
-      export interface OutputObject {request_id: bigint, random_values: bigint[], job_id: string };
-      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
-      export type Filter = TypedDeferredTopicFilter<Event>
-      export type Log = TypedEventLog<Event>
-      export type LogDescription = TypedLogDescription<Event>
-    }
-
-  
-
-    export namespace request_fulfilled_uint256_uint256_array_Event {
-      export type InputTuple = [request_id: BigNumberish, random_words: BigNumberish[]];
-      export type OutputTuple = [request_id: bigint, random_words: bigint[]];
-      export interface OutputObject {request_id: bigint, random_words: bigint[] };
+    export namespace request_fulfilledEvent {
+      export type InputTuple = [job_id: BytesLike];
+      export type OutputTuple = [job_id: string];
+      export interface OutputObject {job_id: string };
       export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
       export type Filter = TypedDeferredTopicFilter<Event>
       export type Log = TypedEventLog<Event>
@@ -296,6 +280,18 @@ decodeFunctionResult(functionFragment: 'verifiers', data: BytesLike): Result;
       export type InputTuple = [verifier: AddressLike, category: BigNumberish];
       export type OutputTuple = [verifier: string, category: bigint];
       export interface OutputObject {verifier: string, category: bigint };
+      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
+      export type Filter = TypedDeferredTopicFilter<Event>
+      export type Log = TypedEventLog<Event>
+      export type LogDescription = TypedLogDescription<Event>
+    }
+
+  
+
+    export namespace verifier_selectedEvent {
+      export type InputTuple = [job_id: BytesLike, verifier: AddressLike];
+      export type OutputTuple = [job_id: string, verifier: string];
+      export interface OutputObject {job_id: string, verifier: string };
       export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
       export type Filter = TypedDeferredTopicFilter<Event>
       export type Log = TypedEventLog<Event>
@@ -382,14 +378,6 @@ decodeFunctionResult(functionFragment: 'verifiers', data: BytesLike): Result;
     
 
     
-    _unstake: TypedContractMethod<
-      [],
-      [void],
-      'nonpayable'
-    >
-    
-
-    
     acceptOwnership: TypedContractMethod<
       [],
       [void],
@@ -472,7 +460,7 @@ decodeFunctionResult(functionFragment: 'verifiers', data: BytesLike): Result;
     
     disputed_jobs: TypedContractMethod<
       [arg0: BytesLike, ],
-      [[boolean, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint] & {open_for_dispute: boolean, submission_deadline: bigint, release_deadline: bigint, category: bigint, stakes: bigint, client_stake: bigint, freelancer_stake: bigint, level: bigint, lock_amount: bigint, dispute_status: bigint }],
+      [[boolean, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint] & {open_for_dispute: boolean, submission_deadline: bigint, release_deadline: bigint, category: bigint, stakes: bigint, client_stake: bigint, freelancer_stake: bigint, level: bigint, lock_amount: bigint, total_revealed: bigint, total_submitted: bigint, dispute_status: bigint }],
       'view'
     >
     
@@ -482,14 +470,6 @@ decodeFunctionResult(functionFragment: 'verifiers', data: BytesLike): Result;
       [job_id: BytesLike, ],
       [void],
       'nonpayable'
-    >
-    
-
-    
-    get_cat_level_verifiers: TypedContractMethod<
-      [category: BigNumberish, level: BigNumberish, ],
-      [string[]],
-      'view'
     >
     
 
@@ -510,17 +490,9 @@ decodeFunctionResult(functionFragment: 'verifiers', data: BytesLike): Result;
     
 
     
-    get_dispute_status: TypedContractMethod<
-      [job_id: BytesLike, ],
-      [bigint],
-      'view'
-    >
-    
-
-    
     get_job: TypedContractMethod<
       [job_id: BytesLike, ],
-      [[boolean, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint] & {open_for_dispute: boolean, submission_deadline: bigint, release_deadline: bigint, category: bigint, stakes: bigint, client_stake: bigint, freelancer_stake: bigint, level: bigint, lock_amount: bigint, dispute_status: bigint }],
+      [[boolean, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint, string[]] & {open_for_dispute: boolean, submission_deadline: bigint, release_deadline: bigint, category: bigint, stakes: bigint, client_stake: bigint, freelancer_stake: bigint, level: bigint, lock_amount: bigint, dispute_status: bigint, chosen_verifiers: string[] }],
       'view'
     >
     
@@ -534,8 +506,16 @@ decodeFunctionResult(functionFragment: 'verifiers', data: BytesLike): Result;
     
 
     
-    get_sample_random: TypedContractMethod<
+    get_request_config: TypedContractMethod<
       [],
+      [[bigint, string, string]],
+      'view'
+    >
+    
+
+    
+    get_scores: TypedContractMethod<
+      [job_id: BytesLike, ],
       [bigint[]],
       'view'
     >
@@ -546,14 +526,6 @@ decodeFunctionResult(functionFragment: 'verifiers', data: BytesLike): Result;
       [],
       [bigint[]],
       'view'
-    >
-    
-
-    
-    get_verifier_level: TypedContractMethod<
-      [v: AddressLike, ],
-      [bigint],
-      'nonpayable'
     >
     
 
@@ -582,10 +554,10 @@ decodeFunctionResult(functionFragment: 'verifiers', data: BytesLike): Result;
     
 
     
-    mock_fulfill_random_words: TypedContractMethod<
-      [request_id: BigNumberish, random_values: BigNumberish[], ],
-      [void],
-      'nonpayable'
+    link_token: TypedContractMethod<
+      [],
+      [string],
+      'view'
     >
     
 
@@ -638,14 +610,6 @@ decodeFunctionResult(functionFragment: 'verifiers', data: BytesLike): Result;
     
 
     
-    requestRandom: TypedContractMethod<
-      [num_words: BigNumberish, ],
-      [bigint],
-      'nonpayable'
-    >
-    
-
-    
     request_confirmations: TypedContractMethod<
       [],
       [bigint],
@@ -670,17 +634,17 @@ decodeFunctionResult(functionFragment: 'verifiers', data: BytesLike): Result;
     
 
     
-    s_vrfCoordinator: TypedContractMethod<
+    reveal_dur: TypedContractMethod<
       [],
-      [string],
+      [bigint],
       'view'
     >
     
 
     
-    sample_random: TypedContractMethod<
-      [arg0: BigNumberish, ],
-      [bigint],
+    s_vrfCoordinator: TypedContractMethod<
+      [],
+      [string],
       'view'
     >
     
@@ -702,6 +666,14 @@ decodeFunctionResult(functionFragment: 'verifiers', data: BytesLike): Result;
     
 
     
+    set_deadlines: TypedContractMethod<
+      [_sub_dur: BigNumberish, _rev_dur: BigNumberish, ],
+      [void],
+      'nonpayable'
+    >
+    
+
+    
     set_slash_bps: TypedContractMethod<
       [_bps: BigNumberish, ],
       [void],
@@ -710,16 +682,8 @@ decodeFunctionResult(functionFragment: 'verifiers', data: BytesLike): Result;
     
 
     
-    set_up_verifiers: TypedContractMethod<
-      [job_id: BytesLike, ver_cnt: BigNumberish, ],
-      [void],
-      'nonpayable'
-    >
-    
-
-    
     set_up_vrf: TypedContractMethod<
-      [_subscription_id: BigNumberish, _request_confirmations: BigNumberish, _key_hash: BytesLike, _callback_gas_limit: BigNumberish, ],
+      [_subscription_id: BigNumberish, _request_confirmations: BigNumberish, _key_hash: BytesLike, _callback_gas_limit: BigNumberish, _link_token: AddressLike, _vrf_wrapper: AddressLike, ],
       [void],
       'nonpayable'
     >
@@ -746,6 +710,14 @@ decodeFunctionResult(functionFragment: 'verifiers', data: BytesLike): Result;
       [amount: BigNumberish, ],
       [void],
       'nonpayable'
+    >
+    
+
+    
+    submission_dur: TypedContractMethod<
+      [],
+      [bigint],
+      'view'
     >
     
 
@@ -813,6 +785,14 @@ decodeFunctionResult(functionFragment: 'verifiers', data: BytesLike): Result;
     >
     
 
+    
+    vrf_wrapper: TypedContractMethod<
+      [],
+      [string],
+      'view'
+    >
+    
+
 
     getFunction<T extends ContractMethod = ContractMethod>(key: string | FunctionFragment): T;
 
@@ -820,11 +800,6 @@ decodeFunctionResult(functionFragment: 'verifiers', data: BytesLike): Result;
       [],
       [bigint],
       'view'
-    >;
-getFunction(nameOrSignature: '_unstake'): TypedContractMethod<
-      [],
-      [void],
-      'nonpayable'
     >;
 getFunction(nameOrSignature: 'acceptOwnership'): TypedContractMethod<
       [],
@@ -878,18 +853,13 @@ getFunction(nameOrSignature: 'claim_rewards'): TypedContractMethod<
     >;
 getFunction(nameOrSignature: 'disputed_jobs'): TypedContractMethod<
       [arg0: BytesLike, ],
-      [[boolean, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint] & {open_for_dispute: boolean, submission_deadline: bigint, release_deadline: bigint, category: bigint, stakes: bigint, client_stake: bigint, freelancer_stake: bigint, level: bigint, lock_amount: bigint, dispute_status: bigint }],
+      [[boolean, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint] & {open_for_dispute: boolean, submission_deadline: bigint, release_deadline: bigint, category: bigint, stakes: bigint, client_stake: bigint, freelancer_stake: bigint, level: bigint, lock_amount: bigint, total_revealed: bigint, total_submitted: bigint, dispute_status: bigint }],
       'view'
     >;
 getFunction(nameOrSignature: 'finalize_verification'): TypedContractMethod<
       [job_id: BytesLike, ],
       [void],
       'nonpayable'
-    >;
-getFunction(nameOrSignature: 'get_cat_level_verifiers'): TypedContractMethod<
-      [category: BigNumberish, level: BigNumberish, ],
-      [string[]],
-      'view'
     >;
 getFunction(nameOrSignature: 'get_categories'): TypedContractMethod<
       [],
@@ -901,14 +871,9 @@ getFunction(nameOrSignature: 'get_chosen_verifiers'): TypedContractMethod<
       [string[]],
       'view'
     >;
-getFunction(nameOrSignature: 'get_dispute_status'): TypedContractMethod<
-      [job_id: BytesLike, ],
-      [bigint],
-      'view'
-    >;
 getFunction(nameOrSignature: 'get_job'): TypedContractMethod<
       [job_id: BytesLike, ],
-      [[boolean, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint] & {open_for_dispute: boolean, submission_deadline: bigint, release_deadline: bigint, category: bigint, stakes: bigint, client_stake: bigint, freelancer_stake: bigint, level: bigint, lock_amount: bigint, dispute_status: bigint }],
+      [[boolean, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint, string[]] & {open_for_dispute: boolean, submission_deadline: bigint, release_deadline: bigint, category: bigint, stakes: bigint, client_stake: bigint, freelancer_stake: bigint, level: bigint, lock_amount: bigint, dispute_status: bigint, chosen_verifiers: string[] }],
       'view'
     >;
 getFunction(nameOrSignature: 'get_job_level'): TypedContractMethod<
@@ -916,8 +881,13 @@ getFunction(nameOrSignature: 'get_job_level'): TypedContractMethod<
       [bigint],
       'nonpayable'
     >;
-getFunction(nameOrSignature: 'get_sample_random'): TypedContractMethod<
+getFunction(nameOrSignature: 'get_request_config'): TypedContractMethod<
       [],
+      [[bigint, string, string]],
+      'view'
+    >;
+getFunction(nameOrSignature: 'get_scores'): TypedContractMethod<
+      [job_id: BytesLike, ],
       [bigint[]],
       'view'
     >;
@@ -925,11 +895,6 @@ getFunction(nameOrSignature: 'get_stack_levels'): TypedContractMethod<
       [],
       [bigint[]],
       'view'
-    >;
-getFunction(nameOrSignature: 'get_verifier_level'): TypedContractMethod<
-      [v: AddressLike, ],
-      [bigint],
-      'nonpayable'
     >;
 getFunction(nameOrSignature: 'isConsumingScheduledOp'): TypedContractMethod<
       [],
@@ -946,10 +911,10 @@ getFunction(nameOrSignature: 'leveled_verifiers'): TypedContractMethod<
       [string],
       'view'
     >;
-getFunction(nameOrSignature: 'mock_fulfill_random_words'): TypedContractMethod<
-      [request_id: BigNumberish, random_values: BigNumberish[], ],
-      [void],
-      'nonpayable'
+getFunction(nameOrSignature: 'link_token'): TypedContractMethod<
+      [],
+      [string],
+      'view'
     >;
 getFunction(nameOrSignature: 'owner'): TypedContractMethod<
       [],
@@ -981,11 +946,6 @@ getFunction(nameOrSignature: 'reputation_token'): TypedContractMethod<
       [string],
       'view'
     >;
-getFunction(nameOrSignature: 'requestRandom'): TypedContractMethod<
-      [num_words: BigNumberish, ],
-      [bigint],
-      'nonpayable'
-    >;
 getFunction(nameOrSignature: 'request_confirmations'): TypedContractMethod<
       [],
       [bigint],
@@ -1001,14 +961,14 @@ getFunction(nameOrSignature: 'reveal_decision'): TypedContractMethod<
       [void],
       'nonpayable'
     >;
+getFunction(nameOrSignature: 'reveal_dur'): TypedContractMethod<
+      [],
+      [bigint],
+      'view'
+    >;
 getFunction(nameOrSignature: 's_vrfCoordinator'): TypedContractMethod<
       [],
       [string],
-      'view'
-    >;
-getFunction(nameOrSignature: 'sample_random'): TypedContractMethod<
-      [arg0: BigNumberish, ],
-      [bigint],
       'view'
     >;
 getFunction(nameOrSignature: 'setAuthority'): TypedContractMethod<
@@ -1021,18 +981,18 @@ getFunction(nameOrSignature: 'setCoordinator'): TypedContractMethod<
       [void],
       'nonpayable'
     >;
+getFunction(nameOrSignature: 'set_deadlines'): TypedContractMethod<
+      [_sub_dur: BigNumberish, _rev_dur: BigNumberish, ],
+      [void],
+      'nonpayable'
+    >;
 getFunction(nameOrSignature: 'set_slash_bps'): TypedContractMethod<
       [_bps: BigNumberish, ],
       [void],
       'nonpayable'
     >;
-getFunction(nameOrSignature: 'set_up_verifiers'): TypedContractMethod<
-      [job_id: BytesLike, ver_cnt: BigNumberish, ],
-      [void],
-      'nonpayable'
-    >;
 getFunction(nameOrSignature: 'set_up_vrf'): TypedContractMethod<
-      [_subscription_id: BigNumberish, _request_confirmations: BigNumberish, _key_hash: BytesLike, _callback_gas_limit: BigNumberish, ],
+      [_subscription_id: BigNumberish, _request_confirmations: BigNumberish, _key_hash: BytesLike, _callback_gas_limit: BigNumberish, _link_token: AddressLike, _vrf_wrapper: AddressLike, ],
       [void],
       'nonpayable'
     >;
@@ -1050,6 +1010,11 @@ getFunction(nameOrSignature: 'stake'): TypedContractMethod<
       [amount: BigNumberish, ],
       [void],
       'nonpayable'
+    >;
+getFunction(nameOrSignature: 'submission_dur'): TypedContractMethod<
+      [],
+      [bigint],
+      'view'
     >;
 getFunction(nameOrSignature: 'submit_hashed_decision'): TypedContractMethod<
       [job_id: BytesLike, hashed_decision: BytesLike, ],
@@ -1091,6 +1056,11 @@ getFunction(nameOrSignature: 'verifiers'): TypedContractMethod<
       [[boolean, boolean, boolean, bigint, bigint, bigint, bigint, bigint, bigint] & {verified: boolean, is_active: boolean, assigned: boolean, in_dispute: bigint, locked: bigint, staked: bigint, category: bigint, level: bigint, idx_l: bigint }],
       'view'
     >;
+getFunction(nameOrSignature: 'vrf_wrapper'): TypedContractMethod<
+      [],
+      [string],
+      'view'
+    >;
 
     getEvent(key: 'AuthorityUpdated'): TypedContractEvent<AuthorityUpdatedEvent.InputTuple, AuthorityUpdatedEvent.OutputTuple, AuthorityUpdatedEvent.OutputObject>;
 getEvent(key: 'CoordinatorSet'): TypedContractEvent<CoordinatorSetEvent.InputTuple, CoordinatorSetEvent.OutputTuple, CoordinatorSetEvent.OutputObject>;
@@ -1101,12 +1071,12 @@ getEvent(key: 'decision_revealed'): TypedContractEvent<decision_revealedEvent.In
 getEvent(key: 'hashed_decision_submitted'): TypedContractEvent<hashed_decision_submittedEvent.InputTuple, hashed_decision_submittedEvent.OutputTuple, hashed_decision_submittedEvent.OutputObject>;
 getEvent(key: 'job_finalized'): TypedContractEvent<job_finalizedEvent.InputTuple, job_finalizedEvent.OutputTuple, job_finalizedEvent.OutputObject>;
 getEvent(key: 'job_initialized'): TypedContractEvent<job_initializedEvent.InputTuple, job_initializedEvent.OutputTuple, job_initializedEvent.OutputObject>;
-getEvent(key: 'request_fulfilled(uint256,uint256[],bytes32)'): TypedContractEvent<request_fulfilled_uint256_uint256_array_bytes32_Event.InputTuple, request_fulfilled_uint256_uint256_array_bytes32_Event.OutputTuple, request_fulfilled_uint256_uint256_array_bytes32_Event.OutputObject>;
-getEvent(key: 'request_fulfilled(uint256,uint256[])'): TypedContractEvent<request_fulfilled_uint256_uint256_array_Event.InputTuple, request_fulfilled_uint256_uint256_array_Event.OutputTuple, request_fulfilled_uint256_uint256_array_Event.OutputObject>;
+getEvent(key: 'request_fulfilled'): TypedContractEvent<request_fulfilledEvent.InputTuple, request_fulfilledEvent.OutputTuple, request_fulfilledEvent.OutputObject>;
 getEvent(key: 'request_sent'): TypedContractEvent<request_sentEvent.InputTuple, request_sentEvent.OutputTuple, request_sentEvent.OutputObject>;
 getEvent(key: 'reward_credited'): TypedContractEvent<reward_creditedEvent.InputTuple, reward_creditedEvent.OutputTuple, reward_creditedEvent.OutputObject>;
 getEvent(key: 'rewards_claimed'): TypedContractEvent<rewards_claimedEvent.InputTuple, rewards_claimedEvent.OutputTuple, rewards_claimedEvent.OutputObject>;
 getEvent(key: 'verifier_added'): TypedContractEvent<verifier_addedEvent.InputTuple, verifier_addedEvent.OutputTuple, verifier_addedEvent.OutputObject>;
+getEvent(key: 'verifier_selected'): TypedContractEvent<verifier_selectedEvent.InputTuple, verifier_selectedEvent.OutputTuple, verifier_selectedEvent.OutputObject>;
 getEvent(key: 'verifier_slashed'): TypedContractEvent<verifier_slashedEvent.InputTuple, verifier_slashedEvent.OutputTuple, verifier_slashedEvent.OutputObject>;
 getEvent(key: 'verifier_staked'): TypedContractEvent<verifier_stakedEvent.InputTuple, verifier_stakedEvent.OutputTuple, verifier_stakedEvent.OutputObject>;
 getEvent(key: 'verifier_unstaked'): TypedContractEvent<verifier_unstakedEvent.InputTuple, verifier_unstakedEvent.OutputTuple, verifier_unstakedEvent.OutputObject>;
@@ -1141,15 +1111,17 @@ getEvent(key: 'verifier_unstaked'): TypedContractEvent<verifier_unstakedEvent.In
       hashed_decision_submitted: TypedContractEvent<hashed_decision_submittedEvent.InputTuple, hashed_decision_submittedEvent.OutputTuple, hashed_decision_submittedEvent.OutputObject>;
     
 
-      'job_finalized(bytes32,uint8)': TypedContractEvent<job_finalizedEvent.InputTuple, job_finalizedEvent.OutputTuple, job_finalizedEvent.OutputObject>;
+      'job_finalized(bytes32,uint256,uint256,uint256,uint256)': TypedContractEvent<job_finalizedEvent.InputTuple, job_finalizedEvent.OutputTuple, job_finalizedEvent.OutputObject>;
       job_finalized: TypedContractEvent<job_finalizedEvent.InputTuple, job_finalizedEvent.OutputTuple, job_finalizedEvent.OutputObject>;
     
 
       'job_initialized(bytes32,uint16,uint256,uint256)': TypedContractEvent<job_initializedEvent.InputTuple, job_initializedEvent.OutputTuple, job_initializedEvent.OutputObject>;
       job_initialized: TypedContractEvent<job_initializedEvent.InputTuple, job_initializedEvent.OutputTuple, job_initializedEvent.OutputObject>;
     
-'request_fulfilled(uint256,uint256[],bytes32)': TypedContractEvent<request_fulfilled_uint256_uint256_array_bytes32_Event.InputTuple, request_fulfilled_uint256_uint256_array_bytes32_Event.OutputTuple, request_fulfilled_uint256_uint256_array_bytes32_Event.OutputObject>;
-'request_fulfilled(uint256,uint256[])': TypedContractEvent<request_fulfilled_uint256_uint256_array_Event.InputTuple, request_fulfilled_uint256_uint256_array_Event.OutputTuple, request_fulfilled_uint256_uint256_array_Event.OutputObject>;
+
+      'request_fulfilled(bytes32)': TypedContractEvent<request_fulfilledEvent.InputTuple, request_fulfilledEvent.OutputTuple, request_fulfilledEvent.OutputObject>;
+      request_fulfilled: TypedContractEvent<request_fulfilledEvent.InputTuple, request_fulfilledEvent.OutputTuple, request_fulfilledEvent.OutputObject>;
+    
 
       'request_sent(uint256,uint256,bytes32)': TypedContractEvent<request_sentEvent.InputTuple, request_sentEvent.OutputTuple, request_sentEvent.OutputObject>;
       request_sent: TypedContractEvent<request_sentEvent.InputTuple, request_sentEvent.OutputTuple, request_sentEvent.OutputObject>;
@@ -1165,6 +1137,10 @@ getEvent(key: 'verifier_unstaked'): TypedContractEvent<verifier_unstakedEvent.In
 
       'verifier_added(address,uint16)': TypedContractEvent<verifier_addedEvent.InputTuple, verifier_addedEvent.OutputTuple, verifier_addedEvent.OutputObject>;
       verifier_added: TypedContractEvent<verifier_addedEvent.InputTuple, verifier_addedEvent.OutputTuple, verifier_addedEvent.OutputObject>;
+    
+
+      'verifier_selected(bytes32,address)': TypedContractEvent<verifier_selectedEvent.InputTuple, verifier_selectedEvent.OutputTuple, verifier_selectedEvent.OutputObject>;
+      verifier_selected: TypedContractEvent<verifier_selectedEvent.InputTuple, verifier_selectedEvent.OutputTuple, verifier_selectedEvent.OutputObject>;
     
 
       'verifier_slashed(address,uint256,bytes32)': TypedContractEvent<verifier_slashedEvent.InputTuple, verifier_slashedEvent.OutputTuple, verifier_slashedEvent.OutputObject>;

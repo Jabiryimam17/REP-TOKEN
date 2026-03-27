@@ -11,6 +11,7 @@ import {ReputationToken} from "../contracts/ReputationToken.sol";
 import {Registry} from "../contracts/Registry.sol";
 import {Treasury} from "../contracts/Treasury.sol";
 import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
+
 contract VerifierTest is Test {
     VerifierSystem public verifier_system;
     RPTAccessManager public access_manager;

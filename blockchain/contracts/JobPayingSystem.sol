@@ -11,15 +11,27 @@ interface Itreasury {
     function pay_back_rpt(address to, uint amount) external;
     function pay_back_stable_coin(address to, uint amount) external;
 }
+interface IVRFV2Wrapper {
+    function calculateRequestPrice(
+        uint32 _callbackGasLimit,
+        uint32 _numWords
+    ) external view returns (uint256);
+
+    function calculateRequestPriceNative(
+        uint32 _callbackGasLimit,
+        uint32 _numWords
+    ) external view returns (uint256);
+}
 contract JobPayingSystem is AccessManaged, ReentrancyGuard {
     using SafeERC20 for IERC20;
     enum JOB_STATUS { NONE,OPEN, PENDING, HIRED, DISPUTED, CLOSED}
 
-    event job_posted(bytes32 indexed job_id, address indexed client, uint amount, uint category, uint level);
+    event job_posted(bytes32 indexed job_id);
     event job_hired(bytes32 indexed job_id, address indexed client, address indexed freelancer);
     event job_accepted(bytes32 indexed job_id, address indexed freelancer);
     event job_completed(bytes32 indexed job_id, address indexed freelancer);
     event job_disputed(bytes32 indexed job_id, address indexed client, address indexed freelancer, bool stake_burnt);
+    event job_closed(bytes32 indexed job_id);
     event transfer_address(address indexed old_address, address indexed new_address);
 
     uint8 public constant VERIFIERS_RECYCLING_PER_JOB = 5;
@@ -28,7 +40,6 @@ contract JobPayingSystem is AccessManaged, ReentrancyGuard {
 
 
     struct Freelancer {
-        uint allowed_levels;
         uint successful_jobs;
         uint total_jobs;
         uint ongoing;
@@ -39,14 +50,14 @@ contract JobPayingSystem is AccessManaged, ReentrancyGuard {
     uint public client_fee_portion_bps =200; 
     uint public freelancer_fee_portion_bps =50;
 
-    struct WLevel {
-        uint min_verifiers_portion; 
+    struct w_level {
+        uint32 min_verifiers_portion;
         uint freelancer_stake;        
         uint client_stake;       
         uint max_amount;            
         uint payment_duration;  
     }   
-    WLevel[] public work_levels;
+    w_level[] public work_levels;
 
     struct Job {
         address client;
@@ -59,6 +70,7 @@ contract JobPayingSystem is AccessManaged, ReentrancyGuard {
         uint max_duration;
         uint expiry_timestamp;
         uint level;
+        uint8 cat;
     }
 
     bytes32[] public job_lists;
@@ -86,12 +98,7 @@ contract JobPayingSystem is AccessManaged, ReentrancyGuard {
         return IVerifierSystem(registry.get_verifier());
     }
     function set_client_fee_portion(uint val) public restricted {client_fee_portion_bps=val;}
-    function update_level_freelancer(address freelancer, uint new_level) external restricted {
-        require(freelancers[freelancer].verified, "Freelancer not registered");
-        require(new_level < work_levels.length, "No such level");
-        freelancers[freelancer].allowed_levels = new_level;
-    }
-    function reset_levels(WLevel[] calldata _levels) external restricted {
+    function reset_levels(w_level[] calldata _levels) external restricted {
         delete work_levels;
         for (uint i=0; i<_levels.length; i++) {
             require(_levels[i].min_verifiers_portion >0, "No verifiers system not allowed");
@@ -101,7 +108,7 @@ contract JobPayingSystem is AccessManaged, ReentrancyGuard {
         }
 
     }
-    function update_level(WLevel calldata _level, uint index) external restricted {
+    function update_level(w_level calldata _level, uint index) external restricted {
         require(index < work_levels.length, "No such level");
         require(_level.min_verifiers_portion >0, "No verifiers system not allowed");
         require(_level.freelancer_stake > 0 && _level.client_stake >0, "Zero stake not allowed");
@@ -109,7 +116,7 @@ contract JobPayingSystem is AccessManaged, ReentrancyGuard {
         if (index < work_levels.length-1) require(_level.max_amount < work_levels[index+1].max_amount, "Sorting order should be respected");
         work_levels[index] = _level;
     }
-    function append_level(WLevel calldata _level) external restricted {
+    function append_level(w_level calldata _level) external restricted {
         require(_level.min_verifiers_portion >0, "No verifiers system not allowed");
         require(_level.freelancer_stake > 0 && _level.client_stake >0, "Zero stake not allowed");
         require(work_levels.length == 0 || _level.max_amount > work_levels[work_levels.length-1].max_amount, "Sorting order should be respected");
@@ -119,14 +126,13 @@ contract JobPayingSystem is AccessManaged, ReentrancyGuard {
         return IERC20(registry.get_ethiocoin());
     }
     function levels_size() public view returns (uint) {return work_levels.length;}
-    function get_level(uint index) public view returns(WLevel memory) {return work_levels[index];}
-    function get_levels() public view returns(WLevel[] memory) {return work_levels;}
-    function register_freelancer(address freelancer, uint allowed_levels) external restricted {
+    function get_level(uint index) public view returns(w_level memory) {return work_levels[index];}
+    function get_levels() public view returns(w_level[] memory) {return work_levels;}
+    function register_freelancer(address freelancer) external restricted {
 
         require(address(0)!=freelancer,"Zero address is not allowed");
-        require(allowed_levels >= 0 && allowed_levels < work_levels.length,"No such level exists");
         require(freelancers[freelancer].total_jobs==0, "Already in work");
-        freelancers[freelancer] = Freelancer(allowed_levels, 0, 0, 0, true);
+        freelancers[freelancer] = Freelancer(0, 0, 0, true);
     }
 
 
@@ -158,15 +164,10 @@ contract JobPayingSystem is AccessManaged, ReentrancyGuard {
         new_job.max_duration = max_duration;
         new_job.level = level;
         new_job.status = JOB_STATUS.OPEN;
-
-        uint freelancer_stake = work_levels[level].freelancer_stake;
-
-        _verifier().post_job(job_id, category, client_stake, freelancer_stake);
-        
-
+        new_job.cat = category;
 
         job_lists.push(job_id);
-        emit job_posted(job_id, msg.sender, amount, category, new_job.level);
+        emit job_posted(job_id);
     }
 
     function get_job(bytes32 job_id) public view returns( Job memory
@@ -179,16 +180,15 @@ contract JobPayingSystem is AccessManaged, ReentrancyGuard {
         job.status = JOB_STATUS.CLOSED;
         if (job.amount > 0) _treasury().pay_back_stable_coin(job.client, job.amount);
         _treasury().pay_back_rpt(job.client, work_levels[job.level].client_stake);
+        emit job_closed(job_id);
     }
     function hire(bytes32 job_id, address freelancer) external {
         Job storage job = jobs[job_id];
         require(job.client == msg.sender, "Only client can hire");
         require(job.status == JOB_STATUS.OPEN, "Job not open");
         require(msg.sender != freelancer, "Client cannot hire self");
+        require(freelancers[freelancer].verified, "Can't hire unverified");
 
-        Freelancer memory worker = freelancers[freelancer];
-        require(worker.allowed_levels!=0, "Not registered");
-        require(worker.allowed_levels >= job.level, "Freelancer level insufficient");
 
         job.freelancer = freelancer;
         job.status = JOB_STATUS.PENDING;
@@ -259,17 +259,40 @@ contract JobPayingSystem is AccessManaged, ReentrancyGuard {
         _treasury().pay_back_rpt(freelancer, work_levels[level].freelancer_stake);
         _treasury().pay_back_stable_coin(freelancer, job.amount);
         freelancers[freelancer].ongoing--;
+        emit job_closed(job_id);
     }
+    function handle_request_payment(bool pay_link, uint32 words) public payable {
+        (uint32 callback_gas_limit, address vrf_wrapper_address, address link_token) = _verifier().get_request_config();
+        IVRFV2Wrapper vrf_wrapper = IVRFV2Wrapper(vrf_wrapper_address);
 
-    function raise_dispute(bytes32 job_id) external {
+        if (pay_link) {
+            require(msg.value == 0, "Do not send ETH when paying with LINK");
+            uint256 fee = vrf_wrapper.calculateRequestPrice(callback_gas_limit, words);
+            IERC20 LINK = IERC20(link_token);
+            require(LINK.transferFrom(msg.sender, registry.get_treasury(), fee), "LINK transfer failed");
+        } else {
+            uint256 fee = vrf_wrapper.calculateRequestPriceNative(callback_gas_limit, words);
+            require(msg.value >= fee, "Not enough ETH sent");
+
+            if (msg.value > fee) {
+                payable(msg.sender).transfer(msg.value - fee);
+            }
+        }
+    }
+    function raise_dispute(bytes32 job_id, bool pay_link) external {
+
         Job storage job = jobs[job_id];
         require(msg.sender == job.freelancer || msg.sender == job.client, "Only involved parties can raise dispute");
         require(job.status == JOB_STATUS.HIRED, "Job not hired");
         require(block.timestamp<job.appeal_time, "Appeal time expired");
         uint level = job.level;
-        uint stake_amount= work_levels[level].client_stake+ work_levels[level].freelancer_stake;
+        uint32 min_v_p=work_levels[level].min_verifiers_portion;
+        handle_request_payment(pay_link, min_v_p);
+        uint client_stake=work_levels[level].client_stake;
+        uint freelancer_stake=work_levels[level].freelancer_stake;
+        _verifier().post_job(job_id, job.cat, client_stake, freelancer_stake);
         job.status = JOB_STATUS.DISPUTED;
-        _verifier().request_random_nums(false, job_id, stake_amount, work_levels[level].min_verifiers_portion);
+        _verifier().request_random_nums(false, job_id, freelancer_stake+client_stake, min_v_p);
         emit job_disputed(job_id, job.client, job.freelancer, false);
     }
 
@@ -285,6 +308,7 @@ contract JobPayingSystem is AccessManaged, ReentrancyGuard {
         _treasury().pay_back_stable_coin(msg.sender, job.amount);
         _treasury().pay_back_rpt(msg.sender, work_levels[job.level].freelancer_stake);
         freelancers[msg.sender].ongoing--;
+        emit job_closed(job_id);
     }
 
     function refund_after_dispute(bytes32 job_id) external nonReentrant {
@@ -297,6 +321,7 @@ contract JobPayingSystem is AccessManaged, ReentrancyGuard {
         job.status=JOB_STATUS.CLOSED;
         _treasury().pay_back_rpt(msg.sender, work_levels[job.level].client_stake);
         freelancers[job.freelancer].ongoing--;
+        emit job_closed(job_id);
     }
 
 

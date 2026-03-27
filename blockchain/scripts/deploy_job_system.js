@@ -20,28 +20,28 @@ export async function prepare_levels(job_manager) {
             max_amount: ethers.parseUnits("100", 18),
             client_stake: ethers.parseUnits("10", 18),
             freelancer_stake: ethers.parseUnits("4", 18),
-            min_verifiers_portion: 100,
+            min_verifiers_portion: 1,
             payment_duration: 4 * 24 * 3600
         },
         {
             max_amount: ethers.parseUnits("1000", 18),
             client_stake: ethers.parseUnits("50", 18),
             freelancer_stake: ethers.parseUnits("20", 18),
-            min_verifiers_portion: 200,
+            min_verifiers_portion: 1,
             payment_duration: 7 * 24 * 3600
         },
         {
             max_amount: ethers.parseUnits("10000", 18),
             client_stake: ethers.parseUnits("200", 18),
             freelancer_stake: ethers.parseUnits("100", 18),
-            min_verifiers_portion: 300,
+            min_verifiers_portion: 1,
             payment_duration: 14 * 24 * 3600
         },
         {
             max_amount: ethers.parseUnits("100000", 18),
             client_stake: ethers.parseUnits("500", 18),
             freelancer_stake: ethers.parseUnits("200", 18),
-            min_verifiers_portion: 400,
+            min_verifiers_portion: 1,
             payment_duration: 21 * 24 * 3600
         },
         {

@@ -5,7 +5,9 @@ export default async function main(registry, access_manager) {
 
     const coordinator = process.env.COORDINATOR;
     const subscription_id=process.env.SUBSCRIPTION_ID;
-    const verifier = await ethers.deployContract("VerifierSystem", [coordinator, subscription_id, registry, access_manager]);
+    const vrf_wrapper=process.env.VRF_WRAPPER;
+    const link_token = process.env.LINK_TOKEN;
+    const verifier = await ethers.deployContract("VerifierSystem", [coordinator, subscription_id, vrf_wrapper, link_token, registry, access_manager]);
     await verifier.waitForDeployment();
     await add_stakes(verifier);
 
@@ -25,6 +27,7 @@ export async function add_categories(verifier) {
 }
 export async function add_stakes(verifier) {
     const stake_amounts = [
+        ethers.parseUnits("0", 18),
         ethers.parseUnits("100", 18),
         ethers.parseUnits("500", 18),
         ethers.parseUnits("1000", 18),

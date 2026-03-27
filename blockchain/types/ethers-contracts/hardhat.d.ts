@@ -14,6 +14,7 @@ declare module "@nomicfoundation/hardhat-ethers/types" {
 getContractFactory(name: 'IAccessManager', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IAccessManager__factory>
 getContractFactory(name: 'EthioCoin', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.EthioCoin__factory>
 getContractFactory(name: 'Itreasury', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.Itreasury__factory>
+getContractFactory(name: 'IVRFV2Wrapper', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IVRFV2Wrapper__factory>
 getContractFactory(name: 'JobPayingSystem', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.JobPayingSystem__factory>
 getContractFactory(name: 'IRegistry', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IRegistry__factory>
 getContractFactory(name: 'Registry', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.Registry__factory>
@@ -29,6 +30,7 @@ getContractFactory(name: 'VerifierSystem', signerOrOptions?: ethers.Signer | Fac
 getContractAt(name: 'IAccessManager', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IAccessManager>
 getContractAt(name: 'EthioCoin', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.EthioCoin>
 getContractAt(name: 'Itreasury', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.Itreasury>
+getContractAt(name: 'IVRFV2Wrapper', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IVRFV2Wrapper>
 getContractAt(name: 'JobPayingSystem', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.JobPayingSystem>
 getContractAt(name: 'IRegistry', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IRegistry>
 getContractAt(name: 'Registry', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.Registry>
@@ -44,6 +46,7 @@ getContractAt(name: 'VerifierSystem', address: string | ethers.Addressable, sign
 deployContract(name: 'IAccessManager', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IAccessManager>
 deployContract(name: 'EthioCoin', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.EthioCoin>
 deployContract(name: 'Itreasury', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Itreasury>
+deployContract(name: 'IVRFV2Wrapper', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IVRFV2Wrapper>
 deployContract(name: 'JobPayingSystem', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.JobPayingSystem>
 deployContract(name: 'IRegistry', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IRegistry>
 deployContract(name: 'Registry', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Registry>
@@ -59,6 +62,7 @@ deployContract(name: 'VerifierSystem', signerOrOptions?: ethers.Signer | DeployC
 deployContract(name: 'IAccessManager', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IAccessManager>
 deployContract(name: 'EthioCoin', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.EthioCoin>
 deployContract(name: 'Itreasury', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Itreasury>
+deployContract(name: 'IVRFV2Wrapper', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IVRFV2Wrapper>
 deployContract(name: 'JobPayingSystem', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.JobPayingSystem>
 deployContract(name: 'IRegistry', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IRegistry>
 deployContract(name: 'Registry', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Registry>

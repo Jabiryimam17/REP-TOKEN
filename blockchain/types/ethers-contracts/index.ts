@@ -28,6 +28,8 @@ export type { EthioCoin } from './EthioCoin.sol/EthioCoin.js';
 export { EthioCoin__factory } from './factories/EthioCoin.sol/EthioCoin__factory.js';
 export type { Itreasury } from './JobPayingSystem.sol/Itreasury.js';
 export { Itreasury__factory } from './factories/JobPayingSystem.sol/Itreasury__factory.js';
+export type { IVRFV2Wrapper } from './JobPayingSystem.sol/IVRFV2Wrapper.js';
+export { IVRFV2Wrapper__factory } from './factories/JobPayingSystem.sol/IVRFV2Wrapper__factory.js';
 export type { JobPayingSystem } from './JobPayingSystem.sol/JobPayingSystem.js';
 export { JobPayingSystem__factory } from './factories/JobPayingSystem.sol/JobPayingSystem__factory.js';
 export type { IRegistry } from './Registry.sol/IRegistry.js';
