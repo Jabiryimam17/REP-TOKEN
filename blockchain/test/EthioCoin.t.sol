@@ -14,7 +14,7 @@ contract EthioCoinTest is Test {
     }
 
     function test_initial_supply() public view {
-        uint expected_supply=1_000_000 *10**ethiocoin.decimals();
+        uint expected_supply=1_000_000_000 * 10 **ethiocoin.decimals();
         require(ethiocoin.totalSupply()==expected_supply, "not appropriate amount");
     }
 
@@ -76,7 +76,7 @@ contract EthioCoinTest is Test {
 
         require(ethiocoin.balanceOf(user_3)==approve_amount,"Not transferred successfully");
 
-        require(ethiocoin.totalSupply()==1_000_000*10**(ethiocoin.decimals()));
+        require(ethiocoin.totalSupply()==1_000_000_000 * 10 ** ethiocoin.decimals());
 
     }
 }

@@ -6,6 +6,11 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
 import {IRegistry} from "./Registry.sol";
+error NullAddress();
+error ZeroAmount();
+error InsufficientBalance(uint balance, uint requested);
+error InsufficientLockedBalance(uint locked_balance, uint requested);
+error Unauthorized();
 contract Treasury is ReentrancyGuard, AccessManaged {
     using SafeERC20 for IERC20;
     IRegistry public registry;
@@ -14,6 +19,7 @@ contract Treasury is ReentrancyGuard, AccessManaged {
 
 
     constructor(address _registry, address _access_manager) AccessManaged(_access_manager) {
+        if (_registry == address(0) || _access_manager==address(0)) revert NullAddress();
         registry = IRegistry(_registry);
     }
 
@@ -44,9 +50,8 @@ contract Treasury is ReentrancyGuard, AccessManaged {
     
 
     function withdraw_tokens(address to, uint256 amount) public restricted {
-        require(address(0)!=to, "Null address is not allowed.");
-        require(amount > 0, "Zero transfer is not allowed.");
-        require(_rpt().balanceOf(address(this)) >= amount, "Insufficient balance in Treasure");
+        if (amount==0) revert ZeroAmount();
+        if (address(0)==to) revert NullAddress();
         _rpt().safeTransfer(to, amount);
     }
 
@@ -58,35 +63,34 @@ contract Treasury is ReentrancyGuard, AccessManaged {
     }
 
     function allocate_stable_coin(address beneficiary, uint256 amount) public restricted {
-        require(address(0)!=beneficiary,"Null address is not allowed.");
-        require(_ethiocoin().balanceOf(address(this))-locked_stable_coin >= amount, "Insufficient balance in Treasure.");
+        if (amount==0) revert ZeroAmount();
+        if (beneficiary == address(0)) revert NullAddress();
+        if (_ethiocoin().balanceOf(address(this))-locked_stable_coin < amount) revert InsufficientBalance(_ethiocoin().balanceOf(address(this))-locked_stable_coin, amount);
         allocated_stable_coin[beneficiary] += amount;
         locked_stable_coin += amount;
     }
 
     function deallocate_stable_coin(address to, uint256 amount) public restricted {
-        require(address(0)!=to, "Null address is not allowed.");
-        require(allocated_stable_coin[to] >= amount, "Insufficient allocated stable coin for this address.");
+        if (to == address(0)) revert NullAddress();
+        if (allocated_stable_coin[to] < amount) revert InsufficientLockedBalance(allocated_stable_coin[to], amount);
         allocated_stable_coin[to] -= amount;
         locked_stable_coin -= amount;
     }
     function transfer_allocated_stable_coin(address to, uint256 amount) public restricted nonReentrant {
-        require(amount > 0, "Zero transfer is not allowed.");
-        require(address(0)!=to, "Null address is not allowed.");
-        require(allocated_stable_coin[to] >= amount, "Insufficient allocated stable coin for this address.");
+        if (amount==0) revert ZeroAmount();
+        if (address(0)==to) revert NullAddress();
+        if (allocated_stable_coin[to] < amount) revert InsufficientLockedBalance(allocated_stable_coin[to], amount);
         allocated_stable_coin[to] -= amount;
         locked_stable_coin -= amount;
         _ethiocoin().safeTransfer(to, amount);
     }
     function fill_reward_vault(uint256 amount) public restricted {
-        require(amount > 0, "Zero transfer is not allowed.");
-        require(_rpt().balanceOf(address(this)) >= amount, "Insufficient balance in Treasure");
-        _rpt().safeTransfer(_reward_vault(), amount);
+        if (amount>0) _rpt().safeTransfer(_reward_vault(), amount);
     }
 
     function swap_reputation_for_stable(uint256 reputation_amount, uint256 min_stable_amount) public restricted {
-        require(reputation_amount > 0, "Zero transfer is not allowed.");
-        require(_rpt().balanceOf(address(this)) >= reputation_amount, "Insufficient reputation token balance in Treasure");
+        if (reputation_amount == 0) revert ZeroAmount();
+        if (_rpt().balanceOf(address(this)) < reputation_amount) revert InsufficientBalance(_rpt().balanceOf(address(this)), reputation_amount);
 
         address[] memory path = new address[](2);
         path[0] = address(_rpt());
@@ -104,7 +108,8 @@ contract Treasury is ReentrancyGuard, AccessManaged {
     }
 
     function swap_stable_for_reputation(uint256 stable_amount, uint256 min_reputation_amount) public restricted {
-        require(_ethiocoin().balanceOf(address(this))-locked_stable_coin >= stable_amount, "Insufficient stable coin balance in Treasure");
+        if (stable_amount == 0) revert ZeroAmount();
+        if (_ethiocoin().balanceOf(address(this))-locked_stable_coin < stable_amount) revert InsufficientBalance(_ethiocoin().balanceOf(address(this))-locked_stable_coin, stable_amount);
 
         address[] memory path = new address[](2);
         path[0] = address(_ethiocoin());
@@ -120,17 +125,17 @@ contract Treasury is ReentrancyGuard, AccessManaged {
         );
     }
     function buy_back(uint amount, address liquidator) public restricted {
-        require(_ethiocoin().balanceOf(address(this)) >= amount, "Insufficient stable coin balance in Treasure");
-        _ethiocoin().safeTransfer(liquidator, amount);
+        if (amount > _rpt().balanceOf(address(this))) revert InsufficientBalance(_rpt().balanceOf(address(this)), amount);
+        if (amount > 0) _ethiocoin().safeTransfer(liquidator, amount);
     }
     
     function pay_back_rpt(address to, uint amount) external nonReentrant() {
-        require(msg.sender==_job_manager() || msg.sender==_reward_vault() || msg.sender==_verifier());
-        _rpt().safeTransfer(to, amount);
+        if (msg.sender!=_job_manager() && msg.sender!=_reward_vault() && msg.sender!=_verifier()) revert Unauthorized();
+        if (amount > 0) _rpt().safeTransfer(to, amount);
     }
 
     function pay_back_stable_coin(address to, uint amount) external nonReentrant() {
-        require(msg.sender==_job_manager() || msg.sender==_reward_vault() || msg.sender==_verifier());
-        _ethiocoin().safeTransfer( to, amount);
+        if (msg.sender!=_job_manager() && msg.sender!=_reward_vault() && msg.sender!=_verifier()) revert Unauthorized();
+        if (amount > 0 ) _ethiocoin().safeTransfer( to, amount);
     }
 }

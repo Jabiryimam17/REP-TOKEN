@@ -6,9 +6,9 @@ import type { TypedContractEvent, TypedDeferredTopicFilter, TypedEventLog, Typed
   
 
   export interface VerifierSystemInterface extends Interface {
-    getFunction(nameOrSignature: "WEIGHT_MAX" | "acceptOwnership" | "add_category" | "add_stack_level" | "add_stack_levels" | "add_verifier" | "authority" | "callback_gas_limit" | "categories" | "category_open" | "claim_rewards" | "disputed_jobs" | "finalize_verification" | "get_categories" | "get_chosen_verifiers" | "get_job" | "get_job_level" | "get_request_config" | "get_scores" | "get_stack_levels" | "isConsumingScheduledOp" | "key_hash" | "leveled_verifiers" | "link_token" | "owner" | "pending_rewards" | "post_job" | "rawFulfillRandomWords" | "registry" | "reputation_token" | "request_confirmations" | "request_random_nums" | "reveal_decision" | "reveal_dur" | "s_vrfCoordinator" | "setAuthority" | "setCoordinator" | "set_deadlines" | "set_slash_bps" | "set_up_vrf" | "slash_bps" | "stack_levels" | "stake" | "submission_dur" | "submit_hashed_decision" | "subscription_id" | "transferOwnership" | "transfer_address" | "treasury_pending" | "unstake" | "verifier_requests" | "verifiers" | "vrf_wrapper"): FunctionFragment;
+    getFunction(nameOrSignature: "WEIGHT_MAX" | "acceptOwnership" | "add_category" | "add_stack_level" | "add_stack_levels" | "add_verifier" | "authority" | "callback_gas_limit" | "categories" | "category_open" | "claim_rewards" | "disputed_jobs" | "finalize_verification" | "get_categories" | "get_chosen_verifiers" | "get_job" | "get_request_config" | "get_scores" | "get_stack_levels" | "get_vrf_config" | "isConsumingScheduledOp" | "key_hash" | "leveled_verifiers" | "link_token" | "owner" | "pending_rewards" | "post_job" | "rawFulfillRandomWords" | "registry" | "reputation_token" | "request_confirmations" | "request_random_nums" | "reveal_decision" | "reveal_dur" | "s_vrfCoordinator" | "setAuthority" | "setCoordinator" | "set_deadlines" | "set_slash_bps" | "set_up_vrf" | "slash_bps" | "stack_levels" | "stake" | "submission_dur" | "submit_hashed_decision" | "subscription_id" | "transferOwnership" | "transfer_address" | "treasury_pending" | "unstake" | "verifier_requests" | "verifiers" | "vrf_wrapper"): FunctionFragment;
 
-    getEvent(nameOrSignatureOrTopic: "AuthorityUpdated" | "CoordinatorSet" | "OwnershipTransferRequested" | "OwnershipTransferred" | "address_transferred" | "decision_revealed" | "hashed_decision_submitted" | "job_finalized" | "job_initialized" | "request_fulfilled" | "request_sent" | "reward_credited" | "rewards_claimed" | "verifier_added" | "verifier_selected" | "verifier_slashed" | "verifier_staked" | "verifier_unstaked"): EventFragment;
+    getEvent(nameOrSignatureOrTopic: "AuthorityUpdated" | "CoordinatorSet" | "OwnershipTransferRequested" | "OwnershipTransferred" | "address_transferred" | "job_finalized" | "job_initialized" | "request_fulfilled" | "rewards_claimed" | "verifier_added" | "verifier_staked" | "verifier_unstaked"): EventFragment;
 
     encodeFunctionData(functionFragment: 'WEIGHT_MAX', values?: undefined): string;
 encodeFunctionData(functionFragment: 'acceptOwnership', values?: undefined): string;
@@ -26,10 +26,10 @@ encodeFunctionData(functionFragment: 'finalize_verification', values: [BytesLike
 encodeFunctionData(functionFragment: 'get_categories', values?: undefined): string;
 encodeFunctionData(functionFragment: 'get_chosen_verifiers', values: [BytesLike]): string;
 encodeFunctionData(functionFragment: 'get_job', values: [BytesLike]): string;
-encodeFunctionData(functionFragment: 'get_job_level', values: [BytesLike]): string;
 encodeFunctionData(functionFragment: 'get_request_config', values?: undefined): string;
 encodeFunctionData(functionFragment: 'get_scores', values: [BytesLike]): string;
 encodeFunctionData(functionFragment: 'get_stack_levels', values?: undefined): string;
+encodeFunctionData(functionFragment: 'get_vrf_config', values?: undefined): string;
 encodeFunctionData(functionFragment: 'isConsumingScheduledOp', values?: undefined): string;
 encodeFunctionData(functionFragment: 'key_hash', values?: undefined): string;
 encodeFunctionData(functionFragment: 'leveled_verifiers', values: [BigNumberish, BigNumberish, BigNumberish]): string;
@@ -80,10 +80,10 @@ decodeFunctionResult(functionFragment: 'finalize_verification', data: BytesLike)
 decodeFunctionResult(functionFragment: 'get_categories', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'get_chosen_verifiers', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'get_job', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'get_job_level', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'get_request_config', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'get_scores', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'get_stack_levels', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'get_vrf_config', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'isConsumingScheduledOp', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'key_hash', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'leveled_verifiers', data: BytesLike): Result;
@@ -180,30 +180,6 @@ decodeFunctionResult(functionFragment: 'vrf_wrapper', data: BytesLike): Result;
 
   
 
-    export namespace decision_revealedEvent {
-      export type InputTuple = [job_id: BytesLike, verifier: AddressLike, score: BigNumberish];
-      export type OutputTuple = [job_id: string, verifier: string, score: bigint];
-      export interface OutputObject {job_id: string, verifier: string, score: bigint };
-      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
-      export type Filter = TypedDeferredTopicFilter<Event>
-      export type Log = TypedEventLog<Event>
-      export type LogDescription = TypedLogDescription<Event>
-    }
-
-  
-
-    export namespace hashed_decision_submittedEvent {
-      export type InputTuple = [job_id: BytesLike, verifier: AddressLike];
-      export type OutputTuple = [job_id: string, verifier: string];
-      export interface OutputObject {job_id: string, verifier: string };
-      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
-      export type Filter = TypedDeferredTopicFilter<Event>
-      export type Log = TypedEventLog<Event>
-      export type LogDescription = TypedLogDescription<Event>
-    }
-
-  
-
     export namespace job_finalizedEvent {
       export type InputTuple = [job_id: BytesLike, average_score: BigNumberish, resolve_time: BigNumberish, slash_cnt: BigNumberish, total_reward: BigNumberish];
       export type OutputTuple = [job_id: string, average_score: bigint, resolve_time: bigint, slash_cnt: bigint, total_reward: bigint];
@@ -229,33 +205,9 @@ decodeFunctionResult(functionFragment: 'vrf_wrapper', data: BytesLike): Result;
   
 
     export namespace request_fulfilledEvent {
-      export type InputTuple = [job_id: BytesLike];
-      export type OutputTuple = [job_id: string];
-      export interface OutputObject {job_id: string };
-      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
-      export type Filter = TypedDeferredTopicFilter<Event>
-      export type Log = TypedEventLog<Event>
-      export type LogDescription = TypedLogDescription<Event>
-    }
-
-  
-
-    export namespace request_sentEvent {
-      export type InputTuple = [request_id: BigNumberish, num_words: BigNumberish, job_id: BytesLike];
-      export type OutputTuple = [request_id: bigint, num_words: bigint, job_id: string];
-      export interface OutputObject {request_id: bigint, num_words: bigint, job_id: string };
-      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
-      export type Filter = TypedDeferredTopicFilter<Event>
-      export type Log = TypedEventLog<Event>
-      export type LogDescription = TypedLogDescription<Event>
-    }
-
-  
-
-    export namespace reward_creditedEvent {
-      export type InputTuple = [to: AddressLike, amount: BigNumberish];
-      export type OutputTuple = [to: string, amount: bigint];
-      export interface OutputObject {to: string, amount: bigint };
+      export type InputTuple = [job_id: BytesLike, submission_deadline: BigNumberish, reveal_deadline: BigNumberish];
+      export type OutputTuple = [job_id: string, submission_deadline: bigint, reveal_deadline: bigint];
+      export interface OutputObject {job_id: string, submission_deadline: bigint, reveal_deadline: bigint };
       export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
       export type Filter = TypedDeferredTopicFilter<Event>
       export type Log = TypedEventLog<Event>
@@ -280,30 +232,6 @@ decodeFunctionResult(functionFragment: 'vrf_wrapper', data: BytesLike): Result;
       export type InputTuple = [verifier: AddressLike, category: BigNumberish];
       export type OutputTuple = [verifier: string, category: bigint];
       export interface OutputObject {verifier: string, category: bigint };
-      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
-      export type Filter = TypedDeferredTopicFilter<Event>
-      export type Log = TypedEventLog<Event>
-      export type LogDescription = TypedLogDescription<Event>
-    }
-
-  
-
-    export namespace verifier_selectedEvent {
-      export type InputTuple = [job_id: BytesLike, verifier: AddressLike];
-      export type OutputTuple = [job_id: string, verifier: string];
-      export interface OutputObject {job_id: string, verifier: string };
-      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
-      export type Filter = TypedDeferredTopicFilter<Event>
-      export type Log = TypedEventLog<Event>
-      export type LogDescription = TypedLogDescription<Event>
-    }
-
-  
-
-    export namespace verifier_slashedEvent {
-      export type InputTuple = [verifier: AddressLike, amount: BigNumberish, job_id: BytesLike];
-      export type OutputTuple = [verifier: string, amount: bigint, job_id: string];
-      export interface OutputObject {verifier: string, amount: bigint, job_id: string };
       export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
       export type Filter = TypedDeferredTopicFilter<Event>
       export type Log = TypedEventLog<Event>
@@ -492,16 +420,8 @@ decodeFunctionResult(functionFragment: 'vrf_wrapper', data: BytesLike): Result;
     
     get_job: TypedContractMethod<
       [job_id: BytesLike, ],
-      [[boolean, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint, string[]] & {open_for_dispute: boolean, submission_deadline: bigint, release_deadline: bigint, category: bigint, stakes: bigint, client_stake: bigint, freelancer_stake: bigint, level: bigint, lock_amount: bigint, dispute_status: bigint, chosen_verifiers: string[] }],
+      [[boolean, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint, string[]] & {open_for_dispute: boolean, submission_deadline: bigint, release_deadline: bigint, category: bigint, stakes: bigint, client_stake: bigint, freelancer_stake: bigint, lock_amount: bigint, dispute_status: bigint, chosen_verifiers: string[] }],
       'view'
-    >
-    
-
-    
-    get_job_level: TypedContractMethod<
-      [job_id: BytesLike, ],
-      [bigint],
-      'nonpayable'
     >
     
 
@@ -525,6 +445,14 @@ decodeFunctionResult(functionFragment: 'vrf_wrapper', data: BytesLike): Result;
     get_stack_levels: TypedContractMethod<
       [],
       [bigint[]],
+      'view'
+    >
+    
+
+    
+    get_vrf_config: TypedContractMethod<
+      [],
+      [[bigint, bigint, string, bigint, string, string]],
       'view'
     >
     
@@ -780,7 +708,7 @@ decodeFunctionResult(functionFragment: 'vrf_wrapper', data: BytesLike): Result;
     
     verifiers: TypedContractMethod<
       [arg0: AddressLike, ],
-      [[boolean, boolean, boolean, bigint, bigint, bigint, bigint, bigint, bigint] & {verified: boolean, is_active: boolean, assigned: boolean, in_dispute: bigint, locked: bigint, staked: bigint, category: bigint, level: bigint, idx_l: bigint }],
+      [[boolean, boolean, boolean, bigint, bigint, bigint, bigint, bigint, bigint] & {verified: boolean, is_active: boolean, assigned: boolean, in_dispute: bigint, locked: bigint, staked: bigint, category: bigint, level: bigint, idx: bigint }],
       'view'
     >
     
@@ -873,13 +801,8 @@ getFunction(nameOrSignature: 'get_chosen_verifiers'): TypedContractMethod<
     >;
 getFunction(nameOrSignature: 'get_job'): TypedContractMethod<
       [job_id: BytesLike, ],
-      [[boolean, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint, string[]] & {open_for_dispute: boolean, submission_deadline: bigint, release_deadline: bigint, category: bigint, stakes: bigint, client_stake: bigint, freelancer_stake: bigint, level: bigint, lock_amount: bigint, dispute_status: bigint, chosen_verifiers: string[] }],
+      [[boolean, bigint, bigint, bigint, bigint, bigint, bigint, bigint, bigint, string[]] & {open_for_dispute: boolean, submission_deadline: bigint, release_deadline: bigint, category: bigint, stakes: bigint, client_stake: bigint, freelancer_stake: bigint, lock_amount: bigint, dispute_status: bigint, chosen_verifiers: string[] }],
       'view'
-    >;
-getFunction(nameOrSignature: 'get_job_level'): TypedContractMethod<
-      [job_id: BytesLike, ],
-      [bigint],
-      'nonpayable'
     >;
 getFunction(nameOrSignature: 'get_request_config'): TypedContractMethod<
       [],
@@ -894,6 +817,11 @@ getFunction(nameOrSignature: 'get_scores'): TypedContractMethod<
 getFunction(nameOrSignature: 'get_stack_levels'): TypedContractMethod<
       [],
       [bigint[]],
+      'view'
+    >;
+getFunction(nameOrSignature: 'get_vrf_config'): TypedContractMethod<
+      [],
+      [[bigint, bigint, string, bigint, string, string]],
       'view'
     >;
 getFunction(nameOrSignature: 'isConsumingScheduledOp'): TypedContractMethod<
@@ -1053,7 +981,7 @@ getFunction(nameOrSignature: 'verifier_requests'): TypedContractMethod<
     >;
 getFunction(nameOrSignature: 'verifiers'): TypedContractMethod<
       [arg0: AddressLike, ],
-      [[boolean, boolean, boolean, bigint, bigint, bigint, bigint, bigint, bigint] & {verified: boolean, is_active: boolean, assigned: boolean, in_dispute: bigint, locked: bigint, staked: bigint, category: bigint, level: bigint, idx_l: bigint }],
+      [[boolean, boolean, boolean, bigint, bigint, bigint, bigint, bigint, bigint] & {verified: boolean, is_active: boolean, assigned: boolean, in_dispute: bigint, locked: bigint, staked: bigint, category: bigint, level: bigint, idx: bigint }],
       'view'
     >;
 getFunction(nameOrSignature: 'vrf_wrapper'): TypedContractMethod<
@@ -1067,17 +995,11 @@ getEvent(key: 'CoordinatorSet'): TypedContractEvent<CoordinatorSetEvent.InputTup
 getEvent(key: 'OwnershipTransferRequested'): TypedContractEvent<OwnershipTransferRequestedEvent.InputTuple, OwnershipTransferRequestedEvent.OutputTuple, OwnershipTransferRequestedEvent.OutputObject>;
 getEvent(key: 'OwnershipTransferred'): TypedContractEvent<OwnershipTransferredEvent.InputTuple, OwnershipTransferredEvent.OutputTuple, OwnershipTransferredEvent.OutputObject>;
 getEvent(key: 'address_transferred'): TypedContractEvent<address_transferredEvent.InputTuple, address_transferredEvent.OutputTuple, address_transferredEvent.OutputObject>;
-getEvent(key: 'decision_revealed'): TypedContractEvent<decision_revealedEvent.InputTuple, decision_revealedEvent.OutputTuple, decision_revealedEvent.OutputObject>;
-getEvent(key: 'hashed_decision_submitted'): TypedContractEvent<hashed_decision_submittedEvent.InputTuple, hashed_decision_submittedEvent.OutputTuple, hashed_decision_submittedEvent.OutputObject>;
 getEvent(key: 'job_finalized'): TypedContractEvent<job_finalizedEvent.InputTuple, job_finalizedEvent.OutputTuple, job_finalizedEvent.OutputObject>;
 getEvent(key: 'job_initialized'): TypedContractEvent<job_initializedEvent.InputTuple, job_initializedEvent.OutputTuple, job_initializedEvent.OutputObject>;
 getEvent(key: 'request_fulfilled'): TypedContractEvent<request_fulfilledEvent.InputTuple, request_fulfilledEvent.OutputTuple, request_fulfilledEvent.OutputObject>;
-getEvent(key: 'request_sent'): TypedContractEvent<request_sentEvent.InputTuple, request_sentEvent.OutputTuple, request_sentEvent.OutputObject>;
-getEvent(key: 'reward_credited'): TypedContractEvent<reward_creditedEvent.InputTuple, reward_creditedEvent.OutputTuple, reward_creditedEvent.OutputObject>;
 getEvent(key: 'rewards_claimed'): TypedContractEvent<rewards_claimedEvent.InputTuple, rewards_claimedEvent.OutputTuple, rewards_claimedEvent.OutputObject>;
 getEvent(key: 'verifier_added'): TypedContractEvent<verifier_addedEvent.InputTuple, verifier_addedEvent.OutputTuple, verifier_addedEvent.OutputObject>;
-getEvent(key: 'verifier_selected'): TypedContractEvent<verifier_selectedEvent.InputTuple, verifier_selectedEvent.OutputTuple, verifier_selectedEvent.OutputObject>;
-getEvent(key: 'verifier_slashed'): TypedContractEvent<verifier_slashedEvent.InputTuple, verifier_slashedEvent.OutputTuple, verifier_slashedEvent.OutputObject>;
 getEvent(key: 'verifier_staked'): TypedContractEvent<verifier_stakedEvent.InputTuple, verifier_stakedEvent.OutputTuple, verifier_stakedEvent.OutputObject>;
 getEvent(key: 'verifier_unstaked'): TypedContractEvent<verifier_unstakedEvent.InputTuple, verifier_unstakedEvent.OutputTuple, verifier_unstakedEvent.OutputObject>;
 
@@ -1103,14 +1025,6 @@ getEvent(key: 'verifier_unstaked'): TypedContractEvent<verifier_unstakedEvent.In
       address_transferred: TypedContractEvent<address_transferredEvent.InputTuple, address_transferredEvent.OutputTuple, address_transferredEvent.OutputObject>;
     
 
-      'decision_revealed(bytes32,address,uint256)': TypedContractEvent<decision_revealedEvent.InputTuple, decision_revealedEvent.OutputTuple, decision_revealedEvent.OutputObject>;
-      decision_revealed: TypedContractEvent<decision_revealedEvent.InputTuple, decision_revealedEvent.OutputTuple, decision_revealedEvent.OutputObject>;
-    
-
-      'hashed_decision_submitted(bytes32,address)': TypedContractEvent<hashed_decision_submittedEvent.InputTuple, hashed_decision_submittedEvent.OutputTuple, hashed_decision_submittedEvent.OutputObject>;
-      hashed_decision_submitted: TypedContractEvent<hashed_decision_submittedEvent.InputTuple, hashed_decision_submittedEvent.OutputTuple, hashed_decision_submittedEvent.OutputObject>;
-    
-
       'job_finalized(bytes32,uint256,uint256,uint256,uint256)': TypedContractEvent<job_finalizedEvent.InputTuple, job_finalizedEvent.OutputTuple, job_finalizedEvent.OutputObject>;
       job_finalized: TypedContractEvent<job_finalizedEvent.InputTuple, job_finalizedEvent.OutputTuple, job_finalizedEvent.OutputObject>;
     
@@ -1119,16 +1033,8 @@ getEvent(key: 'verifier_unstaked'): TypedContractEvent<verifier_unstakedEvent.In
       job_initialized: TypedContractEvent<job_initializedEvent.InputTuple, job_initializedEvent.OutputTuple, job_initializedEvent.OutputObject>;
     
 
-      'request_fulfilled(bytes32)': TypedContractEvent<request_fulfilledEvent.InputTuple, request_fulfilledEvent.OutputTuple, request_fulfilledEvent.OutputObject>;
+      'request_fulfilled(bytes32,uint256,uint256)': TypedContractEvent<request_fulfilledEvent.InputTuple, request_fulfilledEvent.OutputTuple, request_fulfilledEvent.OutputObject>;
       request_fulfilled: TypedContractEvent<request_fulfilledEvent.InputTuple, request_fulfilledEvent.OutputTuple, request_fulfilledEvent.OutputObject>;
-    
-
-      'request_sent(uint256,uint256,bytes32)': TypedContractEvent<request_sentEvent.InputTuple, request_sentEvent.OutputTuple, request_sentEvent.OutputObject>;
-      request_sent: TypedContractEvent<request_sentEvent.InputTuple, request_sentEvent.OutputTuple, request_sentEvent.OutputObject>;
-    
-
-      'reward_credited(address,uint256)': TypedContractEvent<reward_creditedEvent.InputTuple, reward_creditedEvent.OutputTuple, reward_creditedEvent.OutputObject>;
-      reward_credited: TypedContractEvent<reward_creditedEvent.InputTuple, reward_creditedEvent.OutputTuple, reward_creditedEvent.OutputObject>;
     
 
       'rewards_claimed(address,uint256)': TypedContractEvent<rewards_claimedEvent.InputTuple, rewards_claimedEvent.OutputTuple, rewards_claimedEvent.OutputObject>;
@@ -1137,14 +1043,6 @@ getEvent(key: 'verifier_unstaked'): TypedContractEvent<verifier_unstakedEvent.In
 
       'verifier_added(address,uint16)': TypedContractEvent<verifier_addedEvent.InputTuple, verifier_addedEvent.OutputTuple, verifier_addedEvent.OutputObject>;
       verifier_added: TypedContractEvent<verifier_addedEvent.InputTuple, verifier_addedEvent.OutputTuple, verifier_addedEvent.OutputObject>;
-    
-
-      'verifier_selected(bytes32,address)': TypedContractEvent<verifier_selectedEvent.InputTuple, verifier_selectedEvent.OutputTuple, verifier_selectedEvent.OutputObject>;
-      verifier_selected: TypedContractEvent<verifier_selectedEvent.InputTuple, verifier_selectedEvent.OutputTuple, verifier_selectedEvent.OutputObject>;
-    
-
-      'verifier_slashed(address,uint256,bytes32)': TypedContractEvent<verifier_slashedEvent.InputTuple, verifier_slashedEvent.OutputTuple, verifier_slashedEvent.OutputObject>;
-      verifier_slashed: TypedContractEvent<verifier_slashedEvent.InputTuple, verifier_slashedEvent.OutputTuple, verifier_slashedEvent.OutputObject>;
     
 
       'verifier_staked(address,uint256)': TypedContractEvent<verifier_stakedEvent.InputTuple, verifier_stakedEvent.OutputTuple, verifier_stakedEvent.OutputObject>;

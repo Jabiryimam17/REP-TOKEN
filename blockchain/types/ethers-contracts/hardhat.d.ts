@@ -10,9 +10,7 @@ import * as Contracts from "./index.js";
 
 declare module "@nomicfoundation/hardhat-ethers/types" {
   interface HardhatEthersHelpers extends HardhatEthersHelpersBase {
-  getContractFactory(name: 'AccessManagerHelper', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.AccessManagerHelper__factory>
-getContractFactory(name: 'IAccessManager', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IAccessManager__factory>
-getContractFactory(name: 'EthioCoin', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.EthioCoin__factory>
+  getContractFactory(name: 'EthioCoin', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.EthioCoin__factory>
 getContractFactory(name: 'Itreasury', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.Itreasury__factory>
 getContractFactory(name: 'IVRFV2Wrapper', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IVRFV2Wrapper__factory>
 getContractFactory(name: 'JobPayingSystem', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.JobPayingSystem__factory>
@@ -26,9 +24,7 @@ getContractFactory(name: 'Itreasury', signerOrOptions?: ethers.Signer | FactoryO
 getContractFactory(name: 'IVerifierSystem', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IVerifierSystem__factory>
 getContractFactory(name: 'VerifierSystem', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.VerifierSystem__factory>
 
-  getContractAt(name: 'AccessManagerHelper', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.AccessManagerHelper>
-getContractAt(name: 'IAccessManager', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IAccessManager>
-getContractAt(name: 'EthioCoin', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.EthioCoin>
+  getContractAt(name: 'EthioCoin', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.EthioCoin>
 getContractAt(name: 'Itreasury', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.Itreasury>
 getContractAt(name: 'IVRFV2Wrapper', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IVRFV2Wrapper>
 getContractAt(name: 'JobPayingSystem', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.JobPayingSystem>
@@ -42,9 +38,7 @@ getContractAt(name: 'Itreasury', address: string | ethers.Addressable, signer?: 
 getContractAt(name: 'IVerifierSystem', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IVerifierSystem>
 getContractAt(name: 'VerifierSystem', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.VerifierSystem>
 
-  deployContract(name: 'AccessManagerHelper', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.AccessManagerHelper>
-deployContract(name: 'IAccessManager', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IAccessManager>
-deployContract(name: 'EthioCoin', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.EthioCoin>
+  deployContract(name: 'EthioCoin', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.EthioCoin>
 deployContract(name: 'Itreasury', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Itreasury>
 deployContract(name: 'IVRFV2Wrapper', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IVRFV2Wrapper>
 deployContract(name: 'JobPayingSystem', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.JobPayingSystem>
@@ -58,9 +52,7 @@ deployContract(name: 'Itreasury', signerOrOptions?: ethers.Signer | DeployContra
 deployContract(name: 'IVerifierSystem', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IVerifierSystem>
 deployContract(name: 'VerifierSystem', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.VerifierSystem>
 
-  deployContract(name: 'AccessManagerHelper', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.AccessManagerHelper>
-deployContract(name: 'IAccessManager', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IAccessManager>
-deployContract(name: 'EthioCoin', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.EthioCoin>
+  deployContract(name: 'EthioCoin', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.EthioCoin>
 deployContract(name: 'Itreasury', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Itreasury>
 deployContract(name: 'IVRFV2Wrapper', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IVRFV2Wrapper>
 deployContract(name: 'JobPayingSystem', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.JobPayingSystem>

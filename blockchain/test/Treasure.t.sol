@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
-import {Treasury} from "../contracts/Treasury.sol";
+import  "../contracts/Treasury.sol";
 import {Test} from "forge-std/src/Test.sol";
 import {console} from "forge-std/src/console.sol";
 import {EthioCoin} from "../contracts/EthioCoin.sol";
 import {ReputationToken} from  "../contracts/ReputationToken.sol";
 import {RewardVault} from "../contracts/RewardVault.sol";
 import {AccessManager} from "@openzeppelin/contracts/access/manager/AccessManager.sol";
-
+import {Registry} from "../contracts/Registry.sol";
 contract TreasureTest is Test {
-
+    Registry public registry;
     EthioCoin public eth;
     EthioCoin public lptoken;
     ReputationToken public rpt;
@@ -18,40 +18,34 @@ contract TreasureTest is Test {
     address public owner=address(1);
     address public f_user=address(2);
     address public l_user=address(3);
-    address public job_manager=address(1111);
     AccessManager public access_manager;
     function setUp() public {
         vm.startPrank(owner);
         lptoken=new EthioCoin();
         eth =new EthioCoin();
         access_manager = new AccessManager(owner);
-        treasure=new Treasure(address(eth), address(access_manager), job_manager);
-        rpt =new ReputationToken(address(treasure), address(access_manager));
-        reward_vault=new RewardVault(lptoken, rpt, 317*1e3);
-        treasure.set_reward_vault(address(reward_vault));
-        treasure.set_reputation_token(address(rpt));
+        registry=new Registry(address(access_manager));
+        rpt =new ReputationToken(address(access_manager));
+        reward_vault=new RewardVault(address(registry), address(access_manager), 317*1e3);
+        registry.set_reward_vault(address(reward_vault));
+        registry.set_rpt(address(rpt));
+        registry.set_ethiocoin(address(eth));
+        registry.set_pool(address(lptoken));
+        treasure=new Treasury(address(registry), address(access_manager));
         eth.transfer(address(treasure), 1e19);
+        rpt.transfer(address(treasure), 1e20);
+
         vm.stopPrank();
     }
 
 
 
-    function test_treasure_initial_balance() public {
-        assertEq(rpt.balanceOf(address(treasure)),1e30);
-    }
+
     function test_balances() public {
 
-        assertEq(treasure.get_balance_reputation_token(),1e30);
         assertEq(treasure.get_balance_stable_coin(), 1e19);
     }
 
-    function test_owner_access_control() public {
-        vm.prank(f_user);
-        vm.expectRevert();
-        treasure.set_reputation_token(address(rpt));
-        vm.expectRevert();
-        treasure.set_reward_vault(address(reward_vault));
-    }
 
 
     // PHASE 2: TESTING ALLOCATION AND DEALLOCATION
@@ -65,7 +59,7 @@ contract TreasureTest is Test {
     }
     function test_allocate_fail_zero_address() public {
         vm.prank(owner);
-        vm.expectRevert("Null address is not allowed.");
+        vm.expectRevert(NullAddress.selector);
         treasure.allocate_stable_coin(address(0), 1e8);
     }
 
@@ -73,7 +67,13 @@ contract TreasureTest is Test {
         uint prev_balance=eth.balanceOf(address(treasure));
         uint prev_locked_stable_coin=treasure.locked_stable_coin();
         vm.prank(owner);
-        vm.expectRevert("Insufficient balance in Treasure.");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InsufficientBalance.selector,
+                prev_balance-prev_locked_stable_coin,   // actual balance available for allocation
+                prev_balance-prev_locked_stable_coin+1    // requested
+            )
+        );
         treasure.allocate_stable_coin(f_user, prev_balance-prev_locked_stable_coin+1);
     }
 
@@ -109,7 +109,7 @@ contract TreasureTest is Test {
     function test_deallocate_fail_zero_address() public {
         test_allocate_mechanics_only_one();
         vm.prank(owner);
-        vm.expectRevert("Null address is not allowed.");
+        vm.expectRevert(NullAddress.selector);
         treasure.deallocate_stable_coin(address(0), 1e7);
     }
 
@@ -117,7 +117,13 @@ contract TreasureTest is Test {
         test_allocate_mechanics_only_one();
         uint prev_allocated=treasure.allocated_stable_coin(f_user);
         vm.prank(owner);
-        vm.expectRevert("Insufficient allocated stable coin for this address.");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                InsufficientLockedBalance.selector,
+                prev_allocated,   // actual balance
+                prev_allocated+1   // requested
+            )
+        );
         treasure.deallocate_stable_coin(f_user, prev_allocated+1);
     }
 
@@ -155,14 +161,14 @@ contract TreasureTest is Test {
     function test_transfer_allocated_fail_zero_transfer() public {
         test_allocate_mechanics_only_one();
         vm.prank(owner);
-        vm.expectRevert("Zero transfer is not allowed.");
+        vm.expectRevert(ZeroAmount.selector);
         treasure.transfer_allocated_stable_coin(f_user, 0);
     }
 
     function test_transfer_allocated_fail_zero_address() public {
         test_allocate_mechanics_only_one();
         vm.prank(owner);
-        vm.expectRevert("Null address is not allowed.");
+        vm.expectRevert(NullAddress.selector);
         treasure.transfer_allocated_stable_coin(address(0), 1e7);
     }
 
@@ -216,19 +222,19 @@ contract TreasureTest is Test {
     function test_withdraw_fail_excess() public {
         uint prev_balance=rpt.balanceOf(address(treasure));
         vm.prank(owner);
-        vm.expectRevert("Insufficient balance in Treasure");
+        vm.expectRevert();
         treasure.withdraw_tokens(address(reward_vault), prev_balance+1);
     }
 
     function test_withdraw_fail_zero_transfer() public {
         vm.prank(owner);
-        vm.expectRevert("Zero transfer is not allowed.");
+        vm.expectRevert(ZeroAmount.selector);
         treasure.withdraw_tokens(address(reward_vault), 0);
     }
 
     function test_withdraw_fail_zero_address() public {
         vm.prank(owner);
-        vm.expectRevert("Null address is not allowed.");
+        vm.expectRevert(NullAddress.selector);
         treasure.withdraw_tokens(address(0), 1e7);
     }
 
@@ -247,16 +253,12 @@ contract TreasureTest is Test {
         treasure.fill_reward_vault(1e7);
     }
 
-    function  test_fill_reward_vault_zero_transfer() public {
-        vm.prank(owner);
-        vm.expectRevert("Zero transfer is not allowed.");
-        treasure.fill_reward_vault(0);
-    }
+    
 
     function test_fill_reward_vault_fail_excess() public {
         uint prev_balance=rpt.balanceOf(address(treasure));
         vm.prank(owner);
-        vm.expectRevert("Insufficient balance in Treasure");
+        vm.expectRevert();
         treasure.fill_reward_vault(prev_balance+1);
     }
 

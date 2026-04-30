@@ -29,11 +29,12 @@ async function main() {
 
 
 
+
     const {ethiocoin,ethiocoin_address} = await deploy_ethiocoin();
     const {rpt_address, rpt} = await deploy_rpt(access_manager_address);
     const job_system_address = await deploy_job_system(registry_address, access_manager_address);
-
     const verifier_address = await deploy_verifier(registry_address, access_manager_address);
+
 
     const reward_vault_address = await deploy_reward_vault(registry_address, access_manager_address);
 

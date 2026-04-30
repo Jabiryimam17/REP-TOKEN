@@ -481,7 +481,7 @@ decodeFunctionResult(functionFragment: 'verifier', data: BytesLike): Result;
 
     
     set_verifier: TypedContractMethod<
-      [_verifer: AddressLike, ],
+      [_verifier: AddressLike, ],
       [void],
       'nonpayable'
     >
@@ -715,7 +715,7 @@ getFunction(nameOrSignature: 'set_treasury'): TypedContractMethod<
       'nonpayable'
     >;
 getFunction(nameOrSignature: 'set_verifier'): TypedContractMethod<
-      [_verifer: AddressLike, ],
+      [_verifier: AddressLike, ],
       [void],
       'nonpayable'
     >;

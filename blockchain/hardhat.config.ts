@@ -1,6 +1,4 @@
-import * as dotenv from "dotenv"; // Import dotenv
-dotenv.config(); // Load the .env file
-
+import "./env.js";
 import hardhatToolboxMochaEthersPlugin from "@nomicfoundation/hardhat-toolbox-mocha-ethers";
 import { defineConfig } from "hardhat/config"; // Remove configVariable
 import HardhatIgnitionEthersPlugin from "@nomicfoundation/hardhat-ignition-ethers";
@@ -19,6 +17,7 @@ export default defineConfig({
             type: 'http',
             url: "http://127.0.0.1:8545",
         },
+
         sepolia: {
             type: 'http',
             // Use process.env instead of configVariable

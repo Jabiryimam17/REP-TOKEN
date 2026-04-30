@@ -1,12 +1,11 @@
 import ethers from "./connect.js";
-import dotenv from "dotenv";
-dotenv.config({path: "../.env"});
+import "../env.js";
 export default async function main(registry, access_manager) {
 
     const coordinator = process.env.COORDINATOR;
     const subscription_id=process.env.SUBSCRIPTION_ID;
     const vrf_wrapper=process.env.VRF_WRAPPER;
-    const link_token = process.env.LINK_TOKEN;
+    const link_token=process.env.LINK_TOKEN;
     const verifier = await ethers.deployContract("VerifierSystem", [coordinator, subscription_id, vrf_wrapper, link_token, registry, access_manager]);
     await verifier.waitForDeployment();
     await add_stakes(verifier);
@@ -14,6 +13,25 @@ export default async function main(registry, access_manager) {
     const verifier_address=await verifier.getAddress();
     console.log("Verifier deployed to:", verifier_address);
     await add_categories(verifier);
+    console.log("Categories have been added");
+    const coordinator_abi = [
+        "function addConsumer(uint256 subId, address consumer) external"
+    ];
+
+    const [registrant] = await ethers.getSigners();
+
+    const coordinator_system = new ethers.Contract(
+        coordinator,
+        coordinator_abi,
+        registrant
+    );
+
+    const tx_add_consumer = await coordinator_system.addConsumer(
+        subscription_id,
+        verifier_address
+    );
+
+    await tx_add_consumer.wait();
     return verifier_address;
 
 }
@@ -53,4 +71,4 @@ export async function deploy_verifier_single(registry_address, access_manager) {
     return new_verifier_address;
 }
 
-await deploy_verifier_single('0x7915f54253485bba062a49fD3Ce1B296552f7948','0x40D2Cd6BaCE480DF49bAFcCE1635d3CeB3168b99');
+

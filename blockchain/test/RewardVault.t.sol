@@ -5,9 +5,11 @@ import {Test} from "forge-std/src/Test.sol";
 import {console} from "forge-std/src/console.sol";
 import {EthioCoin} from "../contracts/EthioCoin.sol";
 import {ReputationToken} from "../contracts/ReputationToken.sol";
+import {Registry} from "../contracts/Registry.sol";
 import {AccessManager} from "@openzeppelin/contracts/access/manager/AccessManager.sol";
 
 contract RewardVaultTest is Test {
+    address public admin;
     EthioCoin public lptoken;
     address public lp_owner;
     ReputationToken public reward_token;
@@ -15,13 +17,19 @@ contract RewardVaultTest is Test {
     address user=address(2);
     RewardVault public reward_vault;
     AccessManager public access_manager;
-
+    Registry public registry;
+    uint public reward_rate;
     function setUp() public {
+        admin=address(this);
+        reward_rate = 317*10**3;
         lptoken =new EthioCoin();
         lp_owner = lptoken.owner();
-        access_manager = new AccessManager(address(this));
-        reward_token = new ReputationToken(treasure, address(access_manager));
-        reward_vault=new RewardVault(lptoken, reward_token, 317*10**3);
+        access_manager = new AccessManager(admin);
+        registry = new Registry(address(access_manager));
+        reward_token = new ReputationToken(address(access_manager));
+        registry.set_rpt(address(reward_token));
+        registry.set_pool(address(lptoken));
+        reward_vault=new RewardVault(address(registry), address(access_manager), reward_rate);
     }
 
     // we assume for all tests that reward_token and lptoken works as expected
@@ -34,7 +42,7 @@ contract RewardVaultTest is Test {
     }
 
     function test_update_pool() public {
-        vm.prank(treasure);
+        vm.prank(admin);
         reward_token.transfer(address(reward_vault), 10**18);
         vm.prank(lp_owner);
         lptoken.transfer(user, 10**9);

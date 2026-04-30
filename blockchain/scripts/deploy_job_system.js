@@ -1,10 +1,10 @@
 
 import ethers from './connect.js';
-import dotenv from 'dotenv';
-dotenv.config();
+import "../env.js";
 export default async function main(registry, access_manager) {
 
     const job_system=await ethers.deployContract("JobPayingSystem", [ registry, access_manager]);
+
 
     await job_system.waitForDeployment();
     const job_system_address=await job_system.getAddress();
@@ -20,38 +20,39 @@ export async function prepare_levels(job_manager) {
             max_amount: ethers.parseUnits("100", 18),
             client_stake: ethers.parseUnits("10", 18),
             freelancer_stake: ethers.parseUnits("4", 18),
-            min_verifiers_portion: 1,
+            verifiers_cnt: 1,
             payment_duration: 4 * 24 * 3600
         },
         {
             max_amount: ethers.parseUnits("1000", 18),
             client_stake: ethers.parseUnits("50", 18),
             freelancer_stake: ethers.parseUnits("20", 18),
-            min_verifiers_portion: 1,
+            verifiers_cnt: 1,
             payment_duration: 7 * 24 * 3600
         },
         {
             max_amount: ethers.parseUnits("10000", 18),
             client_stake: ethers.parseUnits("200", 18),
             freelancer_stake: ethers.parseUnits("100", 18),
-            min_verifiers_portion: 1,
+            verifiers_cnt: 2,
             payment_duration: 14 * 24 * 3600
         },
         {
             max_amount: ethers.parseUnits("100000", 18),
             client_stake: ethers.parseUnits("500", 18),
             freelancer_stake: ethers.parseUnits("200", 18),
-            min_verifiers_portion: 1,
+            verifiers_cnt: 2,
             payment_duration: 21 * 24 * 3600
         },
         {
             max_amount: ethers.parseUnits("1000000", 18),
             client_stake: ethers.parseUnits("2000", 18),
             freelancer_stake: ethers.parseUnits("1000", 18),
-            min_verifiers_portion: 500,
+            verifiers_cnt: 500,
             payment_duration: 30 * 24 * 3600
         }
     ];
+    console.log("Resetting levels...");
 
     for (const level of levels) {
         const tx = await job_manager.reset_levels(levels);
@@ -81,4 +82,4 @@ export async function deploy_job_single(registry_address, access_manager) {
     return new_job_address;
 }
 
-await deploy_job_single('0x7915f54253485bba062a49fD3Ce1B296552f7948','0x40D2Cd6BaCE480DF49bAFcCE1635d3CeB3168b99');
+await deploy_job_single('0x199273a89A51941238F3822b591b19C1Be041bbA', '0xc399a65f883de011c294C680c6e602E9f894DDE0');
