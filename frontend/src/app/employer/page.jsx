@@ -30,10 +30,20 @@ import {
   UserPlus,
   Send,
   X,
-  User
+  User,
+  Loader2
 } from "lucide-react";
 import { get_employer_jobs } from "@/services/employer.service";
-import { get_job_blockchain, cancel_job, cancel_pending_hire, cancel_hire, complete_job, pay_freelancer } from "@/services/jobs.service";
+import { 
+  get_job_blockchain, 
+  cancel_job, 
+  cancel_pending_hire, 
+  cancel_hire, 
+  complete_job, 
+  pay_freelancer,
+  estimate_dispute_fee,
+  raise_dispute
+} from "@/services/jobs.service";
 import { ethers } from "ethers";
 
 const JOB_STATUS = {
@@ -41,8 +51,9 @@ const JOB_STATUS = {
     OPEN: 1,
     PENDING: 2,
     HIRED: 3,
-    DISPUTED: 4,
-    CLOSED: 5
+    COMPLETED: 4,
+    DISPUTED: 5,
+    CLOSED: 6
 };
 
 export default function EmployerDashboard() {
@@ -55,10 +66,16 @@ export default function EmployerDashboard() {
     requested: []
   });
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState({}); // { jobId: { actionName: true } }
   const [activeTab, setActiveTab] = useState("workingOn");
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [selectedJobBids, setSelectedJobBids] = useState(null);
   const [showBidsModal, setShowBidsModal] = useState(false);
+  const [disputeModal, setDisputeModal] = useState({ show: false, jobId: null, feeEth: 0n, feeLink: 0n, loading: false, reason: "", details: "" });
+
+  const handleOpenDisputeModal = (jobId) => {
+    window.location.href = `/post-dispute?jobId=${jobId}`;
+  };
 
   const fetchJobs = async () => {
     setLoading(true);
@@ -81,21 +98,20 @@ export default function EmployerDashboard() {
       enrichedJobs.forEach(job => {
         const status = Number(job.blockchain?.status || 0);
         const isExpired = job.blockchain?.expiry_timestamp && Number(job.blockchain.expiry_timestamp) * 1000 < Date.now();
-        const isCompleted = job.blockchain?.freelancer_completed;
 
         if (status === JOB_STATUS.OPEN) {
           classified.bidding.push(job);
         } else if (status === JOB_STATUS.PENDING) {
           classified.requested.push(job);
         } else if (status === JOB_STATUS.HIRED) {
-          if (isCompleted) {
-              classified.paymentWaiting.push(job);
-          } else if (isExpired) {
+          if (isExpired) {
               // Expired and not completed
               classified.workingOn.push({...job, expired: true});
           } else {
               classified.workingOn.push(job);
           }
+        } else if (status === JOB_STATUS.COMPLETED) {
+          classified.paymentWaiting.push(job);
         } else if (status === JOB_STATUS.DISPUTED) {
           classified.inDispute.push(job);
         } else if (status === JOB_STATUS.CLOSED) {
@@ -117,6 +133,7 @@ export default function EmployerDashboard() {
 
   const handleCancelJob = async (jobId) => {
     if (!confirm("Are you sure you want to cancel this job?")) return;
+    setActionLoading(prev => ({ ...prev, [jobId]: { ...prev[jobId], cancel: true } }));
     const success = await cancel_job(jobId);
     if (success) {
       alert("Job canceled successfully");
@@ -124,10 +141,12 @@ export default function EmployerDashboard() {
     } else {
       alert("Failed to cancel job");
     }
+    setActionLoading(prev => ({ ...prev, [jobId]: { ...prev[jobId], cancel: false } }));
   };
 
   const handleCancelPendingHire = async (jobId) => {
     if (!confirm("Are you sure you want to cancel this pending hire?")) return;
+    setActionLoading(prev => ({ ...prev, [jobId]: { ...prev[jobId], cancelPending: true } }));
     const success = await cancel_pending_hire(jobId);
     if (success) {
       alert("Pending hire canceled successfully");
@@ -135,10 +154,12 @@ export default function EmployerDashboard() {
     } else {
       alert("Failed to cancel pending hire");
     }
+    setActionLoading(prev => ({ ...prev, [jobId]: { ...prev[jobId], cancelPending: false } }));
   };
 
   const handleCancelHire = async (jobId) => {
     if (!confirm("Are you sure you want to cancel this hire (expired)?")) return;
+    setActionLoading(prev => ({ ...prev, [jobId]: { ...prev[jobId], cancelHire: true } }));
     const success = await cancel_hire(jobId);
     if (success) {
       alert("Hire canceled successfully");
@@ -146,10 +167,12 @@ export default function EmployerDashboard() {
     } else {
       alert("Failed to cancel hire");
     }
+    setActionLoading(prev => ({ ...prev, [jobId]: { ...prev[jobId], cancelHire: false } }));
   };
 
   const handlePayFreelancer = async (jobId) => {
     if (!confirm("Are you sure you want to pay the freelancer?")) return;
+    setActionLoading(prev => ({ ...prev, [jobId]: { ...prev[jobId], pay: true } }));
     const success = await pay_freelancer(jobId);
     if (success) {
       alert("Freelancer paid successfully");
@@ -157,6 +180,7 @@ export default function EmployerDashboard() {
     } else {
       alert("Failed to pay freelancer");
     }
+    setActionLoading(prev => ({ ...prev, [jobId]: { ...prev[jobId], pay: false } }));
   }
 
   const jobTabs = [
@@ -192,15 +216,15 @@ export default function EmployerDashboard() {
         </div>
       </div>
       
-      <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 mb-4">
-        {job.description}
-      </p>
-
-      {job.expired && (
-        <div className="mb-4 flex items-center text-red-500 text-xs font-bold">
-            <AlertCircle className="w-4 h-4 mr-1" />
-            JOB EXPIRED
+      {job.expired ? (
+        <div className="mb-4 flex items-center bg-red-50 dark:bg-red-900/10 p-3 rounded-xl border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 text-xs font-black uppercase tracking-widest animate-pulse">
+            <AlertCircle className="w-5 h-5 mr-2" />
+            JOB EXPIRED - ACTION REQUIRED
         </div>
+      ) : (
+        <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 mb-4">
+          {job.description}
+        </p>
       )}
 
       <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-800">
@@ -228,36 +252,48 @@ export default function EmployerDashboard() {
                     View Bids
                 </button>
                 <button 
+                    disabled={actionLoading[job.id]?.cancel}
                     onClick={() => handleCancelJob(job.id)}
-                    className="text-xs font-bold text-red-600 dark:text-red-400 hover:underline"
+                    className="text-xs font-bold text-red-600 dark:text-red-400 hover:underline flex items-center"
                 >
-                    Cancel Job
+                    {actionLoading[job.id]?.cancel ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Canceling</> : "Cancel Job"}
                 </button>
                 </>
             )}
             {activeTab === 'requested' && (
                 <button 
+                    disabled={actionLoading[job.id]?.cancelPending}
                     onClick={() => handleCancelPendingHire(job.id)}
-                    className="text-xs font-bold text-red-600 dark:text-red-400 hover:underline"
+                    className="text-xs font-bold text-red-600 dark:text-red-400 hover:underline flex items-center"
                 >
-                    Cancel Pending Hire
+                    {actionLoading[job.id]?.cancelPending ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Canceling</> : "Cancel Pending Hire"}
                 </button>
             )}
             {activeTab === 'workingOn' && job.expired && (
                 <button 
+                    disabled={actionLoading[job.id]?.cancelHire}
                     onClick={() => handleCancelHire(job.id)}
-                    className="text-xs font-bold text-red-600 dark:text-red-400 hover:underline"
+                    className="text-xs font-bold text-red-600 dark:text-red-400 hover:underline flex items-center"
                 >
-                    Cancel Hire
+                    {actionLoading[job.id]?.cancelHire ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Canceling</> : "Cancel Hire"}
                 </button>
             )}
             {activeTab === 'paymentWaiting' && (
-                <button 
-                    onClick={() => handlePayFreelancer(job.id)}
-                    className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
-                >
-                    Pay Freelancer
-                </button>
+                <div className="flex gap-2">
+                    <button 
+                        disabled={actionLoading[job.id]?.pay}
+                        onClick={() => handlePayFreelancer(job.id)}
+                        className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center"
+                    >
+                        {actionLoading[job.id]?.pay ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Paying</> : "Pay Freelancer"}
+                    </button>
+                    <button 
+                        onClick={() => handleOpenDisputeModal(job.id)}
+                        className="text-xs font-bold text-red-600 dark:text-red-400 hover:underline"
+                    >
+                        Raise Dispute
+                    </button>
+                </div>
             )}
             <a href={`/jobs/${job.id}`} className="text-xs font-bold text-slate-600 dark:text-slate-400 hover:underline">Details</a>
         </div>
@@ -454,6 +490,79 @@ export default function EmployerDashboard() {
                     )}
                 </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dispute Modal */}
+      {disputeModal.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-md w-full border border-slate-100 dark:border-slate-800 shadow-2xl">
+            <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-4">Raise Dispute</h3>
+            <p className="text-slate-500 dark:text-slate-400 mb-6 font-medium">
+              A dispute will be initiated for this job. You need to pay the VRF fee for verifier selection.
+            </p>
+            
+            {disputeModal.loading ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Reason</label>
+                  <input 
+                    type="text" 
+                    value={disputeModal.reason}
+                    onChange={(e) => setDisputeModal({...disputeModal, reason: e.target.value})}
+                    placeholder="Short reason"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Details (Optional)</label>
+                  <textarea 
+                    value={disputeModal.details}
+                    onChange={(e) => setDisputeModal({...disputeModal, details: e.target.value})}
+                    placeholder="Provide more information..."
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-h-[100px]"
+                  ></textarea>
+                </div>
+
+                <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-bold text-slate-600 dark:text-slate-400">Fee (Native ETH)</span>
+                    <span className="text-sm font-black text-slate-900 dark:text-white">{ethers.formatEther(disputeModal.feeEth)} ETH</span>
+                  </div>
+                  <button 
+                    onClick={() => handleRaiseDispute(false)}
+                    className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all"
+                  >
+                    Pay with ETH
+                  </button>
+                </div>
+                
+                <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-bold text-slate-600 dark:text-slate-400">Fee (LINK Token)</span>
+                    <span className="text-sm font-black text-slate-900 dark:text-white">{ethers.formatEther(disputeModal.feeLink)} LINK</span>
+                  </div>
+                  <button 
+                    onClick={() => handleRaiseDispute(true)}
+                    className="w-full py-3 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all"
+                  >
+                    Pay with LINK
+                  </button>
+                </div>
+                
+                <button 
+                  onClick={() => setDisputeModal({ ...disputeModal, show: false })}
+                  className="w-full py-3 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 text-xs font-bold uppercase tracking-widest"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -4,6 +4,7 @@ import React, {useState, useEffect} from "react";
 import axios from "axios";
 import {register_freelancer} from "@/services/freelancers.service";
 import {register_verifier, get_categories} from "@/services/verifiers.service";
+import {ethers} from "ethers";
 import {
     ShieldCheck,
     User,
@@ -56,7 +57,6 @@ export default function AdminVerifyPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [categories, setCategories] = useState([]);
-    const [initialLevel, setInitialLevel] = useState(1);
     const [selectedCategory, setSelectedCategory] = useState("");
 
     const fetchCategories = async () => {
@@ -83,16 +83,16 @@ export default function AdminVerifyPage() {
             try {
                 let success = true;
                 if (user.role === 'freelancer') {
-                    // For freelancer, we need address and initial level.
+                    // For freelancer, we need address.
                     // User address is in user.address.
-                    success = await register_freelancer(user.address, initialLevel, user.id);
+                    success = await register_freelancer(user.address);
                 } else if (user.role === 'verifier') {
                     // For verifier, map selected category (string) to its index (uint16) on-chain
                     const catId = categories.findIndex((c) => c === selectedCategory);
                     if (catId === -1) {
                         throw new Error("Selected category not found in on-chain categories");
                     }
-                    success = await register_verifier(user.address, BigInt(catId), user.id);
+                    success = await register_verifier(user.address, catId, user.id);
                 }
                 if (!success) throw new Error("Failed to register verifier.");
                 // For other roles, just hit the backend
@@ -122,7 +122,6 @@ export default function AdminVerifyPage() {
 
     const openIdPreview = (user) => {
         setSelectedUser(user);
-        setInitialLevel(1);
         if (categories.length > 0) {
             setSelectedCategory(categories[0]);
         }
@@ -420,20 +419,6 @@ export default function AdminVerifyPage() {
                                                 className="font-bold text-slate-700 dark:text-slate-300">{selectedUser.uploadedAt}</div>
                                         </div>
                                     </div>
-
-                                    {selectedUser.role === 'freelancer' && (
-                                        <div>
-                                            <label
-                                                className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Initial Level</label>
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                                value={initialLevel}
-                                                onChange={(e) => setInitialLevel(parseInt(e.target.value) || 1)}
-                                            />
-                                        </div>
-                                    )}
 
                                     {selectedUser.role === 'verifier' && (
                                         <div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Scale, 
   Shield, 
@@ -15,369 +15,290 @@ import {
   XCircle,
   AlertTriangle,
   Info,
-  History
+  History,
+  AlertCircle,
+  Gavel,
+  Briefcase
 } from "lucide-react";
+import { get_disputes } from "@/services/disputes.service";
+import { get_categories } from "@/services/verifiers.service";
+import { ethers } from "ethers";
 
 export default function DisputeHistoryPage() {
-  // Mock resolved disputes data
-  const [disputes] = useState([
-    {
-      id: "DISP-2025-001",
-      jobId: "JOB-2024-892",
-      jobTitle: "E-commerce Smart Contract Audit",
-      parties: {
-        employer: "0x1234...5678",
-        freelancer: "0x8765...4321"
-      },
-      stakes: {
-        employer: 500,
-        freelancer: 500,
-        currency: "RP"
-      },
-      result: {
-        score: 72, // Above 50, freelancer wins
-        winner: "Freelancer",
-        totalReward: 850, // Reward in RP tokens distributed to winner/verifiers
-        resolutionTime: "4 days"
-      },
-      verifiers: [
-        { address: "0xAAAA...1111", score: 80 },
-        { address: "0xBBBB...2222", score: 65 },
-        { address: "0xCCCC...3333", score: 71 }
-      ],
-      resolvedAt: "2025-01-15"
-    },
-    {
-      id: "DISP-2025-002",
-      jobId: "JOB-2024-905",
-      jobTitle: "React Native UI Implementation",
-      parties: {
-        employer: "0x2233...4455",
-        freelancer: "0x5544...3322"
-      },
-      stakes: {
-        employer: 300,
-        freelancer: 300,
-        currency: "RP"
-      },
-      result: {
-        score: 35, // Below 50, employer wins
-        winner: "Employer",
-        totalReward: 520,
-        resolutionTime: "2 days"
-      },
-      verifiers: [
-        { address: "0xDDDD...4444", score: 40 },
-        { address: "0xEEEE...5555", score: 30 }
-      ],
-      resolvedAt: "2025-01-18"
-    },
-    {
-      id: "DISP-2025-003",
-      jobId: "JOB-2024-918",
-      jobTitle: "DAO Governance Module",
-      parties: {
-        employer: "0x9988...7766",
-        freelancer: "0x6677...8899"
-      },
-      stakes: {
-        employer: 1000,
-        freelancer: 1000,
-        currency: "RP"
-      },
-      result: {
-        score: 55,
-        winner: "Freelancer",
-        totalReward: 1700,
-        resolutionTime: "7 days"
-      },
-      verifiers: [
-        { address: "0xFFFF...0000", score: 60 },
-        { address: "0x1111...AAAA", score: 50 },
-        { address: "0x2222...BBBB", score: 55 }
-      ],
-      resolvedAt: "2025-01-22"
-    }
-  ]);
-
+  const [disputes, setDisputes] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
 
-  const filteredDisputes = disputes.filter(d => 
-    d.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    d.jobTitle.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      try {
+        const [disputesData, categoriesData] = await Promise.all([
+          get_disputes(),
+          get_categories()
+        ]);
+        setDisputes(disputesData || []);
+        setCategories(categoriesData || []);
+      } catch (error) {
+        console.error("Failed to fetch disputes data:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  const getStatusInfo = (status, open_for_dispute) => {
+    if (open_for_dispute) {
+      return {
+        label: "In Progress",
+        color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800",
+        icon: <Clock className="w-3.5 h-3.5 mr-1" />
+      };
+    }
+    
+    switch(status) {
+      case 0: // PENDING (but open_for_dispute is false, means finalized or not yet selected)
+         return {
+            label: "Pending Selection",
+            color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800",
+            icon: <Users className="w-3.5 h-3.5 mr-1" />
+         };
+      case 1: // FREELANCER_WIN
+        return {
+          label: "Freelancer Win",
+          color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
+          icon: <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+        };
+      case 2: // CLIENT_WIN
+        return {
+          label: "Client Win",
+          color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800",
+          icon: <XCircle className="w-3.5 h-3.5 mr-1" />
+        };
+      default:
+        return {
+          label: "Closed",
+          color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400",
+          icon: <Info className="w-3.5 h-3.5 mr-1" />
+        };
+    }
+  };
+
+  const filteredDisputes = disputes.filter(d => {
+    const matchesSearch = (d.job_id?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         d.job_title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         d.reason?.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    if (filterStatus === "all") return matchesSearch;
+    if (filterStatus === "active") return matchesSearch && d.open_for_dispute;
+    if (filterStatus === "resolved") return matchesSearch && !d.open_for_dispute && d.status !== 0;
+    
+    return matchesSearch;
+  });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950/50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950/50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         
-        {/* Header & Intro */}
-        <div className="mb-10 text-center md:text-left flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
           <div>
-            <h1 className="text-4xl font-black text-slate-900 dark:text-white flex items-center justify-center md:justify-start">
+            <h1 className="text-4xl font-black text-slate-900 dark:text-white flex items-center tracking-tight">
               <Scale className="w-10 h-10 mr-4 text-indigo-600" />
-              Dispute Resolution Registry
+              Dispute Resolution Center
             </h1>
-            <p className="mt-2 text-slate-500 dark:text-slate-400 max-w-2xl">
-              A transparent, decentralized log of all resolved conflicts within the REP TOKEN ecosystem. 
-              Only public data is shown to maintain protocol integrity and user privacy.
+            <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg font-medium">
+              Transparent, decentralized justice for the <span className="text-indigo-600 dark:text-indigo-400 font-bold">REP TOKEN</span> ecosystem.
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="Search Dispute ID or Job..." 
-                className="pl-10 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-64"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <button className="flex items-center justify-center px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-              <Filter className="w-4 h-4 mr-2" />
-              Filter
-            </button>
+          <div className="flex items-center space-x-3">
+             <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 text-center min-w-[120px]">
+                <p className="text-[10px] uppercase font-bold text-slate-400 mb-1 tracking-widest">Total Cases</p>
+                <p className="text-2xl font-black text-slate-900 dark:text-white">{disputes.length}</p>
+             </div>
+             <div className="bg-indigo-600 p-4 rounded-2xl shadow-lg shadow-indigo-200 dark:shadow-none text-center min-w-[120px] text-white">
+                <p className="text-[10px] uppercase font-bold text-indigo-200 mb-1 tracking-widest">Active Cases</p>
+                <p className="text-2xl font-black">{disputes.filter(d => d.open_for_dispute).length}</p>
+             </div>
           </div>
         </div>
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Resolved</p>
-              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-            </div>
-            <p className="text-3xl font-black text-slate-900 dark:text-white">1,284</p>
-            <p className="text-xs text-slate-500 mt-1">Global platform history</p>
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm mb-8 flex flex-col md:flex-row gap-4 items-center">
+          <div className="relative flex-grow w-full">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input 
+              type="text" 
+              placeholder="Search by Job ID, Title, or Reason..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-2xl pl-12 pr-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+            />
           </div>
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Distributed Rewards</p>
-              <Coins className="w-5 h-5 text-indigo-500" />
-            </div>
-            <p className="text-3xl font-black text-slate-900 dark:text-white">425.8k <span className="text-lg font-medium">RP</span></p>
-            <p className="text-xs text-slate-500 mt-1">To winners and verifiers</p>
-          </div>
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Avg. Resolution Time</p>
-              <Clock className="w-5 h-5 text-amber-500" />
-            </div>
-            <p className="text-3xl font-black text-slate-900 dark:text-white">3.4 Days</p>
-            <p className="text-xs text-slate-500 mt-1">Protocol efficiency rating</p>
+          <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+             {["all", "active", "resolved"].map((status) => (
+               <button
+                 key={status}
+                 onClick={() => setFilterStatus(status)}
+                 className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
+                   filterStatus === status 
+                   ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-lg" 
+                   : "bg-slate-50 dark:bg-slate-800 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"
+                 }`}
+               >
+                 {status}
+               </button>
+             ))}
           </div>
         </div>
 
-        {/* Disputes List */}
-        <div className="space-y-8">
-          {filteredDisputes.map((dispute) => (
-            <div key={dispute.id} className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-              
-              {/* Card Header */}
-              <div className="px-8 py-6 border-b border-slate-50 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className={`p-3 rounded-2xl ${dispute.result.score >= 50 ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'}`}>
-                    <Scale className="w-6 h-6" />
+        <div className="space-y-6">
+          {filteredDisputes.length > 0 ? (
+            filteredDisputes.map((dispute) => {
+              const statusInfo = getStatusInfo(dispute.status, dispute.open_for_dispute);
+              return (
+                <div key={dispute.job_id} className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
+                    <History className="w-24 h-24" />
                   </div>
-                  <div>
-                    <h3 className="font-black text-slate-900 dark:text-white text-lg leading-none">{dispute.id}</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{dispute.jobTitle}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest ${dispute.result.score >= 50 ? 'bg-indigo-600 text-white' : 'bg-emerald-600 text-white'}`}>
-                    Winner: {dispute.result.winner}
-                  </span>
-                  <span className="text-xs font-bold text-slate-400">Resolved {dispute.resolvedAt}</span>
-                </div>
-              </div>
-
-              <div className="p-8">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
                   
-                  {/* Left: Score & Result Analysis */}
-                  <div className="lg:col-span-4 space-y-8">
-                    <div>
-                      <h4 className="text-sm font-black text-slate-900 dark:text-white mb-4 flex items-center">
-                        Resolution Score
-                        <Info className="w-4 h-4 ml-2 text-slate-400 cursor-help" />
-                      </h4>
-                      <div className="relative pt-2">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-tighter">0 (Employer Win)</span>
-                          <span className="text-2xl font-black text-slate-900 dark:text-white">{dispute.result.score}/100</span>
-                          <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-tighter">100 (Freelancer Win)</span>
-                        </div>
-                        <div className="h-4 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden relative">
-                          <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-slate-300 dark:bg-slate-600 z-10"></div>
-                          <div 
-                            className={`h-full transition-all duration-1000 ${dispute.result.score >= 50 ? 'bg-indigo-500' : 'bg-emerald-500'}`}
-                            style={{ width: `${dispute.result.score}%` }}
-                          ></div>
-                        </div>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-3 italic text-center">
-                          A score of 50 indicates an equal split. Above 50 favors the Freelancer.
+                  <div className="flex flex-col lg:flex-row justify-between gap-8">
+                    <div className="flex-grow space-y-4">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${statusInfo.color} flex items-center`}>
+                          {statusInfo.icon}
+                          {statusInfo.label}
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-400 tracking-widest bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded">
+                          JOB ID: {dispute.job_id.slice(0, 10)}...
+                        </span>
+                        <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 tracking-widest uppercase">
+                          {categories[dispute.category] || "General"} Category
+                        </span>
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 transition-colors">
+                          {dispute.job_title}
+                        </h3>
+                        <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">
+                          {dispute.reason}
                         </p>
                       </div>
-                    </div>
 
-                    <div className="grid grid-cols-2 gap-4 pt-4">
-                      <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                        <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Total Reward</p>
-                        <p className="text-xl font-black text-slate-900 dark:text-white">{dispute.result.totalReward} RP</p>
-                      </div>
-                      <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                        <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Time to Resolve</p>
-                        <p className="text-xl font-black text-slate-900 dark:text-white">{dispute.result.resolutionTime}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Middle: Parties & Stakes */}
-                  <div className="lg:col-span-3 space-y-6">
-                    <h4 className="text-sm font-black text-slate-900 dark:text-white mb-4 flex items-center">
-                      Parties Involved
-                    </h4>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                        <div className="flex items-center">
-                          <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 mr-3">
-                            <Users className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase">Employer</p>
-                            <code className="text-xs text-slate-700 dark:text-slate-300">{dispute.parties.employer}</code>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs font-black text-slate-900 dark:text-white">{dispute.stakes.employer} RP</p>
-                          <p className="text-[9px] text-slate-400 font-bold uppercase">Staked</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                        <div className="flex items-center">
-                          <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 mr-3">
-                            <Briefcase className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase">Freelancer</p>
-                            <code className="text-xs text-slate-700 dark:text-slate-300">{dispute.parties.freelancer}</code>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs font-black text-slate-900 dark:text-white">{dispute.stakes.freelancer} RP</p>
-                          <p className="text-[9px] text-slate-400 font-bold uppercase">Staked</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/10 rounded-2xl border border-amber-100 dark:border-amber-900/30">
-                      <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed font-medium">
-                        <AlertTriangle className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5" />
-                        Tokens were locked in escrow during the dispute period. Staked amounts reflect the user's commitment to their case.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Right: Verifiers */}
-                  <div className="lg:col-span-5 space-y-4">
-                    <h4 className="text-sm font-black text-slate-900 dark:text-white mb-4 flex items-center justify-between">
-                      Verifier Assessments ({dispute.verifiers.length})
-                      <span className="text-[10px] font-bold text-slate-400 flex items-center">
-                        <Shield className="w-3 h-3 mr-1" />
-                        Anonymous Participation
-                      </span>
-                    </h4>
-                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-800 p-4">
-                      <div className="space-y-3">
-                        {dispute.verifiers.map((verifier, idx) => (
-                          <div key={idx} className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-50 dark:border-slate-800 shadow-sm">
-                            <div className="flex items-center">
-                              <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 mr-3">
-                                {idx + 1}
-                              </div>
-                              <code className="text-xs text-slate-600 dark:text-slate-400">{verifier.address}</code>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-4">
+                         <div>
+                            <p className="text-[10px] uppercase font-bold text-slate-400 mb-1 tracking-widest">Budget</p>
+                            <p className="text-sm font-black text-slate-700 dark:text-slate-300">
+                               {ethers.formatUnits(dispute.job_amount || 0, 18)} USDC
+                            </p>
+                         </div>
+                         <div>
+                            <p className="text-[10px] uppercase font-bold text-slate-400 mb-1 tracking-widest">Issuer</p>
+                            <p className="text-sm font-black text-slate-700 dark:text-slate-300 truncate w-32">
+                               {dispute.issuer_email}
+                            </p>
+                         </div>
+                         <div>
+                            <p className="text-[10px] uppercase font-bold text-slate-400 mb-1 tracking-widest">Verifiers</p>
+                            <div className="flex items-center text-sm font-black text-slate-700 dark:text-slate-300">
+                               <Users className="w-4 h-4 mr-2 text-indigo-500" />
+                               {dispute.chosen_verifiers_count} Assigned
                             </div>
-                            <div className="flex items-center gap-4">
-                              <div className="text-right">
-                                <p className="text-sm font-black text-slate-900 dark:text-white">{verifier.score}</p>
-                                <p className="text-[8px] font-bold text-slate-400 uppercase">Assessment</p>
-                              </div>
-                              <div className={`w-2 h-2 rounded-full ${verifier.score >= 50 ? 'bg-indigo-500' : 'bg-emerald-500'}`}></div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-4 flex items-center justify-center gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest pt-2 border-t border-slate-100 dark:border-slate-800">
-                        <a href="#" className="flex items-center hover:text-indigo-600 transition-colors">
-                          View Protocol Proof <ExternalLink className="w-3 h-3 ml-1.5" />
-                        </a>
+                         </div>
+                         <div>
+                            <p className="text-[10px] uppercase font-bold text-slate-400 mb-1 tracking-widest">Created</p>
+                            <p className="text-sm font-black text-slate-700 dark:text-slate-300">
+                               {new Date(dispute.created_at).toLocaleDateString()}
+                            </p>
+                         </div>
                       </div>
                     </div>
+
+                    <div className="shrink-0 flex flex-col justify-between border-l border-slate-50 dark:border-slate-800 pl-0 lg:pl-8">
+                       <div className="space-y-4">
+                          {!dispute.open_for_dispute && dispute.status !== 0 && (
+                            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                               <div className="flex items-center justify-between mb-2">
+                                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Final Score</p>
+                                  <div className={`text-xs font-black ${dispute.score >= 50 ? 'text-emerald-500' : 'text-indigo-500'}`}>
+                                     {dispute.score}%
+                                  </div>
+                               </div>
+                               <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                                  <div 
+                                    className={`h-full ${dispute.score >= 50 ? 'bg-emerald-500' : 'bg-indigo-500'}`} 
+                                    style={{ width: `${dispute.score}%` }}
+                                  ></div>
+                               </div>
+                            </div>
+                          )}
+                       </div>
+                       
+                       <a 
+                         href={`/dispute?jobId=${dispute.job_id}`}
+                         className="flex items-center justify-center px-6 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-indigo-200 dark:shadow-none transition-all mt-4"
+                       >
+                         View Details <ChevronRight className="w-4 h-4 ml-2" />
+                       </a>
+                    </div>
                   </div>
-
                 </div>
-              </div>
-
-              {/* Action Bar */}
-              <div className="px-8 py-4 bg-slate-50/50 dark:bg-slate-900/50 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between">
-                <div className="flex items-center text-xs text-slate-500 font-medium">
-                  <History className="w-4 h-4 mr-2" />
-                  Archived Job Link: <a href={`/jobs/${dispute.jobId}`} className="ml-1 text-indigo-600 hover:underline font-bold">{dispute.jobId}</a>
-                </div>
-                <button className="text-xs font-black text-slate-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center transition-colors">
-                  Details <ChevronRight className="w-4 h-4 ml-1" />
-                </button>
-              </div>
-
+              );
+            })
+          ) : (
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-20 border border-slate-100 dark:border-slate-800 text-center">
+               <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Scale className="w-10 h-10 text-slate-300" />
+               </div>
+               <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No disputes found</h3>
+               <p className="text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                 There are no disputes matching your search or filter criteria at the moment.
+               </p>
             </div>
-          ))}
+          )}
         </div>
 
-        {/* Footer info */}
-        <div className="mt-12 p-8 bg-indigo-600 rounded-[2rem] text-white overflow-hidden relative shadow-xl shadow-indigo-200 dark:shadow-none">
-          <div className="absolute right-0 bottom-0 opacity-10">
-            <Scale className="w-64 h-64 translate-x-16 translate-y-16" />
-          </div>
-          <div className="relative z-10 max-w-2xl">
-            <h2 className="text-2xl font-black mb-4">Commitment to Decentralized Justice</h2>
-            <p className="text-indigo-100 leading-relaxed mb-6">
-              Our dispute resolution protocol ensures that every conflict is assessed by independent, community-staked verifiers. 
-              Decisions are transparent, verifiable on-chain, and weighted by the reputation of the participants.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <button className="px-6 py-3 bg-white text-indigo-600 rounded-2xl font-bold hover:bg-indigo-50 transition-colors shadow-lg">
-                Resolution Whitepaper
-              </button>
-              <button className="px-6 py-3 bg-indigo-500 text-white border border-indigo-400 rounded-2xl font-bold hover:bg-indigo-400 transition-colors">
-                Become a Verifier
-              </button>
-            </div>
-          </div>
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
+           <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center shrink-0">
+                 <Shield className="w-6 h-6 text-indigo-600" />
+              </div>
+              <div>
+                 <h4 className="font-bold text-slate-900 dark:text-white mb-1">Verifiable Justice</h4>
+                 <p className="text-xs text-slate-500">Every decision is backed by multiple independent verifiers and recorded on-chain.</p>
+              </div>
+           </div>
+           <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center shrink-0">
+                 <Coins className="w-6 h-6 text-emerald-600" />
+              </div>
+              <div>
+                 <h4 className="font-bold text-slate-900 dark:text-white mb-1">Staking Security</h4>
+                 <p className="text-xs text-slate-500">Economic incentives ensure verifiers provide honest and high-quality assessments.</p>
+              </div>
+           </div>
+           <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center shrink-0">
+                 <AlertTriangle className="w-6 h-6 text-amber-600" />
+              </div>
+              <div>
+                 <h4 className="font-bold text-slate-900 dark:text-white mb-1">Time-Locked Process</h4>
+                 <p className="text-xs text-slate-500">Strict deadlines for submission and reveal ensure timely resolution of all cases.</p>
+              </div>
+           </div>
         </div>
 
       </div>
     </div>
-  );
-}
-
-// Sub-component for icons that were missing
-function Briefcase(props) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-      <rect width="20" height="14" x="2" y="6" rx="2" />
-    </svg>
   );
 }

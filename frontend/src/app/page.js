@@ -1,3 +1,4 @@
+"use client";
 import React from "react";
 import { 
   Shield, 
@@ -36,10 +37,10 @@ export default function Home() {
               Connect with top global talent or find your next project. Pay securely with stablecoins and earn reputation tokens that prove your expertise.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-              <button className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold text-lg shadow-lg shadow-indigo-200 dark:shadow-none transition-all flex items-center justify-center group">
+              <button onClick={() => window.location.href='/freelancers'} className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold text-lg shadow-lg shadow-indigo-200 dark:shadow-none transition-all flex items-center justify-center group">
                 Find Talent <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
-              <button className="w-full sm:w-auto px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-full font-bold text-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
+              <button onClick={() => window.location.href='/jobs'} className="w-full sm:w-auto px-8 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-full font-bold text-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
                 Browse Projects
               </button>
             </div>
@@ -226,7 +227,7 @@ export default function Home() {
                 <span className="font-medium">Stake-based Trust</span>
               </div>
             </div>
-            <button className="mt-12 px-8 py-4 bg-white text-indigo-600 rounded-full font-bold text-lg hover:bg-indigo-50 transition-all">
+            <button onClick={() => window.location.href='/verifier'} className="mt-12 px-8 py-4 bg-white text-indigo-600 rounded-full font-bold text-lg hover:bg-indigo-50 transition-all">
               Become a Verifier
             </button>
           </div>
@@ -241,9 +242,9 @@ export default function Home() {
               <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-white rounded-full blur-[120px]"></div>
             </div>
             <h2 className="text-3xl md:text-5xl font-bold text-white mb-8 relative z-10">Ready to start your decentralized career?</h2>
-            <p className="text-indigo-200 text-xl mb-12 max-w-2xl mx-auto relative z-10">Join thousands of freelancers and employers who are already building the future of work.</p>
+            <p className="text-indigo-200 text-xl mb-12 max-w-2xl mx-auto relative z-10">Sign up with thousands of freelancers and employers who are already building the future of work.</p>
             <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4 relative z-10">
-              <button className="w-full sm:w-auto px-10 py-5 bg-white text-slate-900 rounded-full font-bold text-xl hover:bg-indigo-50 transition-all">
+              <button onClick={() => window.location.href='/register'} className="w-full sm:w-auto px-10 py-5 bg-white text-slate-900 rounded-full font-bold text-xl hover:bg-indigo-50 transition-all">
                 Get Started Now
               </button>
               <button className="w-full sm:w-auto px-10 py-5 bg-transparent border-2 border-white/30 text-white rounded-full font-bold text-xl hover:bg-white/10 transition-all">

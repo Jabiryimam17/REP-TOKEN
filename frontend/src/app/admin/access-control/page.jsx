@@ -3,16 +3,18 @@
 import React, { useState, useEffect } from 'react';
 import compose_selectors from '@/services/compose_selectors.service';
 import { ethers } from 'ethers';
-import amh, { assign_addresses } from "../../../services/amh.service.js"
-import { add_roles, get_roles } from "../../../services/roles.service.js"
+import amh, { assign_addresses, roles_admin_guardian_delay, get_roles_assignments } from "@/services/amh.service.js"
+import { add_roles, get_roles } from "@/services/roles.service.js"
+import { ChevronDown, ChevronUp } from "lucide-react";
 
-const RoleAddressAssignment = ({ roles, addressAssignments, setAddressAssignments }) => {
+const RoleAddressAssignment = ({ roles, addressAssignments, setAddressAssignments, existingAssignments }) => {
   const [newAddress, setNewAddress] = useState({
     address: '',
     delay: 0,
     roleId: ''
   });
   const [error, setError] = useState('');
+  const [showExisting, setShowExisting] = useState(false);
 
   const handleAddAssignment = () => {
     if (!newAddress.address || !newAddress.roleId) {
@@ -28,10 +30,22 @@ const RoleAddressAssignment = ({ roles, addressAssignments, setAddressAssignment
     const updated = { ...addressAssignments };
     if (!updated[newAddress.roleId]) updated[newAddress.roleId] = [];
     
-    // Check for duplicates
+    // Check if assignment exists in current session
     if (updated[newAddress.roleId].some(a => a.address.toLowerCase() === newAddress.address.toLowerCase())) {
-      setError('Address already assigned to this role');
+      setError('Address already assigned to this role in current session');
       return;
+    }
+
+    // Check if assignment already exists on-chain/backend
+    const alreadyExists = (existingAssignments || []).some(
+      ea => ea.role_id.toString() === newAddress.roleId.toString() && 
+            ea.account_address.toLowerCase() === newAddress.address.toLowerCase()
+    );
+
+    if (alreadyExists) {
+      if (!confirm('This address is already assigned to this role. Add anyway?')) {
+        return;
+      }
     }
 
     updated[newAddress.roleId] = [...updated[newAddress.roleId], { 
@@ -51,6 +65,43 @@ const RoleAddressAssignment = ({ roles, addressAssignments, setAddressAssignment
 
   return (
     <div className="space-y-8">
+      {/* Existing Assignments Toggle */}
+      {existingAssignments && existingAssignments.length > 0 && (
+        <div className="bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <button 
+            onClick={() => setShowExisting(!showExisting)}
+            className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <span className="font-bold">Existing Role Assignments</span>
+              <span className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded text-xs">
+                {existingAssignments.length}
+              </span>
+            </div>
+            {showExisting ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+          </button>
+          
+          {showExisting && (
+            <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {existingAssignments.map((assignment, idx) => {
+                  const role = roles.find(r => r.id.toString() === assignment.role_id.toString());
+                  return (
+                    <div key={idx} className="p-3 border border-slate-100 dark:border-slate-800 rounded-lg bg-slate-50/50 dark:bg-slate-900/50 text-xs">
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="font-bold text-indigo-600 dark:text-indigo-400">{role ? role.name : `Role ${assignment.role_id}`}</span>
+                        <span className="text-slate-400 font-mono">ID: {assignment.role_id}</span>
+                      </div>
+                      <div className="font-mono truncate mb-1" title={assignment.account_address}>{assignment.account_address}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <div>
         <h2 className="text-2xl font-bold mb-4">4. Assign Addresses to Roles</h2>
         <p className="text-slate-500 dark:text-slate-400 mb-6">
@@ -499,11 +550,14 @@ export default function AccessControlPage() {
   const [discoveredFunctions, setDiscoveredFunctions] = useState({});
   const [roles, setRoles] = useState([]);
   const [onChainRoles, setOnChainRoles] = useState([]);
+  const [existingAssignments, setExistingAssignments] = useState([]);
   const [roleAssignments, setRoleAssignments] = useState({});
   const [addressAssignments, setAddressAssignments] = useState({});
   const [loading, setLoading] = useState(true);
+  const [fetchingGovernance, setFetchingGovernance] = useState(false);
   const [isRegisteringRoles, setIsRegisteringRoles] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fundAmountGwei, setFundAmountGwei] = useState('1000000'); // Default to 1M Gwei (0.001 ETH)
 
   const handleNext = async () => {
     if (step === 1) {
@@ -514,17 +568,43 @@ export default function AccessControlPage() {
       
       setIsRegisteringRoles(true);
       try {
-        const rolesToRegister = roles.map(r => ({
-          name: r.label,
-          id: BigInt(r.role_id)
-        }));
-        await add_roles(rolesToRegister);
+        const rolesToRegister = roles
+          .filter(r => !r.isExisting && r.role_id !== '0')
+          .map(r => ({
+            name: r.label,
+            id: BigInt(r.role_id)
+          }));
+        
+        if (rolesToRegister.length > 0) {
+          await add_roles(rolesToRegister);
+        }
+        
+        // Fetch governance info for all roles
+        setFetchingGovernance(true);
+        const roleIds = roles.map(r => BigInt(r.role_id));
+        const governance = await roles_admin_guardian_delay(roleIds);
+        
+        const updatedRoles = roles.map(r => {
+          const adminInfo = governance.roles_admins.find(a => a.id.toString() === r.role_id);
+          const guardianInfo = governance.roles_guardians.find(g => g.id.toString() === r.role_id);
+          const delayInfo = governance.roles_delays.find(d => d.id.toString() === r.role_id);
+          
+          return {
+            ...r,
+            role_admin: adminInfo ? adminInfo.admin : r.role_admin,
+            role_guardian: guardianInfo ? guardianInfo.guardian : r.role_guardian,
+            grant_delay: delayInfo ? parseInt(delayInfo.delay) : r.grant_delay
+          };
+        });
+        setRoles(updatedRoles);
+        
         setStep(2);
       } catch (error) {
-        console.error("Failed to register roles in Registry:", error);
-        alert("Error registering roles: " + (error.reason || error.message));
+        console.error("Failed to register/fetch roles info:", error);
+        alert("Error processing roles: " + (error.reason || error.message));
       } finally {
         setIsRegisteringRoles(false);
+        setFetchingGovernance(false);
       }
     } else if (step === 2) {
       const incomplete = roles.some(r => r.role_admin === '' || r.role_guardian === '');
@@ -538,6 +618,10 @@ export default function AccessControlPage() {
         try {
             const fetchedRoles = await get_roles();
             setOnChainRoles(fetchedRoles);
+            
+            const assignments = await get_roles_assignments();
+            setExistingAssignments(assignments || []);
+            
             setStep(4);
         } catch (error) {
             console.error("Failed to fetch roles from chain:", error);
@@ -584,7 +668,7 @@ export default function AccessControlPage() {
     });
 
     try {
-      await amh(formatted_roles);
+      await amh(formatted_roles, fundAmountGwei);
       
       // Now assign addresses if any
       const assignmentInput = Object.entries(addressAssignments).map(([roleId, accounts]) => ({
@@ -596,7 +680,7 @@ export default function AccessControlPage() {
       }));
 
       if (assignmentInput.length > 0) {
-        await assign_addresses(assignmentInput);
+        await assign_addresses(assignmentInput, fundAmountGwei);
       }
 
       alert("Access control configuration and address assignments submitted successfully!");
@@ -611,6 +695,21 @@ export default function AccessControlPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoading(true);
+        // Fetch existing roles from Registry
+        const fetchedRoles = await get_roles();
+        if (fetchedRoles && fetchedRoles.length > 0) {
+          const mappedRoles = fetchedRoles.map(r => ({
+            label: r.name,
+            role_id: r.id.toString(),
+            role_admin: '', // These will be configured in Step 2 if not fetched
+            role_guardian: '',
+            grant_delay: 0,
+            isExisting: true // Flag to identify roles already on-chain
+          })).filter(r => r.role_id !== '0'); // Filter out GLOBAL_ADMIN (ID: 0) as it's handled as default option
+          setRoles(mappedRoles);
+        }
+
         // Since compose_selectors might not work perfectly in client-side due to top-level await in compose_contracts
         // We'll try to call it, but have a fallback or warning
         const selectors = await compose_selectors();
@@ -623,7 +722,7 @@ export default function AccessControlPage() {
 
         setDiscoveredFunctions(normalized);
       } catch (error) {
-        console.error("Error fetching selectors:", error);
+        console.error("Error fetching initial data:", error);
       } finally {
         setLoading(false);
       }
@@ -688,11 +787,37 @@ export default function AccessControlPage() {
           )}
 
           {step === 4 && (
-            <RoleAddressAssignment 
-              roles={onChainRoles} 
-              addressAssignments={addressAssignments}
-              setAddressAssignments={setAddressAssignments}
-            />
+            <>
+              <div className="mb-8 p-6 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/50 rounded-xl">
+                <h3 className="text-lg font-bold text-amber-800 dark:text-amber-400 mb-2">Transaction Funding</h3>
+                <p className="text-sm text-amber-700 dark:text-amber-500 mb-4">
+                  The setup process uses a temporary hot wallet to perform multiple transactions efficiently. 
+                  Specify the amount of ETH (in Gwei) to fund this temporary wallet.
+                </p>
+                <div className="flex items-center gap-4">
+                  <div className="flex-grow">
+                    <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Fund Amount (Gwei)</label>
+                    <input
+                      type="number"
+                      className="w-full p-2 rounded bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700"
+                      value={fundAmountGwei}
+                      onChange={e => setFundAmountGwei(e.target.value)}
+                      placeholder="e.g. 1000000"
+                    />
+                  </div>
+                  <div className="pt-5 text-sm text-slate-500">
+                    ≈ {(parseFloat(fundAmountGwei) / 1e9).toFixed(6)} ETH
+                  </div>
+                </div>
+              </div>
+
+              <RoleAddressAssignment 
+                roles={onChainRoles} 
+                addressAssignments={addressAssignments}
+                setAddressAssignments={setAddressAssignments}
+                existingAssignments={existingAssignments}
+              />
+            </>
           )}
         </div>
 
@@ -711,7 +836,7 @@ export default function AccessControlPage() {
               disabled={isRegisteringRoles || loading}
               className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-lg font-bold transition-all shadow-lg hover:shadow-indigo-500/30 disabled:bg-slate-400 disabled:cursor-not-allowed"
             >
-              {isRegisteringRoles ? 'Registering...' : loading ? 'Loading...' : `Next: ${step === 1 ? 'Governance' : step === 2 ? 'Functions' : 'Addresses'}`}
+              {isRegisteringRoles || fetchingGovernance ? 'Processing...' : loading ? 'Loading...' : `Next: ${step === 1 ? 'Governance' : step === 2 ? 'Functions' : 'Addresses'}`}
             </button>
           ) : (
             <button

@@ -11,7 +11,8 @@ import {
     Loader2,
     CheckCircle2,
     Database,
-    Cpu
+    Cpu,
+    Clock
 } from "lucide-react";
 import {
     get_stack_levels,
@@ -21,7 +22,9 @@ import {
     get_categories,
     add_category,
     get_slash_bps,
-    set_slash_bps
+    set_slash_bps,
+    get_deadlines,
+    update_deadlines
 } from "@/services/verifiers.service";
 import { ethers } from "ethers";
 
@@ -30,6 +33,7 @@ export default function VerifierAdminPage() {
     const [categories, setCategories] = useState([]);
     const [slashBps, setSlashBps] = useState(0);
     const [vrfConfig, setVrfConfig] = useState(null);
+    const [deadlines, setDeadlines] = useState({ sub_duration: 0n, rel_duration: 0n });
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
 
@@ -37,12 +41,14 @@ export default function VerifierAdminPage() {
     const [newStackAmount, setNewStackAmount] = useState("");
     const [newCategory, setNewCategory] = useState("");
     const [newSlashBps, setNewSlashBps] = useState("");
+    const [newDeadlines, setNewDeadlines] = useState({ sub_duration: "", rel_duration: "" });
     const [vrfForm, setVrfForm] = useState({
-        coordinator: "",
         sub_id: "",
         confs: "3",
         key_hash: "",
-        gas_limit: "500000"
+        gas_limit: "500000",
+        link_token: "",
+        vrf_wrapper: ""
     });
 
     useEffect(() => {
@@ -52,23 +58,32 @@ export default function VerifierAdminPage() {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [levels, config, fetchedCategories, fetchedSlashBps] = await Promise.all([
+            const [levels, config, fetchedCategories, fetchedSlashBps, fetchedDeadlines] = await Promise.all([
                 get_stack_levels(),
                 get_vrf_config(),
                 get_categories(),
-                get_slash_bps()
+                get_slash_bps(),
+                get_deadlines()
             ]);
             setStackLevels(levels || []);
             setCategories(fetchedCategories || []);
             setSlashBps(Number(fetchedSlashBps));
+            if (fetchedDeadlines) {
+                setDeadlines(fetchedDeadlines);
+                setNewDeadlines({
+                    sub_duration: fetchedDeadlines.sub_duration.toString(),
+                    rel_duration: fetchedDeadlines.rel_duration.toString()
+                });
+            }
             if (config) {
                 setVrfConfig(config);
                 setVrfForm({
-                    coordinator: config.coordinator,
                     sub_id: config.sub_id,
                     confs: config.confs,
                     key_hash: config.key_hash,
-                    gas_limit: config.gas_limit
+                    gas_limit: config.gas_limit,
+                    link_token: config.link_token,
+                    vrf_wrapper: config.vrf_wrapper
                 });
             }
         } catch (error) {
@@ -104,10 +119,12 @@ export default function VerifierAdminPage() {
         try {
             setActionLoading(true);
             const success = await set_up_vrf(
-                BigInt(vrfForm.sub_id),
-                parseInt(vrfForm.confs),
+                vrfForm.sub_id,
+                vrfForm.confs,
                 vrfForm.key_hash,
-                BigInt(vrfForm.gas_limit)
+                vrfForm.gas_limit,
+                vrfForm.link_token,
+                vrfForm.vrf_wrapper
             );
             if (success) {
                 alert("VRF configuration updated successfully!");
@@ -147,7 +164,7 @@ export default function VerifierAdminPage() {
         e.preventDefault();
         try {
             setActionLoading(true);
-            const success = await set_slash_bps(BigInt(newSlashBps));
+            const success = await set_slash_bps(newSlashBps);
             if (success) {
                 alert("Slash BPS updated successfully!");
                 setNewSlashBps("");
@@ -158,6 +175,28 @@ export default function VerifierAdminPage() {
         } catch (error) {
             console.error("Error updating slash BPS:", error);
             alert("Error updating slash BPS: " + error.message);
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleUpdateDeadlines = async (e) => {
+        e.preventDefault();
+        try {
+            setActionLoading(true);
+            const success = await update_deadlines(
+                newDeadlines.sub_duration,
+                newDeadlines.rel_duration
+            );
+            if (success) {
+                alert("Deadlines updated successfully!");
+                fetchData();
+            } else {
+                alert("Failed to update deadlines.");
+            }
+        } catch (error) {
+            console.error("Error updating deadlines:", error);
+            alert("Error updating deadlines: " + error.message);
         } finally {
             setActionLoading(false);
         }
@@ -197,12 +236,23 @@ export default function VerifierAdminPage() {
 
                             <form onSubmit={handleUpdateVRF} className="space-y-4">
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-400 uppercase ml-1">Coordinator Address</label>
+                                    <label className="text-xs font-bold text-slate-400 uppercase ml-1">Link Token Address</label>
                                     <input
                                         placeholder="0x..."
-                                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono"
-                                        value={vrfForm.coordinator}
-                                        readOnly
+                                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                                        value={vrfForm.link_token}
+                                        onChange={(e) => setVrfForm({...vrfForm, link_token: e.target.value})}
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase ml-1">VRF Wrapper Address</label>
+                                    <input
+                                        placeholder="0x..."
+                                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                                        value={vrfForm.vrf_wrapper}
+                                        onChange={(e) => setVrfForm({...vrfForm, vrf_wrapper: e.target.value})}
+                                        required
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -257,6 +307,57 @@ export default function VerifierAdminPage() {
                                 >
                                     {actionLoading ? <Loader2 className="w-5 h-5 animate-spin mr-2"/> : <Settings className="w-5 h-5 mr-2"/>}
                                     Update VRF Configuration
+                                </button>
+                            </form>
+                        </div>
+
+                        {/* Deadlines Configuration */}
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-100 dark:border-slate-800 shadow-sm">
+                            <div className="flex items-center mb-6">
+                                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-2xl mr-4">
+                                    <Clock className="w-6 h-6 text-blue-600" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">Deadline Durations</h3>
+                                    <p className="text-xs text-slate-400 mt-1">
+                                        Sub: {Number(deadlines.sub_duration)}s | Rel: {Number(deadlines.rel_duration)}s
+                                    </p>
+                                </div>
+                            </div>
+
+                            <form onSubmit={handleUpdateDeadlines} className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-slate-400 uppercase ml-1">Submission (s)</label>
+                                        <input
+                                            type="number"
+                                            placeholder="86400"
+                                            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                            value={newDeadlines.sub_duration}
+                                            onChange={(e) => setNewDeadlines({...newDeadlines, sub_duration: e.target.value})}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-slate-400 uppercase ml-1">Release (s)</label>
+                                        <input
+                                            type="number"
+                                            placeholder="86400"
+                                            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                            value={newDeadlines.rel_duration}
+                                            onChange={(e) => setNewDeadlines({...newDeadlines, rel_duration: e.target.value})}
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={actionLoading}
+                                    className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold transition-all shadow-lg shadow-blue-200 dark:shadow-none flex items-center justify-center disabled:opacity-50 mt-2"
+                                >
+                                    {actionLoading ? <Loader2 className="w-5 h-5 animate-spin mr-2"/> : <Settings className="w-5 h-5 mr-2"/>}
+                                    Update Deadlines
                                 </button>
                             </form>
                         </div>

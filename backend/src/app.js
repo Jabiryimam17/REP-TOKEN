@@ -3,14 +3,14 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import routes from "#routes/index.js";
-import {start_transfer_listener} from "#services/collect_events.service.js";
+import listen_all from "#services/collect_events.service.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 
 const app=express();
-start_transfer_listener();
+listen_all();
 app.use(cors({
     origin: "http://localhost:3000", // allow frontend
     credentials: true

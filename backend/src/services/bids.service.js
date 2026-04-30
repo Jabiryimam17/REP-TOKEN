@@ -1,6 +1,6 @@
 import db from '#models/index.js'
 
 export  default async (id)=>{
-
-    return [await db.query("SELECT * FROM bids as  b JOIN freelancers as f on f.user_id=b.user_id WHERE b.job_id=?", [id])];
+    const [rows] = await db.query("SELECT b.*, u.f_name, u.l_name FROM bids as b JOIN users as u ON u.id = b.user_id WHERE b.job_id=?", [id]);
+    return rows;
 }

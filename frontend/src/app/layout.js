@@ -53,10 +53,10 @@ export default function RootLayout({ children }) {
                     <div>
                       <h4 className="font-bold mb-4">Platform</h4>
                       <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
-                        <li><a href="/" className="hover:text-indigo-600">How it Works</a></li>
-                        <li><a href="/" className="hover:text-indigo-600">Reputation System</a></li>
-                        <li><a href="/" className="hover:text-indigo-600">Fees & Payments</a></li>
-                        <li><a href="/" className="hover:text-indigo-600">Dispute Resolution</a></li>
+                        <li><a href="/jobs" className="hover:text-indigo-600">Find Work</a></li>
+                        <li><a href="/freelancers" className="hover:text-indigo-600">Find Talent</a></li>
+                        <li><a href="/disputes" className="hover:text-indigo-600">Transparency</a></li>
+                        <li><a href="/verifier" className="hover:text-indigo-600">Verifier</a></li>
                       </ul>
                     </div>
                     <div>

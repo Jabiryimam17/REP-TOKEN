@@ -21,8 +21,15 @@ export async function ensure_allowance(tokenContract, spender, amountNeeded) {
 
 export async function transfer(address, amount) {
     const {rpt_contract} = await get_contracts();
+    try {
+        const tx = await rpt_contract.transfer(address, amount);
+        await tx.wait();
+        return true;
+    } catch (error) {
+        console.error("Error transferring RPT:", error);
+        return false;
+    }
 
-        return await rpt_contract.transfer(address, amount);
 }
 export async function approve(spender, amount) {
     const {rpt_contract} = await get_contracts();

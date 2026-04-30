@@ -23,6 +23,7 @@ import {
     Link as LinkIcon
 } from "lucide-react";
 import {get_job_blockchain, get_job_api, get_job_bids, post_bid_api, hire} from "@/services/jobs.service";
+import connect_wallet from "@/services/connect_wallet.service";
 import {ethers} from "ethers";
 
 const normalizeList = (val) => {
@@ -50,6 +51,7 @@ export default function JobPage() {
     const [finishingDays, setFinishingDays] = useState("");
     const [coverLetter, setCoverLetter] = useState("");
     const [profileLinks, setProfileLinks] = useState("");
+    const [freelancerAddress, setFreelancerAddress] = useState("");
     const [submitting, setSubmitting] = useState(false);
 
     const [selectedBid, setSelectedBid] = useState(null);
@@ -121,20 +123,41 @@ export default function JobPage() {
     };
 
     const handlePostProposal = async () => {
-        if (!bidAmount || !finishingDays || !coverLetter) {
-            alert("Please fill in all required fields");
+        if (!bidAmount || !finishingDays || !coverLetter || !freelancerAddress) {
+            alert("Please fill in all required fields, including your wallet address.");
             return;
         }
 
         setSubmitting(true);
         try {
+            // Address validation
+            if (!ethers.isAddress(freelancerAddress)) {
+                alert("Invalid wallet address format.");
+                setSubmitting(false);
+                return;
+            }
+
+            // Signing step to prevent mistakes
+            const { signer } = await connect_wallet();
+            const signerAddress = await signer.getAddress();
+
+            if (signerAddress.toLowerCase() !== freelancerAddress.toLowerCase()) {
+                alert(`The connected wallet (${signerAddress}) does not match the input address (${freelancerAddress}). Please use the correct wallet or update the address.`);
+                setSubmitting(false);
+                return;
+            }
+
+            const message = `I am submitting a bid for job ID: ${id}\nAmount: ${bidAmount} USDC\nFinishing Days: ${finishingDays}\nWallet: ${freelancerAddress}`;
+            await signer.signMessage(message);
+
             const bidData = {
                 id: id,
                 amount: ethers.parseUnits(bidAmount, 18).toString(),
                 finishing_days: finishingDays,
                 cover_letter: coverLetter,
                 profile_links: normalizeList(profileLinks),
-                duration: job?.blockchain?.duration || 0 // assuming duration is needed
+                freelancer_address: freelancerAddress,
+                duration: job?.blockchain?.max_duration || 0 // using max_duration
             };
 
             const success = await post_bid_api(bidData);
@@ -215,7 +238,7 @@ export default function JobPage() {
                                     </div>
                                     <div>
                                         <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase">Budget</p>
-                                        <p className="font-bold text-slate-900 dark:text-white">{job.blockchain?.amount ? ethers.formatUnits(job.blockchain.amount, 18) : job.amount} USDC</p>
+                                        <p className="font-bold text-slate-900 dark:text-white">{job.blockchain?.amount ? ethers.formatUnits(job.blockchain.amount, 18) : ethers.formatUnits(job.amount || 0, 18)} USDC</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center">
@@ -224,7 +247,7 @@ export default function JobPage() {
                                     </div>
                                     <div>
                                         <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase">Level</p>
-                                        <p className="font-bold text-slate-900 dark:text-white">{job.blockchain?.level || "N/A"}</p>
+                                        <p className="font-bold text-slate-900 dark:text-white">{job.blockchain?.verifiers_cnt ? `Level (Verifiers: ${job.blockchain.verifiers_cnt})` : "N/A"}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center">
@@ -233,7 +256,7 @@ export default function JobPage() {
                                     </div>
                                     <div>
                                         <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase">Duration</p>
-                                        <p className="font-bold text-slate-900 dark:text-white">{job.blockchain?.duration || "N/A"} Days</p>
+                                        <p className="font-bold text-slate-900 dark:text-white">{job.blockchain?.max_duration ? (parseInt(job.blockchain.max_duration) / 86400).toFixed(1) : "N/A"} Days</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center">
@@ -557,6 +580,20 @@ export default function JobPage() {
                                         placeholder="Describe how you will solve this problem..."
                                         className="w-full px-4 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                                     ></textarea>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Your Wallet Address (for payment)</label>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            value={freelancerAddress}
+                                            onChange={(e) => setFreelancerAddress(e.target.value)}
+                                            placeholder="0x..."
+                                            className="w-full px-4 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-mono"
+                                        />
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">Must match your connected wallet. You will be asked to sign a message.</p>
                                 </div>
 
                                 <div

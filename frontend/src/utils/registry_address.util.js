@@ -1,2 +1,2 @@
 
-export const registry_address="0x9E545E3C0baAB3E08CdfD552C960A1050f373042"
+export const registry_address="0x199273a89A51941238F3822b591b19C1Be041bbA"

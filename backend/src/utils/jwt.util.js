@@ -26,7 +26,7 @@ const public_key = fs.readFileSync(
 
 export function generate_token(user) {
   const pass_phrase = process.env.PRIVATE_KEY_PASSPHRASE;
-  const payload = {sub: user.id, role: user.role};
+  const payload = {sub: user.id, role: user.role, hash_address: user.hash_address};
   return jwt.sign(payload, {
     key:private_key,
     passphrase: pass_phrase,
@@ -65,5 +65,5 @@ export function remove_token_cookie(res) {
     expires: new Date(0),
     path: "/",
   });
-  return res.setHeader("Set-Cookie", cookie);
+  res.setHeader("Set-Cookie", cookie);
 }

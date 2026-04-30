@@ -1,15 +1,14 @@
 "use client";
-//TODO: add company
 import React, { useState } from "react";
-import { 
-  Briefcase, 
-  Mail, 
-  User, 
-  Tag, 
-  Layers, 
-  FileText, 
-  DollarSign, 
-  Clock, 
+import {
+  Briefcase,
+  Mail,
+  User,
+  Tag,
+  Layers,
+  FileText,
+  DollarSign,
+  Clock,
   Calendar,
   Send,
   ChevronRight,
@@ -18,12 +17,14 @@ import {
   X,
   Info,
   Globe,
-  Loader2
+  Loader2,
+  Check,
+  CheckCircle2
 } from "lucide-react";
-import { 
-  get_post_configs, 
-  post_job, 
-  calc_expense, 
+import {
+  get_post_configs,
+  post_job,
+  calc_expense,
   check_allowance
 } from "@/services/jobs.service";
 import { useEffect } from "react";
@@ -48,6 +49,8 @@ export default function PostJobPage() {
   const [currentTopic, setCurrentTopic] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [approvingEthio, setApprovingEthio] = useState(false);
+  const [approvingRPT, setApprovingRPT] = useState(false);
   const [categories, setCategories] = useState([]);
   const [levels, setLevels] = useState([]);
   const [totalExpense, setTotalExpense] = useState(0n);
@@ -97,7 +100,7 @@ export default function PostJobPage() {
 
   const handleApproveEthio = async () => {
     try {
-      setSubmitting(true);
+      setApprovingEthio(true);
       const addresses = await get_addresses();
       const amountWei = ethers.parseUnits(formData.payment, 18);
       const expense = await calc_expense(amountWei);
@@ -110,13 +113,13 @@ export default function PostJobPage() {
     } catch (error) {
       console.error("Error approving EthioCoin:", error);
     } finally {
-      setSubmitting(false);
+      setApprovingEthio(false);
     }
   };
 
   const handleApproveRPT = async () => {
     try {
-      setSubmitting(true);
+      setApprovingRPT(true);
       const addresses = await get_addresses();
       const amountWei = ethers.parseUnits(formData.payment, 18);
       const status = await check_allowance(amountWei);
@@ -131,7 +134,7 @@ export default function PostJobPage() {
     } catch (error) {
       console.error("Error approving RPT:", error);
     } finally {
-      setSubmitting(false);
+      setApprovingRPT(false);
     }
   };
 
@@ -170,8 +173,8 @@ export default function PostJobPage() {
         cat_id: parseInt(formData.category),
         description: formData.description,
         amount: ethers.parseUnits(formData.payment, 18),
-        max_duration: parseInt(formData.maxWorkDuration),
-        bid_duration: parseInt(formData.maxBiddingDuration),
+        max_duration: parseInt(formData.maxWorkDuration) * 86400,
+        bid_duration: parseInt(formData.maxBiddingDuration) * 86400,
         topics: Array.isArray(topics) ? topics : String(topics || "").split(",").map(t => t.trim()).filter(Boolean),
         skills: Array.isArray(skills) ? skills : String(skills || "").split(",").map(s => s.trim()).filter(Boolean)
       };
@@ -205,7 +208,7 @@ export default function PostJobPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950/50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         
         {/* Breadcrumbs */}
         <nav className="flex mb-8 text-sm font-medium text-slate-500 dark:text-slate-400">
@@ -214,27 +217,29 @@ export default function PostJobPage() {
           <span className="text-slate-900 dark:text-white">Post a New Job</span>
         </nav>
 
-        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl shadow-indigo-100/20 dark:shadow-none border border-slate-100 dark:border-slate-800 overflow-hidden">
-          <div className="bg-indigo-600 px-8 py-10 text-white relative overflow-hidden">
-            <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
-            <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-indigo-400/20 rounded-full blur-3xl"></div>
-            
-            <div className="relative z-10">
-              <h1 className="text-3xl font-extrabold mb-2">Create a Job Posting</h1>
-              <p className="text-indigo-100 max-w-xl">
-                Connect with the world's best blockchain talent. Define your project details and find the perfect match.
-              </p>
-            </div>
-          </div>
+        <div className="flex flex-col lg:flex-row gap-8">
+          <div className="flex-1">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl shadow-indigo-100/20 dark:shadow-none border border-slate-100 dark:border-slate-800 overflow-hidden">
+              <div className="bg-indigo-600 px-8 py-10 text-white relative overflow-hidden">
+                <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+                <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-indigo-400/20 rounded-full blur-3xl"></div>
+                
+                <div className="relative z-10">
+                  <h1 className="text-3xl font-extrabold mb-2">Create a Job Posting</h1>
+                  <p className="text-indigo-100 max-w-xl">
+                    Connect with the world's best blockchain talent. Define your project details and find the perfect match.
+                  </p>
+                </div>
+              </div>
 
-          <form onSubmit={handleSubmit} className="p-8 md:p-12 space-y-10">
-            
-            {/* Section 1: Job Title */}
-            <div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center">
-                <span className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 flex items-center justify-center mr-3 text-sm">1</span>
-                Basic Information
-              </h3>
+              <form onSubmit={handleSubmit} className="p-8 md:p-12 space-y-10">
+                
+                {/* Section 1: Basic Information */}
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center">
+                    <span className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 flex items-center justify-center mr-3 text-sm">1</span>
+                    Basic Information
+                  </h3>
               <div className="grid grid-cols-1 gap-6">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">Job Title</label>
@@ -395,7 +400,7 @@ export default function PostJobPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">Work Duration (Seconds)</label>
+                  <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">Work Duration (Days)</label>
                   <div className="relative">
                     <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                     <input 
@@ -404,7 +409,7 @@ export default function PostJobPage() {
                       value={formData.maxWorkDuration}
                       onChange={(e) => setFormData({...formData, maxWorkDuration: e.target.value})}
                       className="w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-slate-900 dark:text-white"
-                      placeholder="e.g. 259200 (3 days)"
+                      placeholder="e.g. 3"
                     />
                   </div>
                 </div>
@@ -427,6 +432,48 @@ export default function PostJobPage() {
 
             {/* Platform Info & Expense */}
             <div className="space-y-4">
+              {allowanceStatus && (!allowanceStatus.ethio.sufficient || !allowanceStatus.rpt.sufficient) && (
+                <div className="p-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-3xl space-y-4 transition-all">
+                  <div className="flex items-start space-x-4">
+                    <div className="mt-1">
+                      <ShieldCheck className="w-6 h-6 text-amber-500" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-amber-900 dark:text-amber-200 text-sm mb-1">Approvals Required</h4>
+                      <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+                        To post this job, you need to approve the transaction for USDC and RPT stakes. 
+                        This only authorizes the contract to use the specified amounts.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    {!allowanceStatus.ethio.sufficient && (
+                      <button
+                        type="button"
+                        onClick={handleApproveEthio}
+                        disabled={submitting || approvingEthio || approvingRPT}
+                        className="flex-1 py-3 bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800/50 text-amber-900 dark:text-amber-200 rounded-xl font-bold text-xs hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all flex items-center justify-center disabled:opacity-50"
+                      >
+                        {approvingEthio ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <DollarSign className="w-4 h-4 mr-2" />}
+                        Approve USDC ({ethers.formatUnits(allowanceStatus.ethio.required, 18)})
+                      </button>
+                    )}
+                    {!allowanceStatus.rpt.sufficient && (
+                      <button
+                        type="button"
+                        onClick={handleApproveRPT}
+                        disabled={submitting || approvingEthio || approvingRPT}
+                        className="flex-1 py-3 bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800/50 text-amber-900 dark:text-amber-200 rounded-xl font-bold text-xs hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all flex items-center justify-center disabled:opacity-50"
+                      >
+                        {approvingRPT ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ShieldCheck className="w-4 h-4 mr-2" />}
+                        Approve RPT ({ethers.formatUnits(allowanceStatus.rpt.required, 18)})
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-700 flex items-start space-x-4">
                 <div className="mt-1">
                   <ShieldCheck className="w-6 h-6 text-emerald-500" />
@@ -459,58 +506,11 @@ export default function PostJobPage() {
               )}
             </div>
 
-            {/* Section 4: Allowance and Approve */}
-            {allowanceStatus && (!allowanceStatus.ethio.sufficient || !allowanceStatus.rpt.sufficient) && (
-              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-6 space-y-4">
-                <h3 className="text-lg font-bold text-amber-900 dark:text-amber-200 flex items-center">
-                  <ShieldCheck className="w-5 h-5 mr-2" />
-                  Approval Required
-                </h3>
-                <p className="text-sm text-amber-800 dark:text-amber-300">
-                  Before posting the job, you need to approve the use of tokens.
-                </p>
-                <div className="space-y-3">
-                  {!allowanceStatus.ethio.sufficient && (
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm">
-                        <span className="font-bold text-slate-700 dark:text-slate-300">EthioCoin: </span>
-                        <span className="text-slate-600 dark:text-slate-400">Needs {ethers.formatUnits(allowanceStatus.ethio.required, 18)} ETHIO</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleApproveEthio}
-                        disabled={submitting}
-                        className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-bold transition-all disabled:opacity-50"
-                      >
-                        {submitting ? "Approving..." : "Approve ETHIO"}
-                      </button>
-                    </div>
-                  )}
-                  {!allowanceStatus.rpt.sufficient && (
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm">
-                        <span className="font-bold text-slate-700 dark:text-slate-300">RPT Stake: </span>
-                        <span className="text-slate-600 dark:text-slate-400">Needs {ethers.formatUnits(allowanceStatus.rpt.required, 18)} RPT</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleApproveRPT}
-                        disabled={submitting}
-                        className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-bold transition-all disabled:opacity-50"
-                      >
-                        {submitting ? "Approving..." : "Approve RPT"}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
             {/* Submit Button */}
             <div className="pt-6">
               <button 
                 type="submit"
-                disabled={submitting || loading || checkingAllowance || (allowanceStatus && (!allowanceStatus.ethio.sufficient || !allowanceStatus.rpt.sufficient))}
+                disabled={submitting || loading || checkingAllowance || !allowanceStatus || !allowanceStatus.ethio.sufficient || !allowanceStatus.rpt.sufficient}
                 className="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-lg shadow-xl shadow-indigo-200 dark:shadow-none transition-all flex items-center justify-center group disabled:opacity-50"
               >
                 {submitting ? <Loader2 className="w-6 h-6 animate-spin mr-2" /> : "Post This Job"} <Send className="ml-2 w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
@@ -523,6 +523,90 @@ export default function PostJobPage() {
           </form>
         </div>
       </div>
+
+      {/* Sidebar: Work Levels */}
+      <div className="lg:w-80 space-y-8">
+        {levels && levels.length > 0 && (
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl shadow-indigo-100/20 dark:shadow-none border border-slate-100 dark:border-slate-800 p-6">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center">
+              <Layers className="w-5 h-5 text-indigo-600 mr-2" />
+              Work Levels
+            </h3>
+            <div className="space-y-4">
+              {levels.map((level, index) => {
+                let isActive = false;
+                if (formData.payment && !isNaN(formData.payment) && Number(formData.payment) > 0) {
+                  const paymentWei = ethers.parseUnits(formData.payment, 18);
+                  const maxAmount = BigInt(level.max_amount);
+                  const prevMaxAmount = index > 0 ? BigInt(levels[index - 1].max_amount) : -1n;
+                  
+                  if (index === 0) {
+                    isActive = paymentWei <= maxAmount;
+                  } else {
+                    isActive = paymentWei <= maxAmount && paymentWei > prevMaxAmount;
+                  }
+                }
+                
+                return (
+                  <div 
+                    key={index} 
+                    className={`p-4 rounded-2xl border transition-all ${
+                      isActive
+                      ? 'bg-indigo-50 dark:bg-indigo-900/40 border-indigo-200 dark:border-indigo-700 ring-2 ring-indigo-500/20' 
+                      : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <span className="px-2 py-1 bg-white dark:bg-slate-900 rounded-lg text-[10px] font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800 uppercase tracking-wider">
+                        Level {index + 1}
+                      </span>
+                      {isActive && (
+                        <span className="flex items-center text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                          <CheckCircle2 className="w-3 h-3 mr-1" /> Active
+                        </span>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-[11px]">
+                        <span className="text-slate-500 dark:text-slate-400">Max Amount</span>
+                        <span className="font-bold text-slate-900 dark:text-white">{ethers.formatUnits(level.max_amount, 18)} USDC</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[11px]">
+                        <span className="text-slate-500 dark:text-slate-400">Client Stake</span>
+                        <span className="font-bold text-slate-900 dark:text-white">{ethers.formatUnits(level.client_stake, 18)} RPT</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[11px]">
+                        <span className="text-slate-500 dark:text-slate-400">Freelancer Stake</span>
+                        <span className="font-bold text-slate-900 dark:text-white">{ethers.formatUnits(level.freelancer_stake, 18)} RPT</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[11px]">
+                        <span className="text-slate-500 dark:text-slate-400">Min Verifiers</span>
+                        <span className="font-bold text-slate-900 dark:text-white">{Number(level.verifiers_cnt) / 10}%</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[11px]">
+                        <span className="text-slate-500 dark:text-slate-400">Payment Delay</span>
+                        <span className="font-bold text-slate-900 dark:text-white">{Math.floor(Number(level.payment_duration) / 86400)} Days</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50 rounded-3xl p-6">
+          <div className="flex items-center text-amber-800 dark:text-amber-200 font-bold mb-2">
+            <Info className="w-4 h-4 mr-2" />
+            <span className="text-sm">Why Levels Matter?</span>
+          </div>
+          <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+            Higher budget jobs require higher stakes from both parties to ensure security and quality. Level is automatically determined by your project budget.
+          </p>
+        </div>
+      </div>
     </div>
+  </div>
+</div>
   );
 }

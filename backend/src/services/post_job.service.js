@@ -13,7 +13,7 @@ export default async (job, user_id)=> {
     topics = JSON.stringify(topics);
     skills = JSON.stringify(skills);
     const employer_id=user_id;
-    const db_job = {id, employer_id, title, description, category, topics,company, skills, salary, bid_duration, published_date:new Date().toISOString().slice(0, 19).replace("T", " ")}
+    const db_job = {id, employer_id, title, description, category, topics,company, skills, salary, bid_duration, state: 'OPEN', published_date:new Date().toISOString().slice(0, 19).replace("T", " ")}
 
     await db.query("INSERT INTO jobs SET ?", db_job);
     return true;

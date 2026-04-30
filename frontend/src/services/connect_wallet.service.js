@@ -23,7 +23,14 @@ export default async ()=> {
     }
 
     if (cached_signer && cached_provider) {
-        return { provider:cached_provider, signer: cached_signer };
+        // Double check if account matches cached signer
+        const signerAddress = await cached_signer.getAddress();
+        const accounts = await window.ethereum.request({ method: "eth_accounts" });
+        if (accounts.length > 0 && accounts[0].toLowerCase() === signerAddress.toLowerCase()) {
+            return { provider:cached_provider, signer: cached_signer };
+        }
+        // If not matching, reset cache to fetch new signer
+        cached_signer = null;
     }
 
     await window.ethereum.request({ method: "eth_requestAccounts" });

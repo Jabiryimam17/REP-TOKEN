@@ -40,27 +40,35 @@ import {
   Github,
   Linkedin,
   Twitter,
-  UserPlus
+  UserPlus,
+  ArrowRightLeft,
+  ShieldCheck,
+  Loader2,
+  ArrowRight
 } from "lucide-react";
 import axios from "axios";
 import { 
   get_job_blockchain, 
   accept_work, 
   complete_job,
-  check_freelancer_allowance
+  check_freelancer_allowance,
+  estimate_dispute_fee,
+  raise_dispute
 } from "@/services/jobs.service";
-import { ethers } from "ethers";
+import { ethers, isAddress } from "ethers";
 import { approve as approve_ethio } from "@/services/eth_coin.service.js"
 import { approve as approve_rpt } from "@/services/rpt.service.js"
 import { get_addresses } from "@/services/system_addresses.service.js";
+import { transfer_address } from "@/services/freelancers.service";
 
 const JOB_STATUS = {
     NONE: 0,
     OPEN: 1,
     PENDING: 2,
     HIRED: 3,
-    DISPUTED: 4,
-    CLOSED: 5
+    COMPLETED: 4,
+    DISPUTED: 5,
+    CLOSED: 6
 };
 
 export default function FreelancerDashboard() {
@@ -119,6 +127,33 @@ export default function FreelancerDashboard() {
       requested: []
     }
   });
+
+  const [newAddress, setNewAddress] = useState("");
+  const [transferStatus, setTransferStatus] = useState({ type: "idle", message: "" });
+
+  const handleTransferAddress = async (e) => {
+    e.preventDefault();
+    const target = newAddress.trim();
+    if (!isAddress(target)) {
+      setTransferStatus({ type: "error", message: "Please enter a valid Ethereum address." });
+      return;
+    }
+
+    setTransferStatus({ type: "loading", message: "Initiating on-chain transfer..." });
+
+    try {
+      const previous = await transfer_address(target);
+      setTransferStatus({
+        type: "success",
+        message: `Successfully transferred from ${previous.substring(0, 6)}...${previous.substring(38)} to ${target.substring(0, 6)}...${target.substring(38)}.`,
+      });
+      setNewAddress("");
+    } catch (error) {
+      console.error("Transfer error:", error);
+      const feedback = error?.info?.error?.message || error?.message || "Transfer failed. Please ensure you are the registered freelancer and have no ongoing jobs.";
+      setTransferStatus({ type: "error", message: feedback });
+    }
+  };
 
   const get_profile_picture_url = (path) => {
     if (!path) return null;
@@ -193,7 +228,6 @@ export default function FreelancerDashboard() {
           enrichedJobs.forEach(job => {
             const status = Number(job.blockchain?.status || 0);
             const isExpired = job.blockchain?.expiry_timestamp && Number(job.blockchain.expiry_timestamp) * 1000 < Date.now();
-            const isCompleted = job.blockchain?.freelancer_completed;
 
             const jobFormatted = {
               id: job.id,
@@ -202,7 +236,7 @@ export default function FreelancerDashboard() {
               amount: job.blockchain?.amount ? ethers.formatUnits(job.blockchain.amount, 18) : (job.amount ? ethers.formatUnits(job.amount, 18) : "0"),
               description: job.description,
               blockchain: job.blockchain,
-              expired: isExpired && !isCompleted,
+              expired: isExpired && status < JOB_STATUS.COMPLETED,
               link: `/jobs/${job.id}`
             };
 
@@ -211,13 +245,9 @@ export default function FreelancerDashboard() {
             } else if (status === JOB_STATUS.PENDING) {
               classified.requested.push(jobFormatted);
             } else if (status === JOB_STATUS.HIRED) {
-              if (isCompleted) {
-                  classified.paymentWaiting.push(jobFormatted);
-              } else if (jobFormatted.expired) {
-                  classified.workingOn.push(jobFormatted);
-              } else {
-                  classified.workingOn.push(jobFormatted);
-              }
+              classified.workingOn.push(jobFormatted);
+            } else if (status === JOB_STATUS.COMPLETED) {
+              classified.paymentWaiting.push(jobFormatted);
             } else if (status === JOB_STATUS.DISPUTED) {
               classified.inDispute.push(jobFormatted);
             } else if (status === JOB_STATUS.CLOSED) {
@@ -255,7 +285,12 @@ export default function FreelancerDashboard() {
   }, []);
 
   const [job_allowances, set_job_allowances] = useState({});
-  const [approving, set_approving] = useState(false);
+  const [actionLoading, setActionLoading] = useState({}); // { jobId: { ethio: bool, rpt: bool, accept: bool, complete: bool } }
+  const [disputeModal, setDisputeModal] = useState({ show: false, jobId: null, feeEth: 0n, feeLink: 0n, loading: false, reason: "", details: "" });
+
+  const handleOpenDisputeModal = (jobId) => {
+    window.location.href = `/post-dispute?jobId=${jobId}`;
+  };
 
   useEffect(() => {
     const fetch_allowances = async () => {
@@ -276,7 +311,7 @@ export default function FreelancerDashboard() {
 
   const handleApproveEthio = async (jobId) => {
     try {
-      set_approving(true);
+      setActionLoading(prev => ({ ...prev, [jobId]: { ...prev[jobId], ethio: true } }));
       const addresses = await get_addresses();
       const status = job_allowances[jobId];
       if (!status) return;
@@ -288,13 +323,13 @@ export default function FreelancerDashboard() {
     } catch (error) {
       console.error("Error approving EthioCoin:", error);
     } finally {
-      set_approving(false);
+      setActionLoading(prev => ({ ...prev, [jobId]: { ...prev[jobId], ethio: false } }));
     }
   };
 
   const handleApproveRPT = async (jobId) => {
     try {
-      set_approving(true);
+      setActionLoading(prev => ({ ...prev, [jobId]: { ...prev[jobId], rpt: true } }));
       const addresses = await get_addresses();
       const status = job_allowances[jobId];
       if (!status) return;
@@ -306,7 +341,7 @@ export default function FreelancerDashboard() {
     } catch (error) {
       console.error("Error approving RPT:", error);
     } finally {
-      set_approving(false);
+      setActionLoading(prev => ({ ...prev, [jobId]: { ...prev[jobId], rpt: false } }));
     }
   };
 
@@ -321,6 +356,7 @@ export default function FreelancerDashboard() {
 
   const handleAcceptWork = async (jobId) => {
     if (!confirm("Are you sure you want to accept this job?")) return;
+    setActionLoading(prev => ({ ...prev, [jobId]: { ...prev[jobId], accept: true } }));
     const success = await accept_work(jobId);
     if (success) {
       alert("Job accepted successfully");
@@ -328,10 +364,12 @@ export default function FreelancerDashboard() {
     } else {
       alert("Failed to accept job");
     }
+    setActionLoading(prev => ({ ...prev, [jobId]: { ...prev[jobId], accept: false } }));
   };
 
   const handleCompleteJob = async (jobId) => {
     if (!confirm("Are you sure you want to mark this job as completed?")) return;
+    setActionLoading(prev => ({ ...prev, [jobId]: { ...prev[jobId], complete: true } }));
     const success = await complete_job(jobId);
     if (success) {
       alert("Job marked as completed");
@@ -339,6 +377,7 @@ export default function FreelancerDashboard() {
     } else {
       alert("Failed to complete job");
     }
+    setActionLoading(prev => ({ ...prev, [jobId]: { ...prev[jobId], complete: false } }));
   };
 
   const jobTabs = [
@@ -837,6 +876,84 @@ export default function FreelancerDashboard() {
           </div>
         </div>
       </div>
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-100 dark:border-slate-800 shadow-sm">
+        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center">
+          <ArrowRightLeft className="w-5 h-5 mr-2 text-indigo-600" />
+          Transfer Profile Address
+        </h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+          Move your freelancer profile and reputation to a new wallet address. This action is permanent and moves your entire history.
+        </p>
+        
+        <form onSubmit={handleTransferAddress} className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">
+              New Ethereum Address
+            </label>
+            <div className="relative">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                <Wallet className="w-5 h-5" />
+              </div>
+              <input
+                type="text"
+                value={newAddress}
+                onChange={(e) => setNewAddress(e.target.value)}
+                placeholder="0x..."
+                className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 transition-all outline-none"
+                disabled={transferStatus.type === "loading"}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/50 rounded-2xl p-4 flex gap-3">
+            <ShieldCheck className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+              <strong>Important:</strong> You must not have any ongoing jobs to perform this transfer.
+            </p>
+          </div>
+
+          <button
+            type="submit"
+            disabled={transferStatus.type === "loading"}
+            className="w-full group relative flex items-center justify-center gap-2 py-4 px-6 rounded-2xl bg-slate-900 dark:bg-indigo-600 text-white font-bold text-lg hover:bg-slate-800 dark:hover:bg-indigo-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {transferStatus.type === "loading" ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>Processing...</span>
+              </>
+            ) : (
+              <>
+                <span>Transfer Profile</span>
+                <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              </>
+            )}
+          </button>
+
+          {transferStatus.type !== "idle" && (
+            <div
+              className={`mt-4 p-4 rounded-2xl flex items-start gap-3 ${
+                transferStatus.type === "success"
+                  ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900/50"
+                  : transferStatus.type === "error"
+                  ? "bg-rose-50 dark:bg-rose-950/30 text-rose-800 dark:text-rose-300 border border-rose-100 dark:border-rose-900/50"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+              }`}
+            >
+              {transferStatus.type === "success" ? (
+                <CheckCircle2 className="h-5 w-5 shrink-0" />
+              ) : transferStatus.type === "error" ? (
+                <AlertCircle className="h-5 w-5 shrink-0" />
+              ) : (
+                <Loader2 className="h-5 w-5 animate-spin shrink-0" />
+              )}
+              <span className="text-sm font-medium">{transferStatus.message}</span>
+            </div>
+          )}
+        </form>
+      </div>
+
       <div className="flex justify-end gap-4">
         <button 
           onClick={() => set_active_view("overview")}
@@ -876,15 +993,15 @@ export default function FreelancerDashboard() {
         </div>
       </div>
       
-      <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 mb-4">
-        {job.description}
-      </p>
-
-      {job.expired && (
-        <div className="mb-4 flex items-center text-red-500 text-xs font-bold">
-            <AlertCircle className="w-4 h-4 mr-1" />
-            JOB EXPIRED
+      {job.expired ? (
+        <div className="mb-4 flex items-center bg-red-50 dark:bg-red-900/10 p-3 rounded-xl border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 text-xs font-black uppercase tracking-widest animate-pulse">
+            <AlertCircle className="w-5 h-5 mr-2" />
+            JOB EXPIRED - ACTION REQUIRED
         </div>
+      ) : (
+        <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 mb-4">
+          {job.description}
+        </p>
       )}
 
       {job.note && (
@@ -911,19 +1028,28 @@ export default function FreelancerDashboard() {
           <div className="flex gap-2">
             {type === "requested" && (
               <button 
-                disabled={approving || (job_allowances[job.id] && (!job_allowances[job.id].ethio.sufficient || !job_allowances[job.id].rpt.sufficient))}
+                disabled={actionLoading[job.id]?.accept || actionLoading[job.id]?.ethio || actionLoading[job.id]?.rpt || (job_allowances[job.id] && (!job_allowances[job.id].ethio.sufficient || !job_allowances[job.id].rpt.sufficient))}
                 onClick={() => handleAcceptWork(job.id)}
-                className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+                className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50 flex items-center"
               >
-                Agree to Job
+                {actionLoading[job.id]?.accept ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Accepting</> : "Agree to Job"}
               </button>
             )}
-            {type === "workingOn" && !job.blockchain?.freelancer_completed && (
+            {type === "workingOn" && (
               <button 
+                disabled={actionLoading[job.id]?.complete}
                 onClick={() => handleCompleteJob(job.id)}
-                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors"
+                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50 flex items-center"
               >
-                Mark Completed
+                {actionLoading[job.id]?.complete ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Completing</> : "Mark Completed"}
+              </button>
+            )}
+            {type === "paymentWaiting" && (
+              <button 
+                onClick={() => handleOpenDisputeModal(job.id)}
+                className="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-colors"
+              >
+                Raise Dispute
               </button>
             )}
             <a href={job.link} className="px-4 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
@@ -942,11 +1068,11 @@ export default function FreelancerDashboard() {
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] text-amber-700 dark:text-amber-500">Fee: {ethers.formatUnits(job_allowances[job.id].ethio.required, 18)} ETHIO</span>
                   <button 
-                    disabled={approving}
+                    disabled={actionLoading[job.id]?.ethio}
                     onClick={() => handleApproveEthio(job.id)}
-                    className="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold rounded shadow-sm transition-colors"
+                    className="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold rounded shadow-sm transition-colors flex items-center"
                   >
-                    {approving ? "..." : "Approve ETHIO"}
+                    {actionLoading[job.id]?.ethio ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> ...</> : "Approve ETHIO"}
                   </button>
                 </div>
               )}
@@ -954,11 +1080,11 @@ export default function FreelancerDashboard() {
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] text-amber-700 dark:text-amber-500">Stake: {ethers.formatUnits(job_allowances[job.id].rpt.required, 18)} RPT</span>
                   <button 
-                    disabled={approving}
+                    disabled={actionLoading[job.id]?.rpt}
                     onClick={() => handleApproveRPT(job.id)}
-                    className="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold rounded shadow-sm transition-colors"
+                    className="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold rounded shadow-sm transition-colors flex items-center"
                   >
-                    {approving ? "..." : "Approve RPT"}
+                    {actionLoading[job.id]?.rpt ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> ...</> : "Approve RPT"}
                   </button>
                 </div>
               )}
@@ -1258,6 +1384,78 @@ export default function FreelancerDashboard() {
           </div>
         )}
       </div>
+      {/* Dispute Modal */}
+      {disputeModal.show && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-md w-full border border-slate-100 dark:border-slate-800 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-4">Raise Dispute</h3>
+            <p className="text-slate-500 dark:text-slate-400 mb-6 font-medium">
+              A dispute will be initiated for this job. You need to pay the VRF fee for verifier selection.
+            </p>
+            
+            {disputeModal.loading ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Reason</label>
+                  <input 
+                    type="text" 
+                    value={disputeModal.reason}
+                    onChange={(e) => setDisputeModal({...disputeModal, reason: e.target.value})}
+                    placeholder="Short reason"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Details (Optional)</label>
+                  <textarea 
+                    value={disputeModal.details}
+                    onChange={(e) => setDisputeModal({...disputeModal, details: e.target.value})}
+                    placeholder="Provide more information..."
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-h-[100px]"
+                  ></textarea>
+                </div>
+
+                <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-bold text-slate-600 dark:text-slate-400">Fee (Native ETH)</span>
+                    <span className="text-sm font-black text-slate-900 dark:text-white">{ethers.formatEther(disputeModal.feeEth)} ETH</span>
+                  </div>
+                  <button 
+                    onClick={() => handleRaiseDisputeAction(false)}
+                    className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all"
+                  >
+                    Pay with ETH
+                  </button>
+                </div>
+                
+                <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-bold text-slate-600 dark:text-slate-400">Fee (LINK Token)</span>
+                    <span className="text-sm font-black text-slate-900 dark:text-white">{ethers.formatEther(disputeModal.feeLink)} LINK</span>
+                  </div>
+                  <button 
+                    onClick={() => handleRaiseDisputeAction(true)}
+                    className="w-full py-3 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all"
+                  >
+                    Pay with LINK
+                  </button>
+                </div>
+                
+                <button 
+                  onClick={() => setDisputeModal({ ...disputeModal, show: false })}
+                  className="w-full py-3 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 text-xs font-bold uppercase tracking-widest"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -94,16 +94,15 @@ export default function TransferPage() {
     try {
       // Use 18 decimals (10^18)
       const amountWei = ethers.parseUnits(formData.amount, 18);
-      let tx;
+      let success;
 
       if (formData.token === "ETH") {
-            tx = await transfer_eth(formData.recipient, amountWei);
+            success = await transfer_eth(formData.recipient, amountWei);
       } else {
-        tx = await transfer_rpt(formData.recipient, amountWei);
+        success = await transfer_rpt(formData.recipient, amountWei);
       }
 
-      setTxStatus({ type: "info", message: "Transfer submitted. Waiting for confirmation..." });
-      await tx.wait();
+      if (!success) throw new Error("Transfer failed");
 
       setTxStatus({ type: "success", message: `Successfully transferred ${formData.amount} ${formData.token}!` });
       setFormData({ ...formData, amount: "", recipient: "" });
@@ -125,16 +124,15 @@ export default function TransferPage() {
 
     try {
       const amountWei = ethers.parseUnits(formData.approveAmount, 18);
-      let tx;
+      let success;
 
       if (formData.token === "ETH") {
-        tx = await approve_eth(formData.spender, amountWei);
+        success = await approve_eth(formData.spender, amountWei);
       } else {
-        tx = await approve_rpt(formData.spender, amountWei);
+        success = await approve_rpt(formData.spender, amountWei);
       }
 
-      setTxStatus({ type: "info", message: "Approval submitted. Waiting for confirmation..." });
-      await tx.wait();
+      if (!success) throw new Error("Approval failed");
 
       setTxStatus({ type: "success", message: `Successfully approved ${formData.approveAmount} ${formData.token} for ${formData.spender.substring(0,6)}...${formData.spender.substring(38)}` });
       setFormData({ ...formData, approveAmount: "" });

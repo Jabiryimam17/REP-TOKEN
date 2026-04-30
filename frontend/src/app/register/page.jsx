@@ -216,10 +216,10 @@ export default function RegisterPage() {
           <div className="text-center mb-8">
             <div
                 className="inline-flex items-center px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 text-xs font-bold mb-4">
-              Join the Decentralized Future
+              Sign Up for the Decentralized Future
             </div>
             <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">Create Your Account</h1>
-            <p className="mt-2 text-slate-500 dark:text-slate-400 font-medium">Join the world's most trusted
+            <p className="mt-2 text-slate-500 dark:text-slate-400 font-medium">Sign up for the world's most trusted
               decentralized freelance network.</p>
           </div>
 

@@ -1,255 +1,305 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { 
-  AlertCircle, 
-  ShieldAlert, 
-  Coins, 
+  Gavel, 
+  Shield, 
+  Clock, 
   User, 
-  Briefcase, 
-  FileText, 
-  Send, 
+  CheckCircle2, 
+  AlertCircle, 
+  BarChart3, 
+  Users,
+  Calendar,
   ChevronRight,
-  Info,
+  TrendingUp,
   Scale,
-  Hammer
+  MessageSquare
 } from "lucide-react";
+import { ethers } from "ethers";
+import axios from "axios";
 
-export default function DisputePage() {
-  const [formData, setFormData] = useState({
-    jobId: "JOB-2025-042",
-    requesterRole: "freelancer",
-    stakeAmount: "",
-    description: ""
-  });
+const DISPUTE_STATUS = ["PENDING", "FREELANCER_WIN", "CLIENT_WIN"];
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log("Dispute Submitted:", formData);
-    alert("Dispute request submitted to the verifier community! (Demo)");
-  };
+const ScoreHistogram = ({ scores }) => {
+  const bins = useMemo(() => {
+    const b = new Array(10).fill(0);
+    scores.forEach(s => {
+      const score = Number(s);
+      if (score === 0) return; // Not revealed
+      const binIdx = Math.min(Math.floor(score / 10), 9);
+      b[binIdx]++;
+    });
+    return b;
+  }, [scores]);
+
+  const maxVal = Math.max(...bins, 1);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950/50 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Background Orbs */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-red-100/30 dark:bg-red-900/10 rounded-full blur-[120px]"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-amber-100/30 dark:bg-amber-900/10 rounded-full blur-[120px]"></div>
+    <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+      <div className="flex items-center justify-between mb-6">
+        <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center">
+          <BarChart3 className="w-4 h-4 mr-2 text-indigo-600" />
+          Score Distribution
+        </h4>
+        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">X: Score, Y: Count</span>
       </div>
+      <div className="flex items-end justify-between h-40 gap-2">
+        {bins.map((val, i) => (
+          <div key={i} className="flex-1 flex flex-col items-center gap-2">
+            <div 
+              className="w-full bg-indigo-600 rounded-t-lg transition-all duration-500 hover:bg-indigo-500 relative group"
+              style={{ height: `${(val / maxVal) * 100}%` }}
+            >
+               <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                {val} voters
+              </div>
+            </div>
+            <span className="text-[10px] font-bold text-slate-400">{i * 10}-{(i + 1) * 10}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
-      <div className="max-w-4xl mx-auto relative z-10">
+export default function DisputeDetailsPage() {
+  const searchParams = useSearchParams();
+  const jobId = searchParams.get("jobId");
+  
+  const [dispute, setDispute] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!jobId) {
+      setError("Job ID is required");
+      setLoading(false);
+      return;
+    }
+
+    const fetchDetails = async () => {
+      try {
+        const res = await axios.get(`http://localhost:3333/api/disputes/${jobId}`, { withCredentials: true });
+        setDispute(res.data);
+      } catch (err) {
+        console.error("Error fetching dispute details:", err);
+        setError("Failed to load dispute details. It might not exist yet.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDetails();
+  }, [jobId]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950/50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  if (error || !dispute) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950/50 p-4">
+        <div className="text-center p-8 bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800 max-w-md">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Error</h2>
+          <p className="text-slate-500 dark:text-slate-400 mb-6">{error || "Dispute not found"}</p>
+          <button onClick={() => window.history.back()} className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold">Go Back</button>
+        </div>
+      </div>
+    );
+  }
+
+  const { contract_data } = dispute;
+  const isFinalized = contract_data.dispute_status !== 0; // PENDING is 0
+  const now = Math.floor(Date.now() / 1000);
+  const isSubmission = now <= Number(contract_data.submission_deadline);
+  const isReveal = now > Number(contract_data.submission_deadline) && now <= Number(contract_data.release_deadline);
+
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950/50 py-10 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
         
         {/* Breadcrumbs */}
         <nav className="flex mb-8 text-sm font-medium text-slate-500 dark:text-slate-400">
           <a href="/" className="hover:text-indigo-600 transition-colors">Platform</a>
           <ChevronRight className="w-4 h-4 mx-2" />
-          <span className="text-slate-900 dark:text-white">Submit Dispute Request</span>
+          <a href="/disputes" className="hover:text-indigo-600 transition-colors">Disputes</a>
+          <ChevronRight className="w-4 h-4 mx-2" />
+          <span className="text-slate-900 dark:text-white">Case #{jobId.slice(0, 8)}</span>
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+               <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${
+                 isFinalized 
+                 ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400" 
+                 : "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400"
+               }`}>
+                {DISPUTE_STATUS[contract_data.dispute_status]}
+              </span>
+              <span className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">
+                Category: {contract_data.category} • Level: {contract_data.level}
+              </span>
+            </div>
+            <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+              Dispute Resolution Details
+            </h1>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Total Reward Pool</p>
+              <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400">
+                {ethers.formatEther(dispute.total_reward || '0')} RPT
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
-          {/* Form Column */}
-          <div className="lg:col-span-2">
-            <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl shadow-red-100/20 dark:shadow-none border border-slate-100 dark:border-slate-800 overflow-hidden">
-              <div className="bg-gradient-to-r from-red-600 to-amber-600 px-8 py-6 text-white">
-                <div className="flex items-center space-x-3 mb-2">
-                  <ShieldAlert className="w-8 h-8" />
-                  <h1 className="text-2xl font-bold">Dispute Resolution</h1>
-                </div>
-                <p className="text-red-50 text-sm opacity-90">
-                  Submit your case for community review. Our verifiers will analyze the evidence and reach a fair decision.
+          {/* Left Column: Stats & Histogram */}
+          <div className="lg:col-span-8 space-y-8">
+            
+            {/* Case Summary */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-100 dark:border-slate-800 shadow-sm">
+               <div className="flex items-center gap-2 mb-6">
+                 <Scale className="w-5 h-5 text-indigo-600" />
+                 <h3 className="text-xl font-bold text-slate-900 dark:text-white">Case Summary</h3>
+               </div>
+               
+               <div className="space-y-6">
+                 <div>
+                   <p className="text-[10px] uppercase font-black text-slate-400 mb-2 tracking-widest">Issue / Reason</p>
+                   <p className="text-lg font-bold text-slate-800 dark:text-slate-200">{dispute.reason}</p>
+                 </div>
+                 
+                 <div>
+                   <p className="text-[10px] uppercase font-black text-slate-400 mb-2 tracking-widest">Description</p>
+                   <p className="text-slate-600 dark:text-slate-400 leading-relaxed">{dispute.description}</p>
+                 </div>
+
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-slate-50 dark:border-slate-800">
+                    <div>
+                      <p className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-widest">Client Stake</p>
+                      <p className="font-bold text-slate-900 dark:text-white">{ethers.formatEther(contract_data.client_stake)} RPT</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-widest">Freelancer Stake</p>
+                      <p className="font-bold text-slate-900 dark:text-white">{ethers.formatEther(contract_data.freelancer_stake)} RPT</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-widest">Verifier Locked</p>
+                      <p className="font-bold text-slate-900 dark:text-white">{ethers.formatEther(contract_data.lock_amount)} RPT / each</p>
+                    </div>
+                 </div>
+               </div>
+            </div>
+
+            {/* Participation Stats & Histogram */}
+            {(isFinalized || isReveal) && (
+              <ScoreHistogram scores={contract_data.scores} />
+            )}
+
+            {/* Voting Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                <p className="text-[10px] uppercase font-black text-slate-400 mb-4 tracking-widest flex items-center">
+                  <TrendingUp className="w-3 h-3 mr-1 text-indigo-500" /> Resolution
+                </p>
+                <p className="text-3xl font-black text-slate-900 dark:text-white">{dispute.score || '-'}</p>
+                <p className="text-xs font-bold text-slate-500 mt-1">Average Score</p>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                <p className="text-[10px] uppercase font-black text-slate-400 mb-4 tracking-widest flex items-center">
+                  <Users className="w-3 h-3 mr-1 text-indigo-500" /> Participation
+                </p>
+                <p className="text-3xl font-black text-slate-900 dark:text-white">
+                  {isSubmission ? contract_data.total_submitted : contract_data.total_revealed} / {contract_data.chosen_verifiers.length}
+                </p>
+                <p className="text-xs font-bold text-slate-500 mt-1">
+                  {isSubmission ? "Verifiers Submitted" : "Verifiers Revealed"}
                 </p>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-8 space-y-8">
-                
-                {/* Job Information */}
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2 text-slate-900 dark:text-white font-bold mb-2">
-                    <div className="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg">
-                      <Briefcase className="w-4 h-4 text-indigo-600" />
-                    </div>
-                    <span>Job Details</span>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 gap-6">
-                    <div>
-                      <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Job ID / Reference</label>
-                      <input 
-                        type="text" 
-                        required
-                        value={formData.jobId}
-                        onChange={(e) => setFormData({...formData, jobId: e.target.value})}
-                        placeholder="e.g. JOB-12345"
-                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500 transition-all font-mono"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Role Selection */}
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2 text-slate-900 dark:text-white font-bold mb-2">
-                    <div className="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg">
-                      <User className="w-4 h-4 text-indigo-600" />
-                    </div>
-                    <span>Your Role in this Dispute</span>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <button
-                      type="button"
-                      onClick={() => setFormData({...formData, requesterRole: "freelancer"})}
-                      className={`flex flex-col items-center justify-center p-6 rounded-2xl border-2 transition-all ${
-                        formData.requesterRole === "freelancer"
-                        ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20"
-                        : "border-slate-100 dark:border-slate-800 bg-transparent hover:border-slate-200 dark:hover:border-slate-700"
-                      }`}
-                    >
-                      <Briefcase className={`w-8 h-8 mb-2 ${formData.requesterRole === "freelancer" ? "text-indigo-600" : "text-slate-400"}`} />
-                      <span className={`font-bold ${formData.requesterRole === "freelancer" ? "text-indigo-900 dark:text-indigo-300" : "text-slate-500"}`}>Freelancer</span>
-                    </button>
-                    
-                    <button
-                      type="button"
-                      onClick={() => setFormData({...formData, requesterRole: "employer"})}
-                      className={`flex flex-col items-center justify-center p-6 rounded-2xl border-2 transition-all ${
-                        formData.requesterRole === "employer"
-                        ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-900/20"
-                        : "border-slate-100 dark:border-slate-800 bg-transparent hover:border-slate-200 dark:hover:border-slate-700"
-                      }`}
-                    >
-                      <User className={`w-8 h-8 mb-2 ${formData.requesterRole === "employer" ? "text-emerald-600" : "text-slate-400"}`} />
-                      <span className={`font-bold ${formData.requesterRole === "employer" ? "text-emerald-900 dark:text-emerald-300" : "text-slate-500"}`}>Employer</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Stake Amount */}
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2 text-slate-900 dark:text-white font-bold mb-2">
-                    <div className="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg">
-                      <Coins className="w-4 h-4 text-amber-500" />
-                    </div>
-                    <span>Reputation Stake</span>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">RP Tokens to Stake</label>
-                    <div className="relative">
-                      <input 
-                        type="number" 
-                        required
-                        value={formData.stakeAmount}
-                        onChange={(e) => setFormData({...formData, stakeAmount: e.target.value})}
-                        placeholder="0.00"
-                        className="w-full px-4 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500 font-bold text-lg"
-                      />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">RP TOKEN</span>
-                    </div>
-                    <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
-                      Staking RP tokens proves your commitment to the case. If the verifiers rule in your favor, your stake is returned. If not, it may be slashed.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Conflict Description */}
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2 text-slate-900 dark:text-white font-bold mb-2">
-                    <div className="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg">
-                      <FileText className="w-4 h-4 text-red-600" />
-                    </div>
-                    <span>Detailed Conflict Description</span>
-                  </div>
-                  
-                  <div>
-                    <textarea 
-                      required
-                      rows={6}
-                      value={formData.description}
-                      onChange={(e) => setFormData({...formData, description: e.target.value})}
-                      placeholder="Please provide a clear and detailed explanation of the conflict. Include milestone dates, specific requirements not met, and any communication evidence..."
-                      className="w-full px-4 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500 text-sm leading-relaxed"
-                    ></textarea>
-                  </div>
-                </div>
-
-                {/* Submit Button */}
-                <button 
-                  type="submit"
-                  className="w-full py-5 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold text-lg shadow-lg shadow-red-200 dark:shadow-none transition-all flex items-center justify-center group"
-                >
-                  Initiate Dispute <Send className="ml-2 w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                </button>
-              </form>
-            </div>
-          </div>
-
-          {/* Guidelines Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
-            <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center">
-                <Scale className="w-5 h-5 mr-2 text-indigo-600" />
-                Dispute Process
-              </h3>
-              
-              <ul className="space-y-6">
-                <li className="flex">
-                  <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-500 mr-4 shrink-0">1</div>
-                  <div>
-                    <p className="text-sm font-bold text-slate-900 dark:text-white mb-1">Submission</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">Submit your claim and stake RP tokens to initialize the protocol.</p>
-                  </div>
-                </li>
-                <li className="flex">
-                  <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-500 mr-4 shrink-0">2</div>
-                  <div>
-                    <p className="text-sm font-bold text-slate-900 dark:text-white mb-1">Verifier Selection</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">The system randomly selects 5 independent verifiers based on expertise.</p>
-                  </div>
-                </li>
-                <li className="flex">
-                  <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-500 mr-4 shrink-0">3</div>
-                  <div>
-                    <p className="text-sm font-bold text-slate-900 dark:text-white mb-1">Evidence Review</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">Verifiers review the contract, work submitted, and description provided.</p>
-                  </div>
-                </li>
-                <li className="flex">
-                  <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-500 mr-4 shrink-0">4</div>
-                  <div>
-                    <p className="text-sm font-bold text-slate-900 dark:text-white mb-1">Final Ruling</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">A majority vote determines the outcome. Funds are released accordingly.</p>
-                  </div>
-                </li>
-              </ul>
-            </div>
-
-            <div className="bg-amber-50 dark:bg-amber-900/10 p-6 rounded-3xl border border-amber-100 dark:border-amber-900/50">
-              <div className="flex items-start">
-                <Info className="w-5 h-5 text-amber-600 mr-3 mt-0.5" />
-                <div>
-                  <h4 className="text-sm font-bold text-amber-900 dark:text-amber-300 mb-2">Important Notice</h4>
-                  <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
-                    Once a dispute is initiated, the project funds are locked in the escrow contract and cannot be moved until a final resolution is reached by the verifier community.
-                  </p>
-                </div>
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                <p className="text-[10px] uppercase font-black text-slate-400 mb-4 tracking-widest flex items-center">
+                  <Gavel className="w-3 h-3 mr-1 text-red-500" /> Penalties
+                </p>
+                <p className="text-3xl font-black text-slate-900 dark:text-white">{dispute.slashed_cnt || 0}</p>
+                <p className="text-xs font-bold text-slate-500 mt-1">Verifiers Slashed</p>
               </div>
             </div>
 
-            <div className="bg-slate-900 dark:bg-white rounded-3xl p-6 text-white dark:text-slate-900">
-              <div className="flex items-center mb-4">
-                <Hammer className="w-5 h-5 mr-2 text-indigo-400 dark:text-indigo-600" />
-                <h4 className="font-bold">Decentralized Justice</h4>
-              </div>
-              <p className="text-xs text-slate-400 dark:text-slate-500 leading-relaxed mb-4">
-                Our platform uses a blockchain-based consensus mechanism to ensure fair and unbiased dispute resolution.
-              </p>
-              <button className="w-full py-3 bg-white/10 dark:bg-slate-100 hover:bg-white/20 dark:hover:bg-slate-200 rounded-xl text-xs font-bold transition-colors">
-                Read Justice Protocol
-              </button>
-            </div>
           </div>
+
+          {/* Right Column: Timeline & Verifiers */}
+          <div className="lg:col-span-4 space-y-8">
+            
+            {/* Timeline Card */}
+            <div className="bg-slate-900 rounded-3xl p-8 text-white shadow-xl">
+               <h3 className="text-lg font-bold mb-6 flex items-center">
+                 <Clock className="w-5 h-5 mr-2 text-indigo-400" />
+                 Timeline
+               </h3>
+               
+               <div className="space-y-6">
+                 <div className={`relative pl-8 pb-6 border-l-2 ${now > Number(contract_data.submission_deadline) ? 'border-indigo-500' : 'border-slate-700'}`}>
+                    <div className={`absolute -left-[9px] top-0 w-4 h-4 rounded-full border-2 border-slate-900 ${now > Number(contract_data.submission_deadline) ? 'bg-indigo-500' : 'bg-slate-700'}`}></div>
+                    <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Submission Deadline</p>
+                    <p className="text-sm font-bold">{new Date(Number(contract_data.submission_deadline) * 1000).toLocaleString()}</p>
+                 </div>
+
+                 <div className={`relative pl-8 pb-6 border-l-2 ${now > Number(contract_data.release_deadline) ? 'border-indigo-500' : 'border-slate-700'}`}>
+                    <div className={`absolute -left-[9px] top-0 w-4 h-4 rounded-full border-2 border-slate-900 ${now > Number(contract_data.release_deadline) ? 'bg-indigo-500' : 'bg-slate-700'}`}></div>
+                    <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Reveal Deadline</p>
+                    <p className="text-sm font-bold">{new Date(Number(contract_data.release_deadline) * 1000).toLocaleString()}</p>
+                 </div>
+
+                 <div className={`relative pl-8`}>
+                    <div className={`absolute -left-[9px] top-0 w-4 h-4 rounded-full border-2 border-slate-900 ${isFinalized ? 'bg-emerald-500' : 'bg-slate-700'}`}></div>
+                    <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Resolution Time</p>
+                    <p className="text-sm font-bold">{dispute.resolved_time ? new Date(Number(dispute.resolved_time) * 1000).toLocaleString() : 'Pending...'}</p>
+                 </div>
+               </div>
+            </div>
+
+            {/* Selected Verifiers */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-100 dark:border-slate-800 shadow-sm">
+               <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center">
+                 <Shield className="w-5 h-5 mr-2 text-indigo-600" />
+                 Chosen Verifiers
+               </h3>
+               
+               <div className="space-y-4">
+                 {contract_data.chosen_verifiers.map((v_addr, i) => (
+                   <div key={i} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                     <div className="flex items-center gap-3 overflow-hidden">
+                       <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 text-xs font-bold shrink-0">
+                         {i + 1}
+                       </div>
+                       <code className="text-xs text-slate-600 dark:text-slate-400 truncate">{v_addr}</code>
+                     </div>
+                     {isFinalized && (
+                       <span className={`text-xs font-black ${Number(contract_data.scores[i]) > 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                         {Number(contract_data.scores[i]) > 0 ? contract_data.scores[i] : "Missed"}
+                       </span>
+                     )}
+                   </div>
+                 ))}
+               </div>
+            </div>
+
+          </div>
+
         </div>
       </div>
     </div>

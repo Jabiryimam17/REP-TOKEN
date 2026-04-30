@@ -34,7 +34,15 @@ export async function transfer(address, amount) {
     // they can use this. But the standard transfer(to, amount) doesn't use allowance.
     // If they meant for things like Swap/RewardVault, I've already handled that.
     // In TransferPage, it's a direct transfer.
-    return await eth_contract.transfer(address, amount);
+    try {
+        const tx = await eth_contract.transfer(address, amount);
+        await tx.wait();
+        return true;
+    } catch (error) {
+        console.error("Error transferring EthioCoin:", error);
+        return false;
+    }
+
 }
 
 export async function approve(spender, amount) {

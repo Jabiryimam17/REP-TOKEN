@@ -141,7 +141,7 @@ export default function LoginPage() {
                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
                     Password
                   </label>
-                  <a href="#" className="text-xs font-bold text-indigo-600 hover:text-indigo-500 transition-colors">
+                  <a href="/forget-password" title="Reset your password" className="text-xs font-bold text-indigo-600 hover:text-indigo-500 transition-colors">
                     Forgot password?
                   </a>
                 </div>
@@ -160,17 +160,6 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded transition-all"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-600 dark:text-slate-400">
-                  Remember me for 30 days
-                </label>
-              </div>
 
               <button
                 type="submit"
@@ -191,7 +180,7 @@ export default function LoginPage() {
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 Don't have an account?{" "}
                 <a href="/register" className="font-bold text-indigo-600 hover:text-indigo-500 transition-colors">
-                  Join Platform
+                  Sign Up
                 </a>
               </p>
             </div>

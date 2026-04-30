@@ -31,12 +31,13 @@ export default function JobSystemAdminPage() {
     const [levels, setLevels] = useState([]);
     const [categories, setCategories] = useState([]);
     const [clientFee, setClientFee] = useState(0);
+    const [vrfWrapperAddress, setVrfWrapperAddress] = useState("");
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
 
     // Form states
     const [newLevel, setNewLevel] = useState({
-        min_verifiers_portion: "",
+        verifiers_cnt: "",
         freelancer_stake: "",
         client_stake: "",
         max_amount: "",
@@ -52,14 +53,15 @@ export default function JobSystemAdminPage() {
     const fetchSystemData = async () => {
         try {
             setLoading(true);
-            const { levels: fetchedLevels, client_fee_portion: fee, categories: fetchedCategories } = await get_post_configs();
+            const { levels: fetchedLevels, client_fee_portion: fee, categories: fetchedCategories, vrf_wrapper_address } = await get_post_configs();
             setClientFee(Number(fee));
+            setVrfWrapperAddress(vrf_wrapper_address);
             setLevels(fetchedLevels.map((lvl, i) => ({
                 id: i,
                 max_amount: ethers.formatUnits(lvl.max_amount, 18),
                 client_stake: ethers.formatUnits(lvl.client_stake, 18),
                 freelancer_stake: ethers.formatUnits(lvl.freelancer_stake, 18),
-                min_verifiers_portion: lvl.min_verifiers_portion.toString(),
+                verifiers_cnt: lvl.verifiers_cnt.toString(),
                 payment_duration: lvl.payment_duration.toString()
             })));
             setCategories(fetchedCategories);
@@ -75,17 +77,17 @@ export default function JobSystemAdminPage() {
         try {
             setActionLoading(true);
             const success = await append_level({
-                min_verifiers_portion: BigInt(newLevel.min_verifiers_portion),
+                verifiers_cnt: newLevel.verifiers_cnt,
                 freelancer_stake: ethers.parseUnits(newLevel.freelancer_stake, 18),
                 client_stake: ethers.parseUnits(newLevel.client_stake, 18),
                 max_amount: ethers.parseUnits(newLevel.max_amount, 18),
-                payment_duration: BigInt(newLevel.payment_duration)
+                payment_duration: newLevel.payment_duration
             });
 
             if (success) {
                 alert("Level added successfully!");
                 setNewLevel({
-                    min_verifiers_portion: "",
+                    verifiers_cnt: "",
                     freelancer_stake: "",
                     client_stake: "",
                     max_amount: "",
@@ -107,7 +109,7 @@ export default function JobSystemAdminPage() {
         e.preventDefault();
         try {
             setActionLoading(true);
-            const success = await set_client_fee_portion(BigInt(newFee));
+            const success = await set_client_fee_portion(newFee);
             if (success) {
                 alert("Client fee portion updated successfully!");
                 setNewFee("");
@@ -242,6 +244,23 @@ export default function JobSystemAdminPage() {
                             </form>
                         </div>
 
+                        {/* VRF Configuration */}
+                        <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                            <div className="flex items-center mb-6">
+                                <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-xl mr-4">
+                                    <Shield className="w-5 h-5 text-amber-600"/>
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white">VRF Configuration</h3>
+                            </div>
+                            
+                            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">VRF Wrapper Address</p>
+                                <p className="text-sm font-mono text-slate-600 dark:text-slate-300 break-all bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-700 mt-2">
+                                    {vrfWrapperAddress || "Not configured"}
+                                </p>
+                            </div>
+                        </div>
+
                         {/* Add Level Form */}
                         <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
                             <div className="flex items-center mb-6">
@@ -299,8 +318,8 @@ export default function JobSystemAdminPage() {
                                                 type="number"
                                                 placeholder="e.g. 500 for 50%"
                                                 className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                                                value={newLevel.min_verifiers_portion}
-                                                onChange={(e) => setNewLevel({...newLevel, min_verifiers_portion: e.target.value})}
+                                                value={newLevel.verifiers_cnt}
+                                                onChange={(e) => setNewLevel({...newLevel, verifiers_cnt: e.target.value})}
                                                 required
                                             />
                                         </div>
@@ -390,7 +409,7 @@ export default function JobSystemAdminPage() {
                                                         <p className="text-[10px] text-slate-400">Client / Freelancer Stake</p>
                                                     </td>
                                                     <td className="px-6 py-6">
-                                                        <p className="font-bold text-slate-700 dark:text-slate-300">{level.min_verifiers_portion} BPS</p>
+                                                        <p className="font-bold text-slate-700 dark:text-slate-300">{level.verifiers_cnt} BPS</p>
                                                         <p className="text-[10px] text-slate-400">Min. Approval</p>
                                                     </td>
                                                     <td className="px-6 py-6">

@@ -11,12 +11,11 @@ export async function transfer_address(new_address) {
         return old_address;
 }
 
-export async function register_freelancer(address, initial_level, user_id) {
+export async function register_freelancer(address) {
         try {
 
             const {signer} = await connect_wallet();
-            console.log(address);
-            const tx_register = await job_manager_contract.connect(signer).register_freelancer(address, initial_level);
+            const tx_register = await job_manager_contract.connect(signer).register_freelancer(address);
             await tx_register.wait();
             return true;
         } catch (error) {
@@ -25,4 +24,13 @@ export async function register_freelancer(address, initial_level, user_id) {
         }
 }
 
-export async function get_freelancers() {}
+export async function get_freelancer(freelancer_address) {
+    try {
+        const freelancer = await job_manager_contract.freelancers(freelancer_address);
+        freelancer.level = freelancer.successful_jobs*10/max(1,freelancer.total_jobs);
+        return freelancer;
+    }
+    catch (error) {
+        console.log("error: ", error);
+    }
+}
