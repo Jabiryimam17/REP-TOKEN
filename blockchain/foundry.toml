@@ -1,0 +1,12 @@
+[profile.default]
+src = "contracts"
+test = "test"
+libs = ["lib"]
+out = "out"
+
+remappings = [
+  "@chainlink/=lib/chainlink/",
+  "@openzeppelin/=lib/openzeppelin-contracts/",
+  "@uniswap/=lib/v2-periphery/",
+  "forge-std/=lib/forge-std/src/"
+]
