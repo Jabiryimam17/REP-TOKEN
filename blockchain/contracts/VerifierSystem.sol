@@ -203,6 +203,10 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
 
     function get_categories() external view returns (string[] memory) {return categories;}
 
+    function get_leveled_verifiers_len(uint16 category, uint8 level) external view returns (uint256) {
+        return leveled_verifiers[category][level].length;
+    }
+
 
     function add_verifier(uint16 category, address verifier) external restricted {
         if (verifier == address(0)) revert NullAddress();
@@ -431,6 +435,7 @@ contract VerifierSystem is VRFConsumerBaseV2Plus, ReentrancyGuard, AccessManaged
             Verifier storage v = verifiers[chosen];
             v.staked -= job.stakes;
             v.locked += job.stakes;
+            v.in_dispute++;
             v.idx = uint8(len);
             update_verifier_place(v, chosen);
         }
