@@ -10,3 +10,12 @@
 [submodule "blockchain/lib/forge-std"]
 	path = blockchain/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
+[submodule "lib/chainlink-brownie-contracts"]
+	path = lib/chainlink-brownie-contracts
+	url = https://github.com/smartcontractkit/chainlink-brownie-contracts
+[submodule "blockchain/lib/foundry-chainlink-toolkit"]
+	path = blockchain/lib/foundry-chainlink-toolkit
+	url = https://github.com/smartcontractkit/foundry-chainlink-toolkit
+[submodule "blockchain/lib/chainlink-evm"]
+	path = blockchain/lib/chainlink-evm
+	url = https://github.com/smartcontractkit/chainlink-evm
