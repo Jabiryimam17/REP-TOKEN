@@ -5,8 +5,8 @@ libs = ["lib"]
 out = "out"
 
 remappings = [
-  "@chainlink/=lib/chainlink/",
+  "@chainlink/=lib/chainlink-evm/",
   "@openzeppelin/=lib/openzeppelin-contracts/",
-  "@uniswap/=lib/v2-periphery/",
-  "forge-std/=lib/forge-std/src/"
+  "@uniswap/=lib/",
+  "forge-std/=lib/forge-std/"
 ]

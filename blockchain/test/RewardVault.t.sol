@@ -1,8 +1,8 @@
 //SPDX-License-Identifier:UNLICENSED
 pragma solidity ^0.8.20;
 import {RewardVault} from "../contracts/RewardVault.sol";
-import {Test} from "forge-std/src/Test.sol";
-import {console} from "forge-std/src/console.sol";
+import "forge-std/src/Test.sol";
+import  "forge-std/src/console.sol";
 import {EthioCoin} from "../contracts/EthioCoin.sol";
 import {ReputationToken} from "../contracts/ReputationToken.sol";
 import {Registry} from "../contracts/Registry.sol";

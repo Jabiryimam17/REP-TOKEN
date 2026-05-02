@@ -1,0 +1,35 @@
+{
+  "../lib/chainlink-brownie-contracts": {
+    "rev": "5cb41fbc9b525338b6098da5ea7dd0b7e92f89e4"
+  },
+  "lib/chainlink": {
+    "tag": {
+      "name": "v2.44.0",
+      "rev": "59ccd5b21f500c8ece2850e132d66707424c7737"
+    }
+  },
+  "lib/chainlink-evm": {
+    "tag": {
+      "name": "v0.3.3",
+      "rev": "793106cd598da8b2762958880300787b0b361fa1"
+    }
+  },
+  "lib/forge-std": {
+    "tag": {
+      "name": "v1.16.1",
+      "rev": "620536fa5277db4e3fd46772d5cbc1ea0696fb43"
+    }
+  },
+  "lib/foundry-chainlink-toolkit": {
+    "rev": "d610ec9ef54c325de7de1a5622c19933b2ae26cf"
+  },
+  "lib/openzeppelin-contracts": {
+    "tag": {
+      "name": "v5.6.1",
+      "rev": "5fd1781b1454fd1ef8e722282f86f9293cacf256"
+    }
+  },
+  "lib/v2-periphery": {
+    "rev": "ed24991304291297c3b4a52818d02f46a17aa9a2"
+  }
+}

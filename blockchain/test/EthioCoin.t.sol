@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 import {EthioCoin} from "../contracts/EthioCoin.sol";
-import {Test} from "forge-std/src/Test.sol";
+import  "forge-std/src/Test.sol";
 
 contract EthioCoinTest is Test {
     EthioCoin ethiocoin;

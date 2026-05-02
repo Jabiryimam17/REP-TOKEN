@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.20;
 import {ReputationToken} from "../contracts/ReputationToken.sol";
-import {Test} from "forge-std/src/Test.sol";
-import {console} from "forge-std/src/console.sol";
+import "forge-std/src/Test.sol";
+import "forge-std/src/console.sol";
 import {AccessManager} from "@openzeppelin/contracts/access/manager/AccessManager.sol";
 
 contract ReputationTokenTest is Test {

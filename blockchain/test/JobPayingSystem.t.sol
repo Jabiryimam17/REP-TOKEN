@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 import {JobPayingSystem as Manager} from "../contracts/JobPayingSystem.sol";
-import {Test} from "forge-std/src/Test.sol";
-import {console} from "forge-std/src/console.sol";
+import  "forge-std/src/Test.sol";
+import  "forge-std/src/console.sol";
 import {EthioCoin} from "../contracts/EthioCoin.sol";
 import {Registry} from "../contracts/Registry.sol";
 import {Treasury} from "../contracts/Treasury.sol";
@@ -36,8 +36,9 @@ contract JobPayingSystemTest is Test {
         registry.set_job_manager(address(job_manager));
 
         // Transfer some initial supply to treasury for paybacks
-        eth.transfer(address(treasury), 1000000 * 1e18);
-        rpt.transfer(address(treasury), 1000000 * 1e18);
+        eth.transfer(address(treasury), 100000 * 1e18);
+        rpt.transfer(address(treasury), 100000 * 1e18);
+        
 
         vm.stopPrank();
     }
@@ -188,7 +189,7 @@ contract JobPayingSystemTest is Test {
 
     function prepare_poster() public {
         vm.prank(owner);
-        rpt.transfer(f_client, 1e22);
+        rpt.transfer(f_client, 1e20);
         vm.prank(owner);
         eth.transfer(f_client, 1e22);
     }
@@ -254,10 +255,9 @@ contract JobPayingSystemTest is Test {
 
         job_manager.post_job(job_id, amount, day*2, 1);
         
-        (client_addr, freelancer_addr, f_stake, job_client_stake,,,,, job_amount,,, ) = job_manager.jobs(job_id);
-        
+        (client_addr, freelancer_addr, f_stake, job_client_stake,,,,status, job_amount,,, ) = job_manager.jobs(job_id);
         assertEq(job_amount, amount);
-        assertEq(status == Manager.JOB_STATUS.OPEN, true);
+        assertEq(status== Manager.JOB_STATUS.OPEN, true);
         assertEq(rpt.balanceOf(address(treasury)), prev_treasure_token+level.client_stake);
         assertEq(eth.balanceOf(address(treasury)), prev_treasure_dollar+amount+fee);
         vm.stopPrank();
@@ -294,7 +294,7 @@ contract JobPayingSystemTest is Test {
 
     function test_cancel_job_normal_mechanics() public {
         bytes32 job_id=create_job();
-        (client_addr,,,,,,, status, job_amount, job_client_stake, ,) = job_manager.jobs(job_id);
+        (client_addr,,,job_client_stake,,,,, job_amount, , ,) = job_manager.jobs(job_id);
         
         uint prev_balance=eth.balanceOf(client_addr);
         uint prev_token=rpt.balanceOf(client_addr);
@@ -331,10 +331,13 @@ contract JobPayingSystemTest is Test {
     }
 
     function test_hire_normal_mechanics() public returns(bytes32) {
+        console.log("I am working");
         bytes32 job_id=create_job();
         vm.prank(owner);
         job_manager.register_freelancer(worker);
         vm.startPrank(f_client);
+        console.log("balance of client: ", eth.balanceOf(f_client));
+        console.log("balance of worker: ", rpt.balanceOf(f_client));
         job_manager.hire(job_id, worker);
         (,,,,,,, status,,,,) = job_manager.jobs(job_id);
         assertEq(status == Manager.JOB_STATUS.PENDING, true);
@@ -363,7 +366,7 @@ contract JobPayingSystemTest is Test {
         (,,,,,,,, job_amount, , ,) = job_manager.jobs(job_id);
         uint level_idx = calculate_level(job_amount);
         Manager.w_level memory level = job_manager.get_levels()[level_idx];
-
+        console.log("balance of owner: ", eth.balanceOf(owner));
         vm.prank(owner);
         eth.transfer(worker, 1e22);
         vm.prank(owner);
