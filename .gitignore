@@ -8,3 +8,4 @@
 /frontend/node_modules/
 /blockchain/.deps/
 /blockchain/lib/
+/blockchain/.env
