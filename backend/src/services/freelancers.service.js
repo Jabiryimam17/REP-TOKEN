@@ -56,11 +56,11 @@ export default async (filters = {}) => {
     }
 
     const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
-    
+
     const offset = (page - 1) * limit;
-    
+
     const query = `
-        SELECT 
+        SELECT
             u.id, u.f_name, u.l_name, u.profile_picture, u.location,
             f.title, f.category, f.description, f.min_wage, f.skills, f.qualifications
         FROM users u

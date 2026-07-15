@@ -11,7 +11,7 @@ export default async (id) => {
 
     if (!user || user.length === 0) return null;
     const profile = user[0];
-    
+
     // Parse JSON fields
     if (profile.skills && typeof profile.skills === 'string') {
         try { profile.skills = JSON.parse(profile.skills); } catch(e) { profile.skills = []; }
@@ -24,7 +24,7 @@ export default async (id) => {
         SELECT j.*, u.f_name as employer_f_name, u.l_name as employer_l_name, u.email as employer_email
         FROM jobs j
         JOIN users u ON j.employer_id = u.id
-        WHERE j.freelancer_id = ? 
+        WHERE j.freelancer_id = ?
            OR j.id IN (SELECT job_id FROM bids WHERE user_id = ?)
     `, [id, id]);
 

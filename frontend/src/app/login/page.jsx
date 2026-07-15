@@ -13,7 +13,7 @@ import {
   AlertCircle,
   Loader2
 } from "lucide-react";
-import axios from "axios";
+import api from "@/utils/api";
 import { useApp } from "@/context/AppContext";
 
 export default function LoginPage() {
@@ -64,7 +64,7 @@ export default function LoginPage() {
     }
 
     try {
-      const response = await axios.post("http://localhost:3333/api/auth/login", {password:password, email:email},{withCredentials:true});
+      const response = await api.post("/api/auth/login", {password:password, email:email});
       
       const { role } = response.data;
       

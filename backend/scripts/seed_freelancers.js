@@ -47,7 +47,7 @@ async function seed() {
             // 1. Insert User
             const [userResult] = await db.query(
                 `INSERT INTO users (f_name, l_name, email, pass_hash, bio, location, profile_picture, role)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
                 [
                     fName,
                     lName,
@@ -55,12 +55,12 @@ async function seed() {
                     passHash,
                     `Passionate ${category} expert from ${location} with over ${randInt(2, 10)} years of experience.`,
                     location,
-                    null, // Profile picture
+                    null,
                     'freelancer'
                 ]
             );
 
-            const userId = userResult.insertId;
+            const userId = userResult[0].id;
 
             // 2. Insert Freelancer
             await db.query(

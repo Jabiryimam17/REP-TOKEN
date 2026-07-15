@@ -2,7 +2,8 @@ import db from "#models/index.js"
 import bcrypt from 'bcrypt'
 
 const reset_password = async (email, code, new_password) => {
-    const [[user]] = await db.query("SELECT * FROM users WHERE email=?", [email]);
+    const [rows] = await db.query("SELECT * FROM users WHERE email=?", [email]);
+    const user = rows.length > 0 ? rows[0] : null;
     if (!user) return { success: false, message: "User not found" };
 
     const now = new Date().toISOString().slice(0, 19).replace("T", " ");

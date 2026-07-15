@@ -2,7 +2,8 @@ import db from "#models/index.js"
 import crypto from "crypto"
 import send_email from "#utils/send_email.util.js"
 const send_code = async (email) => {
-    const [[user]]=await db.query("SELECT * FROM users WHERE email=?", [email])
+    const [rows]=await db.query("SELECT * FROM users WHERE email=?", [email])
+    const user = rows.length > 0 ? rows[0] : null;
     if (!user || user.email_v) return false;
 
     const code = generate_secure_code();

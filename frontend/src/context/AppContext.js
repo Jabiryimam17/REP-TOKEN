@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { getCookie, removeCookie } from "@/utils/cookie.util";
 import { ethers } from "ethers";
-import axios from "axios";
+import api from "@/utils/api";
 
 const AppContext = createContext();
 
@@ -92,7 +92,7 @@ export function AppProvider({ children }) {
 
   const logout = async () => {
     try {
-      await axios.post("http://localhost:3333/api/auth/logout", {}, { withCredentials: true });
+      await api.post("/api/auth/logout", {});
     } catch (error) {
       console.error("Logout failed:", error);
     } finally {

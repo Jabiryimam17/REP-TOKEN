@@ -1,4 +1,4 @@
-import axios from "axios"
+import api from "@/utils/api"
 
 export default async (user_data) => {
     try {
@@ -17,7 +17,7 @@ export default async (user_data) => {
             headers = { 'Content-Type': 'multipart/form-data' };
         }
 
-        const response = await axios.post("http://localhost:3333/api/auth/signup", payload, { headers });
+        const response = await api.post("/api/auth/signup", payload, { headers });
         if (response.status === 201) {
             return true;
         } else {

@@ -98,7 +98,7 @@ export async function listen_verifiers_selection() {
                 const [users] = await db.query("SELECT * from users where hash_address=? and role=?", [hash_address, "verifier"]);
                 for (const user of users) {
                     await send_selection_email(user.email, job_id, verifier);
-                    await db.query("INSERT INTO verifier_disputes (dispute_id, verifier_id) VALUES (?,?)", [ dispute.id, verifier.id]);
+                    await db.query("INSERT INTO verifier_disputes (dispute_id, verifier_id) VALUES (?, ?)", [dispute.id, user.id]);
                 }
             }
         }

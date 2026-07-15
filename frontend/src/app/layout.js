@@ -20,6 +20,10 @@ export const metadata = {
   description: "Connect, Work, and Pay with Stablecoins and Reputation Tokens. Decentralized dispute resolution by the community.",
 };
 
+// Force dynamic rendering — this is a Web3 app that needs browser/wallet
+// at runtime; static prerendering would fail on blockchain RPC calls.
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>

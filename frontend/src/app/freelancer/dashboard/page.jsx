@@ -46,7 +46,7 @@ import {
   Loader2,
   ArrowRight
 } from "lucide-react";
-import axios from "axios";
+import api, { API_URL } from "@/utils/api";
 import { 
   get_job_blockchain, 
   accept_work, 
@@ -158,7 +158,7 @@ export default function FreelancerDashboard() {
   const get_profile_picture_url = (path) => {
     if (!path) return null;
     if (path.startsWith('http')) return path;
-    return `http://localhost:3333${path}`;
+    return `${API_URL}${path}`;
   };
 
   useEffect(() => {
@@ -166,9 +166,7 @@ export default function FreelancerDashboard() {
       try {
         setLoading(true);
         
-        const response = await axios.get(`http://localhost:3333/api/freelancers/dashboard`, {
-          withCredentials: true
-        });
+        const response = await api.get(`/api/freelancers/dashboard`);
         
         const data = response.data;
         if (data) {
@@ -472,9 +470,7 @@ export default function FreelancerDashboard() {
         }
       };
 
-      await axios.put(`http://localhost:3333/api/freelancers/update`, updateData, {
-        withCredentials: true
-      });
+      await api.put(`/api/freelancers/update`, updateData);
 
       window.location.reload();
       setLoading(false);

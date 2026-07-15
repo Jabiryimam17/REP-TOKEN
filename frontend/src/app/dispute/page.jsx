@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { 
   Gavel, 
@@ -18,7 +18,7 @@ import {
   MessageSquare
 } from "lucide-react";
 import { ethers } from "ethers";
-import axios from "axios";
+import api from "@/utils/api";
 
 const DISPUTE_STATUS = ["PENDING", "FREELANCER_WIN", "CLIENT_WIN"];
 
@@ -64,7 +64,7 @@ const ScoreHistogram = ({ scores }) => {
   );
 };
 
-export default function DisputeDetailsPage() {
+function DisputeDetailsContent() {
   const searchParams = useSearchParams();
   const jobId = searchParams.get("jobId");
   
@@ -81,7 +81,7 @@ export default function DisputeDetailsPage() {
 
     const fetchDetails = async () => {
       try {
-        const res = await axios.get(`http://localhost:3333/api/disputes/${jobId}`, { withCredentials: true });
+        const res = await api.get(`/api/disputes/${jobId}`);
         setDispute(res.data);
       } catch (err) {
         console.error("Error fetching dispute details:", err);
@@ -303,5 +303,13 @@ export default function DisputeDetailsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function DisputeDetailsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>}>
+      <DisputeDetailsContent />
+    </Suspense>
   );
 }

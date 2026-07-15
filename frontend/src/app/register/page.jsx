@@ -20,7 +20,7 @@ import {
   Github,
   Twitter
 } from "lucide-react";
-import axios from "axios";
+import api from "@/utils/api";
 import { useRouter } from "next/navigation";
 import sign_message from "@/services/sign_message.service"
 import connect_wallet from "@/services/connect_wallet.service"
@@ -85,7 +85,7 @@ export default function RegisterPage() {
 
   const handle_message_request = async () => {
     try {
-      const response = await axios.get("http://localhost:3333/api/auth/nonce");
+      const response = await api.get("/api/auth/nonce");
       set_user({ ...user, nonce: response.data.nonce });
     } catch (error) {
       console.error("Failed to fetch nonce", error);

@@ -1,10 +1,10 @@
 import {get_contracts} from "./compose_contracts.service.js";
-import axios from "axios";
+import api from "../utils/api.js";
 const {verifier_contract} = await get_contracts();
 
 export async function get_verifier_backend_data(id) {
     try {
-        const response = await axios.get(`http://localhost:3333/api/verification/${id}`, { withCredentials: true });
+        const response = await api.get(`/api/verification/${id}`);
         return response.data;
     } catch (error) {
         console.error("Error getting verifier backend data:", error);

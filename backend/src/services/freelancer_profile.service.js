@@ -25,7 +25,7 @@ export default async (id) => {
     const [certifications] = await db.query("SELECT title as name, issuer, year FROM certifications WHERE user_id = ?", [id]);
     const [contacts] = await db.query("SELECT github, website, twitter, instagram, telegram, whatsapp, linkedin FROM contacts WHERE user_id = ?", [id]);
     const [education] = await db.query("SELECT title as degree, institution as school, start_year as startYear, end_year as endYear FROM education_levels WHERE user_id = ?", [id]);
-    
+
     // 3. Fetch reviews
     const [reviews] = await db.query(`
         SELECT r.id, r.comment as text, r.rating, r.created_at as date,
@@ -56,7 +56,7 @@ export default async (id) => {
         })),
         reviews: reviews.map(r => ({
             ...r,
-            author: `${r.f_name} ${r.l_name}`
+            author: `${r.author_f_name} ${r.author_l_name}`
         }))
     };
 }

@@ -1,0 +1,7 @@
+node_modules
+.env
+.git
+.gitignore
+uploads/profile_pictures/*.jpg
+uploads/profile_pictures/*.jpeg
+uploads/profile_pictures/*.png

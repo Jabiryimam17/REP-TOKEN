@@ -8,17 +8,17 @@ const {abi: verifier_system_abi} = verifier_system_interface;
 
 export const get_verifier_info = async (id) => {
     const [verifier] = await db.query(`
-        SELECT u.id, u.email, u.address, u.hash_address, v.user_id 
-        FROM users u 
-        JOIN verifiers v ON u.id = v.user_id 
+        SELECT u.id, u.email, u.address, u.hash_address, v.user_id
+        FROM users u
+        JOIN verifiers v ON u.id = v.user_id
         WHERE u.id = ? OR u.hash_address = ?
     `, [id, id]);
 
     if (verifier.length === 0) return null;
 
     const [jobs] = await db.query(`
-        SELECT j.* 
-        FROM disputes j 
+        SELECT j.*
+        FROM disputes j
         JOIN verifier_disputes vd ON j.id = vd.dispute_id
         WHERE vd.verifier_id = ?
     `, [verifier[0].id]);
@@ -29,7 +29,7 @@ export const get_verifier_info = async (id) => {
             ...j,
             id: j.id ? ('0x' + Buffer.from(j.id).toString('hex')) : null,
         }))
-    };
+    }
 }
 
 export const get_dispute_details = async (job_id) => {
@@ -67,7 +67,7 @@ export const get_dispute_details = async (job_id) => {
             dispute_status: Number(job_data.dispute_status),
             chosen_verifiers: job_data.chosen_verifiers,
             total_revealed: scores.filter(s => Number(s) > 0).length,
-            total_submitted: job_data.chosen_verifiers.length, // total_submitted is not directly in get_job but we have chosen_verifiers
+            total_submitted: job_data.chosen_verifiers.length,
             scores: scores.map(s => s.toString())
         }
     };

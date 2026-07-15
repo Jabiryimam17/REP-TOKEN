@@ -2,7 +2,7 @@ import {abi as access_manager_abi} from "../abis/RPTAccessManager.json" with {ty
 import connect_wallet from "./connect_wallet.service.js";
 import {ethers, JsonRpcProvider, Wallet} from "ethers";
 import {get_addresses} from "./system_addresses.service.js";
-import axios from "axios";
+import api from "../utils/api.js";
 
 const {provider} = await connect_wallet();
 
@@ -230,7 +230,7 @@ export async function roles_admin_guardian_delay(roles_ids) {
 
 export async function get_roles_assignments() {
     try {
-        const response = await axios.get("http://localhost:3333/api/auth/roles_assignments", {withCredentials: true});
+        const response = await api.get("/api/auth/roles_assignments");
         return response.data;
     } catch (error) {
         console.error("Error fetching roles assignments:", error);

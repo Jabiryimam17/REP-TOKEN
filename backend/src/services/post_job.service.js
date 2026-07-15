@@ -13,9 +13,9 @@ export default async (job, user_id)=> {
     topics = JSON.stringify(topics);
     skills = JSON.stringify(skills);
     const employer_id=user_id;
-    const db_job = {id, employer_id, title, description, category, topics,company, skills, salary, bid_duration, state: 'OPEN', published_date:new Date().toISOString().slice(0, 19).replace("T", " ")}
+    const published_date=new Date().toISOString().slice(0, 19).replace("T", " ");
 
-    await db.query("INSERT INTO jobs SET ?", db_job);
+    await db.query("INSERT INTO jobs (id, employer_id, title, description, category, topics, company, skills, salary, bid_duration, state, published_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id", [id, employer_id, title, description, category, topics, company, skills, salary, bid_duration, 'OPEN', published_date]);
     return true;
 }
 
@@ -37,6 +37,6 @@ async function check_job(job, user_id) {
     const client_address= bc_job.client;
     const normalize = ethers.getAddress(client_address);
     const hash_address= ethers.keccak256(ethers.getBytes(normalize))
-    const [[user]]=await db.query("SELECT * FROM users WHERE hash_address=? AND id=?", [hash_address, user_id]);
-    return !!user;
+    const [users]=await db.query("SELECT * FROM users WHERE hash_address=? AND id=?", [hash_address, user_id]);
+    return users.length > 0;
 }

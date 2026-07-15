@@ -2,7 +2,7 @@ import {get_contracts} from "./compose_contracts.service.js"
 import {Contract, encodeBytes32String} from "ethers";
 import {nanoid} from "nanoid";
 import {get_categories} from "./verifiers.service.js";
-import axios from "axios";
+import api from "../utils/api.js";
 import connect_wallet from "./connect_wallet.service.js";
 import {get_addresses} from "@/services/system_addresses.service.js";
 import {get_allowance as get_eth_allowance} from "./eth_coin.service.js";
@@ -13,7 +13,7 @@ import { ethers } from "ethers";
 // Normalize to the legacy ordering expected by the UI: COMPLETED => 4, DISPUTED => 5.
 
 export async function list_jobs(filters = {}) {
-    const res = await axios.get("http://localhost:3333/api/jobs", { params: filters, withCredentials: true });
+    const res = await api.get("/api/jobs", { params: filters });
     return res.data || [];
 }
 
@@ -92,7 +92,7 @@ export async function post_job(job) {
             const tx_post_job = await job_manager_contract.post_job(bytes_id, amount, max_duration, cat_id);
             await tx_post_job.wait();
 
-            const response = await axios.post("http://localhost:3333/api/jobs", {bytes_id, title, description, topics, bid_duration, category, amount:amount.toString(), skills, company} ,{ withCredentials: true});
+            const response = await api.post("/api/jobs", {bytes_id, title, description, topics, bid_duration, category, amount:amount.toString(), skills, company});
             return response.status === 201;
     } catch (error) {
             console.error("Error posting job:", error);
@@ -195,7 +195,7 @@ export async function get_client_fee_portion() {
 
 export async function get_job_bids(id) {
     try {
-        const response = await axios.get(`http://localhost:3333/api/jobs/${id}/bids`, { withCredentials: true });
+        const response = await api.get(`/api/jobs/${id}/bids`);
         return response.data.data || [];
     } catch (error) {
         console.error("Error getting job bids:", error);
@@ -205,7 +205,7 @@ export async function get_job_bids(id) {
 
 export async function post_bid_api(bid) {
     try {
-        const response = await axios.post(`http://localhost:3333/api/jobs/bid/${bid.id}`, bid, { withCredentials: true });
+        const response = await api.post(`/api/jobs/bid/${bid.id}`, bid);
         return response.status === 201;
     } catch (error) {
         console.error("Error posting bid:", error);
@@ -215,7 +215,7 @@ export async function post_bid_api(bid) {
 
 export async function get_job_api(id) {
     try {
-        const response = await axios.get(`http://localhost:3333/api/jobs/${id}`, { withCredentials: true });
+        const response = await api.get(`/api/jobs/${id}`);
         return response.data;
     } catch (error) {
         console.error("Error getting job details from API:", error);
@@ -392,14 +392,14 @@ export async function raise_dispute(job_id, pay_link, fee_amount, reason, detail
         // await tx_raise_dispute.wait();
 
         const userAddress = await signer.getAddress();
-        await axios.post("http://localhost:3333/api/disputes/post", {
+        await api.post("/api/disputes/post", {
             dispute: {
                 job: job_id,
                 issuer: userAddress,
                 reason: reason,
                 details: details
             }
-        }, { withCredentials: true });
+        });
 
         return true;
     } catch (error) {

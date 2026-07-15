@@ -11,7 +11,7 @@ import {
   ChevronLeft,
   Lock
 } from "lucide-react";
-import axios from "axios";
+import api from "@/utils/api";
 
 export default function VerifyEmailPage() {
   const [code, set_code] = useState(["", "", "", "", "", ""]);
@@ -44,7 +44,7 @@ export default function VerifyEmailPage() {
     set_is_resending(true);
     set_timer(60);
     try {
-      const res = await axios.post("http://localhost:3333/api/auth/send_code", { email });
+      const res = await api.post("/api/auth/send_code", { email });
       if (res.status === 200) {
         console.log("Verification code resent successfully");
       } else {
@@ -65,7 +65,7 @@ export default function VerifyEmailPage() {
     set_is_verifying(true);
     set_status("idle");
     try {
-      const res = await axios.post("http://localhost:3333/api/auth/verify_email", { email, code: code.join("") });
+      const res = await api.post("/api/auth/verify_email", { email, code: code.join("") });
       if (res.status === 200) {
         console.log("Email verified successfully");
         set_status("success");

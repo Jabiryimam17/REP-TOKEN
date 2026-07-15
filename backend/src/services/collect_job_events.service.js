@@ -186,8 +186,10 @@ export async function listen_job_disputes() {
                 const [res] = await db.query("UPDATE jobs SET state=?, last_change=? where id=? AND (last_change < ? OR last_change IS NULL)", ["DISPUTED", timestamp, job_id, timestamp]);
                 if (res.affectedRows > 0) {
                     await send_job_notifications(jobs[0].email, "DISPUTED");
-                    const [[employer]] = await db.query("SELECT * FROM jobs JOIN users on jobs.employer_id = users.id  WHERE jobs.id=?", [job_id]);
-                    await send_job_notifications(employer.email, "DISPUTED");
+                    const [employer_rows] = await db.query("SELECT * FROM jobs JOIN users on jobs.employer_id = users.id  WHERE jobs.id=?", [job_id]);
+                    if (employer_rows.length > 0) {
+                        await send_job_notifications(employer_rows[0].email, "DISPUTED");
+                    }
                 }
             }
         }
@@ -195,6 +197,7 @@ export async function listen_job_disputes() {
     } catch (e) {
         console.error(e);
     }
+
 }
 
 export async function listen_job_completes() {

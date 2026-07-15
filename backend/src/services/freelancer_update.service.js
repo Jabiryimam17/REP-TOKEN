@@ -25,7 +25,7 @@ export default async (user) => {
                UPDATE freelancers
             ========================== */
             await db.query(
-                "UPDATE freelancers SET title = ?, category = ?, description = ?, qualifications=?, skills=? WHERE user_id = ?", 
+                "UPDATE freelancers SET title = ?, category = ?, description = ?, qualifications=?, skills=? WHERE user_id = ?",
                 [title, category, description, JSON.stringify(qualifications), JSON.stringify(skills), user.id]
             )
         await db.query(
@@ -41,16 +41,11 @@ export default async (user) => {
         );
 
 
-        const u_certifications = (certifications || []).map(cert => [
-            user.id,
-            cert.title,
-            cert.issuer,
-            Number(cert.year)
-        ]);
-        if (u_certifications.length > 0) {
+        const u_certifications = (certifications || []);
+        for (const cert of u_certifications) {
             await db.query(
-                "INSERT INTO certifications (user_id, title, issuer, year) VALUES ?",
-                [u_certifications]
+                "INSERT INTO certifications (user_id, title, issuer, year) VALUES (?, ?, ?, ?)",
+                [user.id, cert.title, cert.issuer, Number(cert.year)]
             );
         }
 
@@ -62,20 +57,13 @@ export default async (user) => {
             [user.id]
         );
 
-        const u_education_levels = (education_levels || []).map(edu => [
-            user.id,
-            edu.title, // title
-            edu.institution, // institution
-            Number(edu.start_year), // start_year
-            Number(edu.end_year)
-        ]);
-
-        if (u_education_levels.length > 0) {
+        const u_education_levels = (education_levels || []);
+        for (const edu of u_education_levels) {
             await db.query(
                 `INSERT INTO education_levels
                  (user_id, title, institution, start_year, end_year)
-                 VALUES ?`,
-                [u_education_levels]
+                 VALUES (?, ?, ?, ?, ?)`,
+                [user.id, edu.title, edu.institution, Number(edu.start_year), Number(edu.end_year)]
             );
         }
 

@@ -22,7 +22,7 @@ import {
   AlertCircle,
   MessageSquare
 } from "lucide-react";
-import axios from "axios";
+import api, { API_URL } from "@/utils/api";
 
 export default function ProfilePage() {
   const params = useParams();
@@ -34,7 +34,7 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetch_profile = async () => {
       try {
-        const response = await axios(`http://localhost:3333/api/freelancers/profile/${user_id}`);
+        const response = await api(`/api/freelancers/profile/${user_id}`);
 
 
         set_data(response.data);
@@ -82,7 +82,7 @@ export default function ProfilePage() {
   const get_profile_picture_url = (path) => {
     if (!path) return null;
     if (path.startsWith('http')) return path;
-    return `http://localhost:3333${path}`;
+    return `${API_URL}${path}`;
   };
 
   const freelancer = {

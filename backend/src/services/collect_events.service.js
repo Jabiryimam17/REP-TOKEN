@@ -11,7 +11,6 @@ import {
     listen_job_expiration_cancels,
     listen_job_posts,
     listen_job_unhired_cancels,
-    listen_pendings,
     listen_transfer_freelancer_addresses
 } from "#services/collect_job_events.service.js";
 import {
@@ -22,8 +21,6 @@ import {
 } from "#services/collect_verifier_events.service.js";
 
 const MAX_BLOCKS = 5000;
-
-
 
 
 
@@ -83,10 +80,11 @@ export async function listen_role_assignment() {
             const address = Buffer.from(account.slice(2), "hex");
 
             // Fetch current state (needed for your logic)
-            const [[role]] = await db.query(
+            const [role_rows] = await db.query(
                 "SELECT * FROM contract_roles WHERE role_id=? AND subject=?",
                 [role_id, address]
             );
+            const role = role_rows.length > 0 ? role_rows[0] : null;
 
             if (event.fragment.name === "RoleGranted") {
                 const {delay, since, newMember} = event.args;
@@ -232,7 +230,6 @@ export default async function listen_all() {
         await new Promise((resolve) => setTimeout(resolve, 1000*60*5));
     }
 }
-
 
 
 

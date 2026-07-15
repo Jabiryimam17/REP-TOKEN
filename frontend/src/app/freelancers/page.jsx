@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import axios from "axios";
+import api, { API_URL } from "@/utils/api";
 import { useSearchParams, useRouter } from "next/navigation";
 import { 
   Search, 
@@ -48,7 +48,7 @@ export default function FreelancersListPage() {
       params.append("page", page);
       params.append("limit", 10);
 
-      const response = await axios.get(`http://localhost:3333/api/freelancers?${params.toString()}`);
+      const response = await api.get(`/api/freelancers?${params.toString()}`);
       if (response.data) {
         setFreelancers(response.data.freelancers || []);
         setTotal(response.data.total || 0);
@@ -239,7 +239,7 @@ export default function FreelancersListPage() {
                       <div className="relative">
                         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white font-bold text-2xl shadow-lg group-hover:scale-105 transition-transform overflow-hidden">
                           {freelancer.profile_picture ? (
-                            <img src={`http://localhost:3333${freelancer.profile_picture}`} alt={freelancer.f_name} className="w-full h-full object-cover" />
+                            <img src={`${API_URL}${freelancer.profile_picture}`} alt={freelancer.f_name} className="w-full h-full object-cover" />
                           ) : (
                             `${freelancer.f_name?.[0] || ""}${freelancer.l_name?.[0] || ""}` || <User />
                           )}

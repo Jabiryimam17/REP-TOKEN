@@ -1,7 +1,7 @@
 "use client";
 
 import React, {useState, useEffect} from "react";
-import axios from "axios";
+import api, { API_URL } from "@/utils/api";
 import {register_freelancer} from "@/services/freelancers.service";
 import {register_verifier, get_categories} from "@/services/verifiers.service";
 import {ethers} from "ethers";
@@ -34,7 +34,7 @@ export default function AdminVerifyPage() {
     const fetchUnverifiedUsers = async () => {
         try {
             setLoading(true);
-            const response = await axios.get("http://localhost:3333/api/verification/");
+            const response = await api.get("/api/verification/");
             const mappedUsers = response.data.map(user => ({
                 id: user.id,
                 name: `${user.f_name} ${user.l_name}`,
@@ -42,7 +42,7 @@ export default function AdminVerifyPage() {
                 address: user.address==null?"0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f":user.address,
                 idType: user.role === 'employer' ? 'Business License' : 'National ID',
                 uploadedAt: 'Recently',
-                idImage: user.profile_picture ? `http://localhost:3333${user.profile_picture}` : "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=800",
+                idImage: user.profile_picture ? `${API_URL}${user.profile_picture}` : "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=800",
                 profileLink: user.role === 'freelancer' ? `/freelancers/profile/${user.id}` : (user.role === 'verifier' ? '/verifier' : '/employer')
             }));
             setPendingUsers(mappedUsers);
@@ -96,9 +96,7 @@ export default function AdminVerifyPage() {
                 }
                 if (!success) throw new Error("Failed to register verifier.");
                 // For other roles, just hit the backend
-                const response = await axios.post(`http://localhost:3333/api/verification/${user.id}`, {}, {
-                    withCredentials: true
-                });
+	                const response = await api.post(`/api/verification/${user.id}`, {});
                 success = response.status === 200;
 
                 if (success) {

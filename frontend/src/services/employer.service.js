@@ -1,8 +1,8 @@
-import axios from "axios";
+import api from "../utils/api.js";
 
 export async function get_employer_jobs() {
     try {
-        const response = await axios.get("http://localhost:3333/api/employers", { withCredentials: true });
+        const response = await api.get("/api/employers");
         return response.data || [];
     } catch (error) {
         console.error("Error getting employer jobs:", error);

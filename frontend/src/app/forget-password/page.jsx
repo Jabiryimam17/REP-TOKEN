@@ -10,7 +10,7 @@ import {
   Loader2,
   CheckCircle2
 } from "lucide-react";
-import axios from "axios";
+import api from "@/utils/api";
 
 export default function ForgetPasswordPage() {
   const router = useRouter();
@@ -32,7 +32,7 @@ export default function ForgetPasswordPage() {
     }
 
     try {
-      await axios.post("http://localhost:3333/api/auth/forget_password", { email });
+      await api.post("/api/auth/forget_password", { email });
       set_success(true);
       setTimeout(() => {
         router.push(`/reset-password?email=${encodeURIComponent(email)}`);

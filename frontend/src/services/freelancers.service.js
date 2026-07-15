@@ -1,6 +1,5 @@
 import {get_contracts} from "./compose_contracts.service.js"
 import connect_wallet from "./connect_wallet.service.js"
-import axios from "axios";
 const {job_manager_contract} = await get_contracts();
 
 export async function transfer_address(new_address) {
