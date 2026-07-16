@@ -5,10 +5,11 @@ import {freelancer_update_controller} from "#controllers/freelancer_update.contr
 import freelancer_profile_controller from "../controllers/freelancer_profile.controller.js";
 import freelancers_controller from "../controllers/freelancers.controller.js";
 import auth_middleware,{auth_freelancers_middleware} from "#middlewares/auth.middleware.js";
+import upload from "#middlewares/upload.middleware.js";
 const router = express.Router();
 
 router.get('/dashboard/', auth_middleware, auth_freelancers_middleware, freelancer_dashboard_controller);
-router.put('/update', auth_middleware, auth_freelancers_middleware,freelancer_update_controller);
+router.put('/update', auth_middleware, auth_freelancers_middleware, upload.single('profile_picture'), freelancer_update_controller);
 router.get('/profile/:id', freelancer_profile_controller);
 router.get('/', freelancers_controller);
 

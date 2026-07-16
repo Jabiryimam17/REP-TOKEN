@@ -3,7 +3,7 @@ const signup_controller = async (req, res) => {
     try {
         const user = req.body;
         if (req.file) {
-            user.profile_picture = `/uploads/profile_pictures/${req.file.filename}`;
+            user.profile_picture = req.file.path;
         }
         if (await sign_up(user)) res.status(201).send({message: "User registered successfully"});
         else res.status(500).send({message: "Error registering user"});

@@ -28,7 +28,7 @@ async function get_block_ranges(from_block, MAX_BLOCKS) {
     return {from_block, to_block: Math.min(current_block, from_block + MAX_BLOCKS)};
 }
 
-async function listen_job_posts() {
+export async function listen_job_posts() {
     const last_block = await return_last_block();
     const {from_block, to_block} = await get_block_ranges(last_block.job_posts, MAX_BLOCKS);
     const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');

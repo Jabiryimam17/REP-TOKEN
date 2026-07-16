@@ -15,7 +15,9 @@ const __dirname = path.dirname(__filename);
 const app=express();
 
 // Start blockchain event listener in background
-listen_all();
+if (process.env.START_LISTENER === "true") {
+    listen_all();
+}
 
 // CORS: allow the frontend origin (configurable via CORS_ORIGIN env var)
 const cors_origin = process.env.CORS_ORIGIN || "http://localhost:3000";

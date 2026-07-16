@@ -11,6 +11,7 @@ import {
     listen_job_expiration_cancels,
     listen_job_posts,
     listen_job_unhired_cancels,
+    listen_pendings,
     listen_transfer_freelancer_addresses
 } from "#services/collect_job_events.service.js";
 import {
@@ -216,7 +217,7 @@ const listeners = [
     listen_transfer_verifiers_addresses,
     listen_role_assignment
 ];
-// await listen_role_assignment();
+
 export default async function listen_all() {
     while (true) {
         for (const fn of listeners) {
